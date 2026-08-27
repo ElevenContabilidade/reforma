@@ -1,8 +1,11 @@
 import * as pdfjsLib from 'pdfjs-dist';
-import pdfjsWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
+// Importado como texto (não como URL de arquivo) para funcionar também em
+// builds "single-file" (ex.: artifact), onde não há um servidor de assets.
+import pdfjsWorkerSource from 'pdfjs-dist/build/pdf.worker.min.mjs?raw';
 import type { AnexoSimples, DadosExtraidosPgdas } from './types';
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorkerUrl;
+const workerBlob = new Blob([pdfjsWorkerSource], { type: 'text/javascript' });
+pdfjsLib.GlobalWorkerOptions.workerSrc = URL.createObjectURL(workerBlob);
 
 function normalizar(texto: string): string {
   return texto
