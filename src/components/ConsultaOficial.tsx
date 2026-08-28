@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Search, PackageSearch } from 'lucide-react';
+import { Search, PackageSearch, Info } from 'lucide-react';
 import { buscarNcm, buscarNbs, montarFicha } from '../lib/officialData';
 import { FichaTributaria } from './FichaTributaria';
 
@@ -10,6 +10,9 @@ interface Props {
   placeholder: string;
 }
 
+/** Reconhece o formato do CNAE (ex.: "7319-0/02" ou "7319002") para diferenciar de um código NBS (que usa pontos). */
+const PARECE_CNAE = /^\d{4}-?\d\/?\d{0,2}$/;
+
 export function ConsultaOficial({ tipo, titulo, subtitulo, placeholder }: Props) {
   const [termo, setTermo] = useState('');
   const [selecionado, setSelecionado] = useState<{ codigo: string; descricao: string } | null>(null);
@@ -18,6 +21,8 @@ export function ConsultaOficial({ tipo, titulo, subtitulo, placeholder }: Props)
     if (tipo === 'NCM') return buscarNcm(termo);
     return buscarNbs(termo);
   }, [termo, tipo]);
+
+  const pareceCnae = tipo === 'NBS' && PARECE_CNAE.test(termo.trim());
 
   const ficha = selecionado ? montarFicha(selecionado.codigo, selecionado.descricao, tipo) : null;
 
@@ -57,7 +62,20 @@ export function ConsultaOficial({ tipo, titulo, subtitulo, placeholder }: Props)
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           <div>
             <p className="mb-2 text-sm font-medium text-stone-700">Resultados · {resultados.length}</p>
-            {resultados.length === 0 && (
+            {resultados.length === 0 && pareceCnae && (
+              <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-amber-300 bg-amber-50 px-6 py-10 text-center">
+                <Info className="h-8 w-8 text-amber-500" />
+                <p className="text-sm text-amber-800">
+                  "{termo}" parece um código de CNAE, não um NBS — e ainda não tenho a tabela oficial que cruza CNAE
+                  com NBS (Anexo VIII da Receita Federal) carregada nesta base.
+                </p>
+                <p className="text-xs text-amber-700">
+                  Por enquanto, descreva a atividade da empresa em palavras (ex.: "advocacia", "transporte de
+                  cargas", "consultoria em TI") em vez do código do CNAE.
+                </p>
+              </div>
+            )}
+            {resultados.length === 0 && !pareceCnae && (
               <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-stone-300 bg-stone-50 px-6 py-14 text-center">
                 <PackageSearch className="h-8 w-8 text-stone-300" />
                 <p className="text-sm text-stone-400">Nenhum item encontrado para "{termo}".</p>
