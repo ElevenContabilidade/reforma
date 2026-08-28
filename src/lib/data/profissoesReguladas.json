@@ -1,0 +1,13 @@
+[
+  { "prefixo": "1.1301", "profissao": "advogados" },
+  { "prefixo": "1.1302.1", "profissao": "contabilistas (auditoria)" },
+  { "prefixo": "1.1302.2", "profissao": "contabilistas" },
+  { "prefixo": "1.1401.1", "profissao": "administradores" },
+  { "prefixo": "1.1401.2", "profissao": "administradores" },
+  { "prefixo": "1.1401.31", "profissao": "administradores" },
+  { "prefixo": "1.1401.32", "profissao": "profissionais de relações públicas" },
+  { "prefixo": "1.1401.39", "profissao": "administradores" },
+  { "prefixo": "1.1402", "profissao": "arquitetos e urbanistas" },
+  { "prefixo": "1.1403", "profissao": "engenheiros" },
+  { "prefixo": "1.1405", "profissao": "médicos veterinários e zootecnistas" }
+]

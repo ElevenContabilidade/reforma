@@ -7,9 +7,7 @@ import { EmpresaForm } from './components/EmpresaForm';
 import { ItensChecklist } from './components/ItensChecklist';
 import { UploadPgdas } from './components/UploadPgdas';
 import { Dashboard } from './components/Dashboard';
-import { ConsultaClassificacao } from './components/ConsultaClassificacao';
-import { NCM_ITENS } from './lib/ncmData';
-import { NBS_ITENS } from './lib/nbsData';
+import { ConsultaOficial } from './components/ConsultaOficial';
 
 export default function App() {
   const [simulacoes, setSimulacoes] = useState<SimulacaoSalva[]>([]);
@@ -83,21 +81,19 @@ export default function App() {
           {pagina === 'itens' && <ItensChecklist dados={dados} onChange={setDados} />}
           {pagina === 'upload' && <UploadPgdas dados={dados} onChange={setDados} />}
           {pagina === 'ncm' && (
-            <ConsultaClassificacao
+            <ConsultaOficial
+              tipo="NCM"
               titulo="Produto / NCM"
-              subtitulo="Descubra o tratamento tributário de um produto pela Reforma (redução de alíquota de CBS/IBS por NCM)."
+              subtitulo="Consulte a tabela NCM oficial vigente e veja a ficha tributária completa (CST, cClassTrib, reduções de IBS/CBS, base legal e documentos aceitos)."
               placeholder="Digite o NCM, produto ou palavra-chave (ex: arroz, celular, medicamento)"
-              itens={NCM_ITENS}
-              rotuloCodigo="NCM"
             />
           )}
           {pagina === 'nbs' && (
-            <ConsultaClassificacao
+            <ConsultaOficial
+              tipo="NBS"
               titulo="Serviço / NBS"
-              subtitulo="Descubra o tratamento tributário de uma atividade ou serviço pela Reforma (redução de alíquota de CBS/IBS por NBS)."
+              subtitulo="Consulte a Nomenclatura Brasileira de Serviços oficial e veja a ficha tributária completa (CST, cClassTrib, reduções de IBS/CBS, base legal e documentos aceitos)."
               placeholder="Digite o NBS, atividade ou palavra-chave (ex: transporte, advocacia, saúde)"
-              itens={NBS_ITENS}
-              rotuloCodigo="NBS"
             />
           )}
           {pagina === 'dashboard' && <Dashboard dados={dados} />}

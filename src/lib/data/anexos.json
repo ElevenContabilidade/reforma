@@ -1,0 +1,1027 @@
+[
+{
+"anexo": 1,
+"tipo": "NCM",
+"item": 1,
+"descricao": "Arroz",
+"codigos": [
+"1006.20",
+"1006.30",
+"1006.40.00"
+]
+},
+{
+"anexo": 1,
+"tipo": "NCM",
+"item": 2,
+"descricao": "Leite (consumo direto pela população)",
+"codigos": [
+"0401.10.10",
+"0401.10.90",
+"0401.20.10",
+"0401.20.90",
+"0401.40.10",
+"0401.50.10"
+]
+},
+{
+"anexo": 1,
+"tipo": "NCM",
+"item": 3,
+"descricao": "Leite em pó",
+"codigos": [
+"0402.10.10",
+"0402.10.90",
+"0402.21.10",
+"0402.21.20",
+"0402.29.10",
+"0402.29.20"
+]
+},
+{
+"anexo": 1,
+"tipo": "NCM",
+"item": 4,
+"descricao": "Fórmulas infantis",
+"codigos": [
+"1901.10.10",
+"1901.10.90",
+"2106.90.90"
+]
+},
+{
+"anexo": 1,
+"tipo": "NCM",
+"item": 5,
+"descricao": "Manteiga",
+"codigos": [
+"0405.10.00"
+]
+},
+{
+"anexo": 1,
+"tipo": "NCM",
+"item": 6,
+"descricao": "Margarina",
+"codigos": [
+"1517.10.00"
+]
+},
+{
+"anexo": 1,
+"tipo": "NCM",
+"item": 7,
+"descricao": "Feijões",
+"codigos": [
+"0713.33.19",
+"0713.33.29",
+"0713.33.99",
+"0713.35.90"
+]
+},
+{
+"anexo": 1,
+"tipo": "NCM",
+"item": 8,
+"descricao": "Café",
+"codigos": [
+"09.01",
+"2101.1"
+]
+},
+{
+"anexo": 1,
+"tipo": "NCM",
+"item": 9,
+"descricao": "Óleo de babaçu (consumo como alimento)",
+"codigos": [
+"1513.21.20"
+]
+},
+{
+"anexo": 1,
+"tipo": "NCM",
+"item": 10,
+"descricao": "Farinha de mandioca e tapioca e seus sucedâneos",
+"codigos": [
+"1106.20.00",
+"1903.00.00"
+]
+},
+{
+"anexo": 1,
+"tipo": "NCM",
+"item": 11,
+"descricao": "Farinha, grumos e sêmolas de milho",
+"codigos": [
+"1102.20.00",
+"1103.13.00"
+]
+},
+{
+"anexo": 1,
+"tipo": "NCM",
+"item": 12,
+"descricao": "Grãos de milho",
+"codigos": [
+"1104.19.00",
+"1104.23.00"
+]
+},
+{
+"anexo": 1,
+"tipo": "NCM",
+"item": 13,
+"descricao": "Farinha de trigo",
+"codigos": [
+"1101.00.10"
+]
+},
+{
+"anexo": 1,
+"tipo": "NCM",
+"item": 14,
+"descricao": "Açúcar",
+"codigos": [
+"1701.14.00",
+"1701.99.00"
+]
+},
+{
+"anexo": 1,
+"tipo": "NCM",
+"item": 15,
+"descricao": "Massas alimentícias",
+"codigos": [
+"1902.1"
+]
+},
+{
+"anexo": 1,
+"tipo": "NCM",
+"item": 16,
+"descricao": "Pão francês (e pré-mistura/massa)",
+"codigos": [
+"1905.90.90",
+"1901.20.10",
+"1901.20.90"
+]
+},
+{
+"anexo": 1,
+"tipo": "NCM",
+"item": 17,
+"descricao": "Grãos de aveia",
+"codigos": [
+"1104.12.00",
+"1104.22.00"
+]
+},
+{
+"anexo": 1,
+"tipo": "NCM",
+"item": 18,
+"descricao": "Farinha de aveia",
+"codigos": [
+"1102.90.00"
+]
+},
+{
+"anexo": 1,
+"tipo": "NCM",
+"item": 19,
+"descricao": "Carnes bovina, suína, ovina, caprina e de aves e produtos de origem animal",
+"codigos": [
+"02.01",
+"02.02",
+"0206.10.00",
+"0206.2",
+"0210.20.00",
+"02.03",
+"0206.30.00",
+"0206.4",
+"0209.10",
+"0210.1",
+"02.04",
+"0210.99.20",
+"0210.99.90",
+"0206.80.00",
+"0206.90.00",
+"02.07",
+"0209.90.00",
+"0210.99.1"
+]
+},
+{
+"anexo": 1,
+"tipo": "NCM",
+"item": 20,
+"descricao": "Peixes e carnes de peixes (exceto salmonídeos, atuns, bacalhaus, hadoque, saithe)",
+"codigos": [
+"03.02",
+"03.03",
+"03.04"
+]
+},
+{
+"anexo": 1,
+"tipo": "NCM",
+"item": 21,
+"descricao": "Queijos (mozarela, minas, prato, coalho, ricota, requeijão, provolone, parmesão, fresco não maturado, do reino)",
+"codigos": [
+"0406.10.10",
+"0406.10.90",
+"0406.20.00",
+"0406.90.10",
+"0406.90.20",
+"0406.90.30"
+]
+},
+{
+"anexo": 1,
+"tipo": "NCM",
+"item": 22,
+"descricao": "Sal (consumo humano)",
+"codigos": [
+"2501.00.20",
+"2501.00.90"
+]
+},
+{
+"anexo": 1,
+"tipo": "NCM",
+"item": 23,
+"descricao": "Mate",
+"codigos": [
+"09.03"
+]
+},
+{
+"anexo": 1,
+"tipo": "NCM",
+"item": 24,
+"descricao": "Farinha com baixo teor de proteína (aminoacidopatias, acidemias, defeitos do ciclo da ureia)",
+"codigos": [
+"1901.90.90"
+]
+},
+{
+"anexo": 1,
+"tipo": "NCM",
+"item": 25,
+"descricao": "Massas com baixo teor de proteína (aminoacidopatias, acidemias, defeitos do ciclo da ureia)",
+"codigos": [
+"1902.19.00"
+]
+},
+{
+"anexo": 1,
+"tipo": "NCM",
+"item": 26,
+"descricao": "Fórmulas Dietoterápicas para Erros Inatos do Metabolismo",
+"codigos": [
+"2106.90.90"
+]
+},
+{
+"anexo": 2,
+"tipo": "NBS",
+"item": 1,
+"descricao": "Ensino Infantil, inclusive creche e pré-escola",
+"codigos": [
+"1.2201.1"
+]
+},
+{
+"anexo": 2,
+"tipo": "NBS",
+"item": 2,
+"descricao": "Ensino Fundamental",
+"codigos": [
+"1.2201.20.00"
+]
+},
+{
+"anexo": 2,
+"tipo": "NBS",
+"item": 3,
+"descricao": "Ensino Médio",
+"codigos": [
+"1.2201.30.00"
+]
+},
+{
+"anexo": 2,
+"tipo": "NBS",
+"item": 4,
+"descricao": "Ensino Técnico de Nível Médio",
+"codigos": [
+"1.2202.00.00"
+]
+},
+{
+"anexo": 2,
+"tipo": "NBS",
+"item": 5,
+"descricao": "Ensino para jovens e adultos (EJA)",
+"codigos": [
+"1.2203"
+]
+},
+{
+"anexo": 2,
+"tipo": "NBS",
+"item": 6,
+"descricao": "Ensino Superior (graduação, pós-graduação, extensão, sequenciais)",
+"codigos": [
+"1.2204"
+]
+},
+{
+"anexo": 2,
+"tipo": "NBS",
+"item": 7,
+"descricao": "Ensino de sistemas linguísticos visomotores e de escrita tátil",
+"codigos": [
+"1.2205.13.00"
+]
+},
+{
+"anexo": 2,
+"tipo": "NBS",
+"item": 8,
+"descricao": "Ensino de línguas nativas de povos originários",
+"codigos": [
+"1.2205.13.00"
+]
+},
+{
+"anexo": 2,
+"tipo": "NBS",
+"item": 9,
+"descricao": "Educação especial (deficiência, transtornos globais do desenvolvimento, altas habilidades)",
+"codigos": []
+},
+{
+"anexo": 3,
+"tipo": "NBS",
+"item": 1,
+"descricao": "Serviços cirúrgicos",
+"codigos": [
+"1.2301.11.00"
+]
+},
+{
+"anexo": 3,
+"tipo": "NBS",
+"item": 2,
+"descricao": "Serviços ginecológicos e obstétricos",
+"codigos": [
+"1.2301.12.00"
+]
+},
+{
+"anexo": 3,
+"tipo": "NBS",
+"item": 3,
+"descricao": "Serviços psiquiátricos",
+"codigos": [
+"1.2301.13.00"
+]
+},
+{
+"anexo": 3,
+"tipo": "NBS",
+"item": 4,
+"descricao": "Serviços prestados em Unidades de Terapia Intensiva",
+"codigos": [
+"1.2301.14.00"
+]
+},
+{
+"anexo": 3,
+"tipo": "NBS",
+"item": 5,
+"descricao": "Serviços de atendimento de urgência",
+"codigos": [
+"1.2301.15.00"
+]
+},
+{
+"anexo": 3,
+"tipo": "NBS",
+"item": 6,
+"descricao": "Serviços hospitalares não classificados em subposições anteriores",
+"codigos": [
+"1.2301.19.00"
+]
+},
+{
+"anexo": 3,
+"tipo": "NBS",
+"item": 7,
+"descricao": "Serviços de clínica médica",
+"codigos": [
+"1.2301.21.00"
+]
+},
+{
+"anexo": 3,
+"tipo": "NBS",
+"item": 8,
+"descricao": "Serviços médicos especializados",
+"codigos": [
+"1.2301.22.00"
+]
+},
+{
+"anexo": 3,
+"tipo": "NBS",
+"item": 9,
+"descricao": "Serviços odontológicos",
+"codigos": [
+"1.2301.23.00"
+]
+},
+{
+"anexo": 3,
+"tipo": "NBS",
+"item": 10,
+"descricao": "Serviços de enfermagem",
+"codigos": [
+"1.2301.91.00"
+]
+},
+{
+"anexo": 3,
+"tipo": "NBS",
+"item": 11,
+"descricao": "Serviços de fisioterapia",
+"codigos": [
+"1.2301.92.00"
+]
+},
+{
+"anexo": 3,
+"tipo": "NBS",
+"item": 12,
+"descricao": "Serviços laboratoriais",
+"codigos": [
+"1.2301.93.00"
+]
+},
+{
+"anexo": 3,
+"tipo": "NBS",
+"item": 13,
+"descricao": "Serviços de diagnóstico por imagem",
+"codigos": [
+"1.2301.94.00"
+]
+},
+{
+"anexo": 3,
+"tipo": "NBS",
+"item": 14,
+"descricao": "Serviços de bancos de material biológico humano",
+"codigos": [
+"1.2301.95.00"
+]
+},
+{
+"anexo": 3,
+"tipo": "NBS",
+"item": 15,
+"descricao": "Serviços de ambulância",
+"codigos": [
+"1.2301.96.00"
+]
+},
+{
+"anexo": 3,
+"tipo": "NBS",
+"item": 16,
+"descricao": "Serviços de assistência ao parto e pós-parto",
+"codigos": [
+"1.2301.97.00"
+]
+},
+{
+"anexo": 3,
+"tipo": "NBS",
+"item": 17,
+"descricao": "Serviços de psicologia",
+"codigos": [
+"1.2301.98.00"
+]
+},
+{
+"anexo": 3,
+"tipo": "NBS",
+"item": 18,
+"descricao": "Serviços de vigilância sanitária",
+"codigos": [
+"1.2301.99.00"
+]
+},
+{
+"anexo": 3,
+"tipo": "NBS",
+"item": 19,
+"descricao": "Serviços de epidemiologia",
+"codigos": [
+"1.2301.99.00"
+]
+},
+{
+"anexo": 3,
+"tipo": "NBS",
+"item": 20,
+"descricao": "Serviços de vacinação",
+"codigos": [
+"1.2301.99.00"
+]
+},
+{
+"anexo": 3,
+"tipo": "NBS",
+"item": 21,
+"descricao": "Serviços de fonoaudiologia",
+"codigos": [
+"1.2301.99.00"
+]
+},
+{
+"anexo": 3,
+"tipo": "NBS",
+"item": 22,
+"descricao": "Serviços de nutrição",
+"codigos": [
+"1.2301.99.00"
+]
+},
+{
+"anexo": 3,
+"tipo": "NBS",
+"item": 23,
+"descricao": "Serviços de optometria",
+"codigos": [
+"1.2301.99.00"
+]
+},
+{
+"anexo": 3,
+"tipo": "NBS",
+"item": 24,
+"descricao": "Serviços de instrumentação cirúrgica",
+"codigos": [
+"1.2301.99.00"
+]
+},
+{
+"anexo": 3,
+"tipo": "NBS",
+"item": 25,
+"descricao": "Serviços de biomedicina",
+"codigos": [
+"1.2301.99.00"
+]
+},
+{
+"anexo": 3,
+"tipo": "NBS",
+"item": 26,
+"descricao": "Serviços farmacêuticos",
+"codigos": [
+"1.2301.99.00"
+]
+},
+{
+"anexo": 3,
+"tipo": "NBS",
+"item": 27,
+"descricao": "Serviços de cuidado e assistência a idosos e pessoas com deficiência em unidades de acolhimento",
+"codigos": [
+"1.2302"
+]
+},
+{
+"anexo": 3,
+"tipo": "NBS",
+"item": 28,
+"descricao": "Serviços domiciliares de apoio (adultos, idosos, crianças, adolescentes, transtornos mentais, deficiências)",
+"codigos": [
+"1.2301.99.00"
+]
+},
+{
+"anexo": 3,
+"tipo": "NBS",
+"item": 29,
+"descricao": "Serviços de esterilização",
+"codigos": [
+"1.2301.99.00"
+]
+},
+{
+"anexo": 3,
+"tipo": "NBS",
+"item": 30,
+"descricao": "Serviços funerários, de cremação e de embalsamamento",
+"codigos": [
+"1.2603.00.00"
+]
+},
+{
+"anexo": 7,
+"tipo": "NCM",
+"item": 1,
+"descricao": "Crustáceos (exceto lagostas e lagostim) e moluscos",
+"codigos": [
+"0306.1",
+"0306.3",
+"0307.31.00",
+"0307.32.00",
+"0307.42.00",
+"0307.43",
+"0307.51.00",
+"0307.52.00",
+"0307.91.00",
+"0307.92.00"
+]
+},
+{
+"anexo": 7,
+"tipo": "NCM",
+"item": 2,
+"descricao": "Leite fermentado, bebidas e compostos lácteos",
+"codigos": [
+"0403.20.00",
+"0403.90.00",
+"2202.99.00"
+]
+},
+{
+"anexo": 7,
+"tipo": "NCM",
+"item": 3,
+"descricao": "Mel natural",
+"codigos": [
+"0409.00.00"
+]
+},
+{
+"anexo": 7,
+"tipo": "NCM",
+"item": 4,
+"descricao": "Farinha (ressalvados os produtos do Anexo I)",
+"codigos": [
+"1101.00",
+"11.02",
+"11.05",
+"11.06",
+"12.08"
+]
+},
+{
+"anexo": 7,
+"tipo": "NCM",
+"item": 5,
+"descricao": "Grumos e sêmolas de cereais (ressalvados os produtos do Anexo I)",
+"codigos": [
+"1103.11.00",
+"1103.19.00"
+]
+},
+{
+"anexo": 7,
+"tipo": "NCM",
+"item": 6,
+"descricao": "Grãos de cereais (ressalvados os produtos do Anexo I)",
+"codigos": [
+"1104.1",
+"1104.2"
+]
+},
+{
+"anexo": 7,
+"tipo": "NCM",
+"item": 7,
+"descricao": "Amido de milho",
+"codigos": [
+"1108.12.00"
+]
+},
+{
+"anexo": 7,
+"tipo": "NCM",
+"item": 8,
+"descricao": "Óleos de soja, milho, canola e demais óleos vegetais",
+"codigos": [
+"1507.90",
+"15.08",
+"15.11",
+"15.12",
+"15.13",
+"15.14",
+"15.15"
+]
+},
+{
+"anexo": 7,
+"tipo": "NCM",
+"item": 9,
+"descricao": "Massas alimentícias",
+"codigos": [
+"1902.20.00",
+"1902.30.00"
+]
+},
+{
+"anexo": 7,
+"tipo": "NCM",
+"item": 10,
+"descricao": "Sucos naturais de fruta ou produtos hortícolas (sem açúcar/edulcorante/conservante)",
+"codigos": [
+"20.09"
+]
+},
+{
+"anexo": 7,
+"tipo": "NCM",
+"item": 11,
+"descricao": "Polpas de frutas ou produtos hortícolas (sem açúcar/edulcorante/conservante)",
+"codigos": [
+"20.08"
+]
+},
+{
+"anexo": 7,
+"tipo": "NCM",
+"item": 12,
+"descricao": "Pão de Forma",
+"codigos": [
+"1905.90.10"
+]
+},
+{
+"anexo": 7,
+"tipo": "NCM",
+"item": 13,
+"descricao": "Extrato de tomate",
+"codigos": [
+"2002.90.00"
+]
+},
+{
+"anexo": 7,
+"tipo": "NCM",
+"item": 14,
+"descricao": "Frutas, produtos hortícolas e demais produtos vegetais (sem adição de açúcar)",
+"codigos": [
+"capítulo 7",
+"capítulo 8"
+]
+},
+{
+"anexo": 7,
+"tipo": "NCM",
+"item": 15,
+"descricao": "Cereais e sementes e frutos oleaginosos (ressalvados os produtos do Anexo I)",
+"codigos": [
+"capítulo 10",
+"capítulo 12"
+]
+},
+{
+"anexo": 7,
+"tipo": "NCM",
+"item": 16,
+"descricao": "Produtos hortícolas pré-cozidos ou cozidos em água/vapor (sem sal ou outras substâncias)",
+"codigos": [
+"20.04",
+"20.05",
+"2002.10.00"
+]
+},
+{
+"anexo": 7,
+"tipo": "NCM",
+"item": 17,
+"descricao": "Fruta de casca rija regional, amendoins e outras sementes (apenas torrados/cozidos, sem sal)",
+"codigos": [
+"2008.1"
+]
+},
+{
+"anexo": 8,
+"tipo": "NCM",
+"item": 1,
+"descricao": "Sabões de toucador",
+"codigos": [
+"3401.11.90"
+]
+},
+{
+"anexo": 8,
+"tipo": "NCM",
+"item": 2,
+"descricao": "Dentifrícios",
+"codigos": [
+"3306.10.00"
+]
+},
+{
+"anexo": 8,
+"tipo": "NCM",
+"item": 3,
+"descricao": "Escovas de dentes",
+"codigos": [
+"9603.21.00"
+]
+},
+{
+"anexo": 8,
+"tipo": "NCM",
+"item": 4,
+"descricao": "Papel higiênico",
+"codigos": [
+"4818.10.00"
+]
+},
+{
+"anexo": 8,
+"tipo": "NCM",
+"item": 5,
+"descricao": "Água sanitária",
+"codigos": [
+"3808.94.19"
+]
+},
+{
+"anexo": 8,
+"tipo": "NCM",
+"item": 6,
+"descricao": "Sabões em barra",
+"codigos": [
+"3401.19.00"
+]
+},
+{
+"anexo": 8,
+"tipo": "NCM",
+"item": 7,
+"descricao": "Fraldas e artigos higiênicos semelhantes",
+"codigos": [
+"9619.00.00"
+]
+},
+{
+"anexo": 9,
+"tipo": "NCM",
+"item": 1,
+"descricao": "Biofertilizantes",
+"codigos": [
+"3101.00.00"
+]
+},
+{
+"anexo": 9,
+"tipo": "NCM",
+"item": 2,
+"descricao": "Fertilizantes (adubos)",
+"codigos": [
+"Capítulo 31",
+"3824.99.77",
+"3824.99.79",
+"3824.99.89"
+]
+},
+{
+"anexo": 9,
+"tipo": "NCM",
+"item": 3,
+"descricao": "Corretivos de solo, remineralizadores e substratos para plantas",
+"codigos": [
+"Capítulo 25"
+]
+},
+{
+"anexo": 9,
+"tipo": "NCM",
+"item": 4,
+"descricao": "Inoculantes, meios de cultura e outros microrganismos para uso agrícola",
+"codigos": [
+"3002.49",
+"3002.90.00",
+"3821.00.00"
+]
+},
+{
+"anexo": 9,
+"tipo": "NCM",
+"item": 5,
+"descricao": "Bioestimulantes e bioinsumos para controle fitossanitário",
+"codigos": [
+"38.24",
+"3807.00.00",
+"12.11",
+"38.08"
+]
+},
+{
+"anexo": 9,
+"tipo": "NCM",
+"item": 6,
+"descricao": "Inseticidas, fungicidas, herbicidas e demais defensivos agropecuários",
+"codigos": [
+"38.08",
+"3824.99.89"
+]
+},
+{
+"anexo": 9,
+"tipo": "NCM",
+"item": 7,
+"descricao": "Insumos para fabricação de biofertilizantes/fertilizantes/corretivos/biodefensivos",
+"codigos": [
+"05.06",
+"1201.10.00",
+"1213.00.00",
+"23.02",
+"23.03",
+"23.06"
+]
+},
+{
+"anexo": 9,
+"tipo": "NCM",
+"item": 8,
+"descricao": "Ácidos e insumos para fabricação de fertilizantes",
+"codigos": [
+"2503.00.10",
+"2802.00.00",
+"2836.20.10"
+]
+},
+{
+"anexo": 9,
+"tipo": "NCM",
+"item": 9,
+"descricao": "Enzimas para decomposição de matéria orgânica animal e vegetal",
+"codigos": [
+"3507.90.4"
+]
+},
+{
+"anexo": 9,
+"tipo": "NCM",
+"item": 10,
+"descricao": "Sementes (genética, básica, nativa, certificada, cultivar local/tradicional/crioula)",
+"codigos": [
+"Capítulos 7, 10 e 12"
+]
+},
+{
+"anexo": 9,
+"tipo": "NCM",
+"item": 11,
+"descricao": "Mudas de plantas e materiais propagativos de plantas e fungos",
+"codigos": [
+"06.01",
+"06.02"
+]
+},
+{
+"anexo": 9,
+"tipo": "NCM",
+"item": 12,
+"descricao": "Vacinas, soros e medicamentos de uso veterinário (exceto animais domésticos)",
+"codigos": [
+"3002.12",
+"3002.15",
+"3002.42",
+"3002.90.00",
+"30.04"
+]
+},
+{
+"anexo": 9,
+"tipo": "NCM",
+"item": 13,
+"descricao": "Aves de um dia (exceto ornamentais)",
+"codigos": [
+"0105.1"
+]
+},
+{
+"anexo": 9,
+"tipo": "NCM",
+"item": 14,
+"descricao": "Embriões e sêmen, congelado ou resfriado",
+"codigos": [
+"0511.10.00",
+"0511.9"
+]
+}
+]

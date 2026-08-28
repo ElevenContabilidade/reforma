@@ -1,0 +1,254 @@
+[
+{
+"codigo": "10101",
+"tipoOperacao": "Bem Móvel Material",
+"caracteristica": "Presencial, com retirada no estabelecimento do fornecedor",
+"local": "Estabelecimento do fornecedor como o local da entrega ou disponibilização do bem ao destinatário",
+"dispositivoLegal": "Art. 11, I"
+},
+{
+"codigo": "10102",
+"tipoOperacao": "Bem Móvel Material",
+"caracteristica": "Presencial, com retirada fora do estabelecimento do fornecedor",
+"local": "Local da realização da operação e sua retirada",
+"dispositivoLegal": "Art. 11, I"
+},
+{
+"codigo": "10103",
+"tipoOperacao": "Bem Móvel Material",
+"caracteristica": "Não presencial, com entrega ou disponibilização em endereço fornecido",
+"local": "Endereço do destinatário fornecido para entrega ou disponibilização (assim considerado o o destino final indicado pelo adquirente)",
+"dispositivoLegal": "Art. 11, I e §1º, I"
+},
+{
+"codigo": "10104",
+"tipoOperacao": "Bem Móvel Material",
+"caracteristica": "Licitação promovida pelo poder público de bem apreendido ou abandonado ou leilao judicial",
+"local": "Local onde se encontra o bem móvel material",
+"dispositivoLegal": "Art. 11, I e §1º, III, \"a\""
+},
+{
+"codigo": "10105",
+"tipoOperacao": "Bem Móvel Material",
+"caracteristica": "Constatação de irregularidade pela falta de documentação fiscal ou pelo acobertamento por documentação inidôneo",
+"local": "Local onde se encontra o bem móvel material (Local da retirada)",
+"dispositivoLegal": "Art. 11, I e §1º, III, \"b\"*"
+},
+{
+"codigo": "10106",
+"tipoOperacao": "Bem Móvel Material",
+"caracteristica": "Locação de bem móvel material em aquisições realizadas de forma centralizada por contribuinte sujeito ao regime regular do IBS e da CBS que possui mais de um estabelecimento e que não estejam sujeitas a vedação à apropriação de créditos",
+"local": "Local do domicílio principal do adquirente (estabelecimento matriz)",
+"dispositivoLegal": "Art. 11, I e §4º"
+},
+{
+"codigo": "10201",
+"tipoOperacao": "Aquisição de veículo automotor terrestre, aquático ou aéreo",
+"caracteristica": "Entrega ou disponibilização do bem",
+"local": "Domicílio principal do destinatário ",
+"dispositivoLegal": "Art. 11, I e §1º, II"
+},
+{
+"codigo": "20101",
+"tipoOperacao": "Operação com bem imóvel, bem imaterial, inclusive direito, relacionada a bem imóvel",
+"caracteristica": "Realização de operações com bem imóvel, bem imaterial, inclusive direito, relacionado a bem imóvel",
+"local": "Localidade do imóvel",
+"dispositivoLegal": "Art. 11, II e §2º"
+},
+{
+"codigo": "20201",
+"tipoOperacao": "Serviço prestado fisicamente sobre bem imóvel",
+"caracteristica": "Execução de serviços diversos prestados fisicamente sobre bem imóvel",
+"local": "Localidade do imóvel",
+"dispositivoLegal": "Art. 11, II e §2º"
+},
+{
+"codigo": "20301",
+"tipoOperacao": "Serviço de administração e intermediação de bem imóvel",
+"caracteristica": "Execução dos serviços de administração e intermediação de bens imóveis",
+"local": "Localidade do imóvel",
+"dispositivoLegal": "Art. 11, II e §2º"
+},
+{
+"codigo": "30101",
+"tipoOperacao": "Serviço prestado fisicamente sobre a pessoa ou fruído presencialmente por pessoa física",
+"caracteristica": "Execução de serviços diversos exclusivamente prestados fisicamente sobre a pessoa ou integralmente fruídos presencialmente por pessoa física",
+"local": "Estabelecimento do fornecedor como local da prestação",
+"dispositivoLegal": "Art. 11, III"
+},
+{
+"codigo": "30102",
+"tipoOperacao": "Serviço prestado fisicamente sobre a pessoa ou fruído presencialmente por pessoa física",
+"caracteristica": "Execução de serviços diversos exclusivamente prestados fisicamente sobre a pessoa ou integralmente fruídos presencialmente por pessoa física",
+"local": "Local da prestação do serviço diverso do estabelecimento do fornecedor",
+"dispositivoLegal": "Art. 11, III"
+},
+{
+"codigo": "40101",
+"tipoOperacao": "Serviço de planejamento, organização e administração de feiras, exposições, congressos, espetáculos, exibições e congêneres",
+"caracteristica": "Execução de serviços de planejamento, organização e administração de feiras, exposições, congressos, espetáculos, exibições e congêneres",
+"local": "Local do evento a que se refere o serviço",
+"dispositivoLegal": "Art. 11, IV"
+},
+{
+"codigo": "50101",
+"tipoOperacao": "Serviço prestado fisicamente sobre bem móvel material",
+"caracteristica": "Execução de serviços diversos prestados fisicamente sobre bem móvel material",
+"local": "Estabelecimento do fornecedor como local da prestação",
+"dispositivoLegal": "Art. 11, V"
+},
+{
+"codigo": "50102",
+"tipoOperacao": "Serviço prestado fisicamente sobre bem móvel material",
+"caracteristica": "Execução de serviços diversos prestados fisicamente sobre bem móvel material",
+"local": "Local da prestação do serviço diverso do estabelecimento do fornecedor",
+"dispositivoLegal": "Art. 11, V"
+},
+{
+"codigo": "50201",
+"tipoOperacao": "Serviços portuários",
+"caracteristica": "Execução de serviços portuários",
+"local": "Local do porto como local da prestação",
+"dispositivoLegal": "Art. 11, V"
+},
+{
+"codigo": "60101",
+"tipoOperacao": "Serviço de transporte de passageiros",
+"caracteristica": "Execução de serviços de transporte de passageiros",
+"local": "Local de início do transporte",
+"dispositivoLegal": "Art. 11, VI"
+},
+{
+"codigo": "70101",
+"tipoOperacao": "Serviço de transporte de carga",
+"caracteristica": "Execução de serviço de transporte de carga",
+"local": "Endereço fornecido para entrega do bem",
+"dispositivoLegal": "Art. 11, VII"
+},
+{
+"codigo": "70102",
+"tipoOperacao": "Serviço de transporte de carga",
+"caracteristica": "Execução de eerviço de transporte de carga",
+"local": "Local da retirada do bem",
+"dispositivoLegal": "Art. 11, VII"
+},
+{
+"codigo": "80101",
+"tipoOperacao": "Serviço de exploração de via",
+"caracteristica": "Execução de serviços de exploração de via",
+"local": "Local da prestação correspondente à extensão da via explorada, proporcionalmente ao território dos entes tributantes",
+"dispositivoLegal": "Art. 11, VIII"
+},
+{
+"codigo": "90101",
+"tipoOperacao": "Serviço de telefonia fixa e demais serviços de comunicação prestados por meio de cabos, fios, fibras e meios similares",
+"caracteristica": "Execução de serviços de telefonia fixa e demais serviços de comunicação prestados por meio de cabos, fios, fibras e meios similares",
+"local": "Local de instalação do terminal",
+"dispositivoLegal": "Art. 11, IX"
+},
+{
+"codigo": "90102",
+"tipoOperacao": "Serviço de telefonia fixa e demais serviços de comunicação prestados por meio de cabos, fios, fibras e meios similares",
+"caracteristica": "Execução de serviços de telefonia fixa e demais serviços de comunicação prestados por meio de cabos, fios, fibras e meios similares",
+"local": "Local do domicílio principal do adquirente (assim considerada a matriz), nas aquisições realizadas de forma centralizada por contribuinte sujeito ao regime regular do IBS e da CBS que possui mais de um estabelecimento e que não estejam sujeitas a vedação à apropriação de créditos",
+"dispositivoLegal": "Art. 11, IX e §4º, I e II"
+},
+{
+"codigo": "100101",
+"tipoOperacao": "Cessão de espaço para prestação de serviços publicitários, em operações onerosas",
+"caracteristica": "Realização de operações de cessão de espaço para prestação de serviços publicitários",
+"local": "Local do domicílio principal do adquirente residente ou domiciliado no País. Nas aquisições indicadas no art. 11, §4º, II, considera-se domicílio principal do adquirente o estabelecimentro matriz",
+"dispositivoLegal": "Art. 11, X, \"a\", 1 e §º 11"
+},
+{
+"codigo": "100102",
+"tipoOperacao": "Cessão de espaço para prestação de serviços publicitários, em operações onerosas",
+"caracteristica": "Realização de operações de cessão de espaço para prestação de serviços publicitários",
+"local": "Local do domicílio principal do destinatário residente ou domiciliado no País, caso o adquirente não seja residente ou domiciliado no País",
+"dispositivoLegal": "Art. 11, X, \"a\", 2 e §º11"
+},
+{
+"codigo": "100201",
+"tipoOperacao": "Cessão de espaço para prestação de serviços publicitários, em operações não onerosas",
+"caracteristica": "Realização de operações de cessão de espaço para prestação de serviços publicitários",
+"local": "local do domicílio principal do destinatário residente ou domiciliado no País",
+"dispositivoLegal": "Art. 11, X, \"b\" e §º11"
+},
+{
+"codigo": "100301",
+"tipoOperacao": "Demais serviços, em operações onerosas",
+"caracteristica": "Execução dos demais serviços em operações não especificadas em outros indicadores ou, nos serviços de que trata o inc. III do art. 11, esses sejam, ainda que parcialmente, prestados à distância",
+"local": "Local do domicílio principal do adquirente residente ou domiciliado no País. Nas aquisições indicadas no art. 11, §4º, II, considera-se domicílio principal do adquirente o estabelecimentro matriz",
+"dispositivoLegal": "Art. 11, X, \"a\", 1 e §§4º, II e 5º"
+},
+{
+"codigo": "100302",
+"tipoOperacao": "Demais serviços, em operações onerosas",
+"caracteristica": "Execução dos demais serviços em operações não especificadas em outros indicadores ou, nos serviços de que trata o inc. III do art. 11, esses sejam, ainda que parcialmente, prestados à distância",
+"local": "Local do domicílio principal do destinatário residente ou domiciliado no País, caso o adquirente não seja residente ou domiciliado no País",
+"dispositivoLegal": "Art. 11, X, \"a\", 2 e §º5"
+},
+{
+"codigo": "100401",
+"tipoOperacao": "Demais serviços, em operações não onerosas",
+"caracteristica": "Execução dos demais serviços em operações não especificadas em outros indicadores ou, nos serviços de que tratam o inc. III, estes sejam, ainda que parcialmente, prestados à distância",
+"local": "local do domicílio principal do destinatário residente ou domiciliado no País",
+"dispositivoLegal": "Art. 11, X, \"b\" e §º5"
+},
+{
+"codigo": "100501",
+"tipoOperacao": "Demais bens, em operações onerosas",
+"caracteristica": "Realização de demais operações com bens não especificadas em outros indicadores ",
+"local": "Local do domicílio principal do adquirente residente ou domiciliado no País. Nas aquisições indicadas no art. 11, §4º, II, considera-se domicílio principal do adquirente o estabelecimentro matriz",
+"dispositivoLegal": "Art. 11, X, \"a\", 1 e §4º, II"
+},
+{
+"codigo": "100502",
+"tipoOperacao": "Demais bens, em operações onerosas",
+"caracteristica": "Realização de demais operações com bens não especificadas em outros indicadores ",
+"local": "Local do domicílio principal do destinatário residente ou domiciliado no País, caso o adquirente não seja residente ou domiciliado no País",
+"dispositivoLegal": "Art. 11, X, \"a\", 2"
+},
+{
+"codigo": "100601",
+"tipoOperacao": "Demais bens, em operações não onerosas",
+"caracteristica": "Realização de demais operações com bens não especificadas em outros indicadores ",
+"local": "local do domicílio principal do destinatário residente ou domiciliado no País",
+"dispositivoLegal": "Art. 11, X, \"b\""
+},
+{
+"codigo": "110101",
+"tipoOperacao": "Operações com abastecimento de água, gás canalizado e energia elétrica",
+"caracteristica": "Operações destinadas a consumo",
+"local": "Local da entrega ou disponibilização",
+"dispositivoLegal": "Art. 11, §7º, I"
+},
+{
+"codigo": "110201",
+"tipoOperacao": "Operações com abastecimento de água, gás canalizado e energia elétrica",
+"caracteristica": "Operações que não envolvam efetivo consumo: a) no fornecimento de serviços de transmissão de energia elétrica; e b) nas demais operações, inclusive nas hipóteses de geração, distribuição ou comercialização de energia elétrica.",
+"local": "Local do estabelecimento principal do adquirente (assim considerada a matriz), conforme §4º do art. 11",
+"dispositivoLegal": "Art. 11, §7º, II"
+},
+{
+"codigo": "120101",
+"tipoOperacao": "Nas aquisições de energia elétrica realizadas de forma multilateral",
+"caracteristica": "Disponibilização de energia elétrica",
+"local": "Local do estabelecimento do agente ou de seus representados que figurem na posição devedora da liquidação financeira apurada pela Câmara de Comercialização de Energia Elétrica",
+"dispositivoLegal": "Art. 11, §9º"
+},
+{
+"codigo": "130101",
+"tipoOperacao": "Operações de transporte dutoviário de gás natural",
+"caracteristica": "Execução do transporte dutoviário de gás natural, na contratação de capacidade de entrada de gás natural do duto, nos termos da legislação aplicável",
+"local": "Local do estabelecimento principal do fornecedor ",
+"dispositivoLegal": "Art. 11, §10, I"
+},
+{
+"codigo": "130201",
+"tipoOperacao": "Operações de transporte dutoviário de gás natural",
+"caracteristica": "Execução do transporte dutoviário de gás natural, na contratação de capacidade de saída do gás natural do duto",
+"local": "Local do estabelecimento principal do adquirente",
+"dispositivoLegal": "Art. 11, §10, II"
+}
+]
