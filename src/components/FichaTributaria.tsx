@@ -1,6 +1,6 @@
 import { FileText, ExternalLink, Info } from 'lucide-react';
 import type { FichaTributaria as FichaTributariaData } from '../lib/officialData';
-import { anexoRomano, indopSugeridos } from '../lib/officialData';
+import { anexoRomano, indopSugeridos, cnaesRelacionados } from '../lib/officialData';
 import { classesReducaoBadge } from '../lib/reform';
 import { formatarPercentual } from '../lib/format';
 
@@ -23,6 +23,7 @@ export function FichaTributaria({ ficha }: { ficha: FichaTributariaData }) {
   const { classificacao, itemAnexo, codigo, descricao, tipo } = ficha;
   const reducaoMaxima = Math.max(classificacao.pRedIBS, classificacao.pRedCBS);
   const indops = indopSugeridos(tipo);
+  const cnaes = tipo === 'NBS' ? cnaesRelacionados(codigo) : [];
 
   return (
     <div className="rounded-xl border border-stone-200 bg-white p-5">
@@ -89,6 +90,26 @@ export function FichaTributaria({ ficha }: { ficha: FichaTributariaData }) {
       </div>
 
       <p className="mt-4 border-t border-stone-100 pt-4 text-sm text-stone-600">{classificacao.descricao}</p>
+
+      {cnaes.length > 0 && (
+        <details className="mt-4 border-t border-stone-100 pt-4" open>
+          <summary className="cursor-pointer text-sm font-medium text-stone-700">
+            CNAEs relacionados ({cnaes.length})
+          </summary>
+          <ul className="mt-2 flex flex-wrap gap-1.5">
+            {cnaes.map((c) => (
+              <li
+                key={c.codigo}
+                title={c.descricao}
+                className="inline-flex items-center gap-1.5 rounded-md bg-stone-100 px-2 py-1 text-xs text-stone-600"
+              >
+                <span className="font-mono font-semibold text-stone-500">{c.codigo}</span>
+                <span className="max-w-[16rem] truncate">{c.descricao}</span>
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
 
       {indops.length > 0 && (
         <details className="mt-4 border-t border-stone-100 pt-4">

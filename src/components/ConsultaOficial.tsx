@@ -66,12 +66,12 @@ export function ConsultaOficial({ tipo, titulo, subtitulo, placeholder }: Props)
               <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-amber-300 bg-amber-50 px-6 py-10 text-center">
                 <Info className="h-8 w-8 text-amber-500" />
                 <p className="text-sm text-amber-800">
-                  "{termo}" parece um código de CNAE, não um NBS — e ainda não tenho a tabela oficial que cruza CNAE
-                  com NBS (Anexo VIII da Receita Federal) carregada nesta base.
+                  "{termo}" parece um código de CNAE, mas não foi encontrado na tabela de correlação CNAE × NBS
+                  carregada nesta base.
                 </p>
                 <p className="text-xs text-amber-700">
-                  Por enquanto, descreva a atividade da empresa em palavras (ex.: "advocacia", "transporte de
-                  cargas", "consultoria em TI") em vez do código do CNAE.
+                  Confira se o código está correto ou descreva a atividade da empresa em palavras (ex.: "advocacia",
+                  "transporte de cargas", "consultoria em TI").
                 </p>
               </div>
             )}

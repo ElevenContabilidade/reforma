@@ -4,6 +4,9 @@ import indopData from './data/indop.json';
 import ncmData from './data/ncm.json';
 import nbsData from './data/nbs.json';
 import profissoesReguladasData from './data/profissoesReguladas.json';
+import cnaeData from './data/cnae.json';
+import lc116Data from './data/lc116.json';
+import cnaeNbsLinksData from './data/cnaeNbsLinks.json';
 import { normalizar } from './text';
 
 /**
@@ -11,8 +14,9 @@ import { normalizar } from './text';
  * extraídos de: tabela oficial de CST/cClassTrib do IBS/CBS (145 situações
  * tributárias), Nomenclatura Brasileira de Serviços (NBS, Anexo I da Portaria
  * Conjunta RFB/SCS), Tabela NCM vigente, tabela de Indicador de Operação
- * (INDOP) e os Anexos I, II, III, VII, VIII e IX da LC 214/2025 (itens com
- * redução de alíquota vinculados a NCM/NBS).
+ * (INDOP), os Anexos I, II, III, VII, VIII e IX da LC 214/2025 (itens com
+ * redução de alíquota vinculados a NCM/NBS) e a tabela de correlação
+ * CNAE × Código de Serviço (LC 116/2003) × NBS.
  *
  * Cobertura conhecida: os Anexos IV, V, VI, X a XV são reconhecidos pela
  * tabela de cClassTrib (regra e percentual de redução), mas a lista de itens
@@ -70,12 +74,40 @@ export interface ProfissaoRegulada {
   profissao: string;
 }
 
+export interface CnaeRow {
+  codigo: string;
+  descricao: string;
+}
+
+export interface Lc116Row {
+  codigo: string;
+  descricao: string;
+}
+
+export interface CnaeNbsLink {
+  item: string;
+  nbs: string;
+  cnae: string;
+}
+
 export const CCLASSTRIB: CClassTribRow[] = cclasstribData as CClassTribRow[];
 export const ANEXOS: AnexoItemRow[] = anexosData as AnexoItemRow[];
 export const INDOP: IndOpRow[] = indopData as IndOpRow[];
 export const NCM: NcmRow[] = ncmData as NcmRow[];
 export const NBS: NbsRow[] = nbsData as NbsRow[];
 export const PROFISSOES_REGULADAS: ProfissaoRegulada[] = profissoesReguladasData as ProfissaoRegulada[];
+export const CNAE: CnaeRow[] = cnaeData as CnaeRow[];
+export const LC116: Lc116Row[] = lc116Data as Lc116Row[];
+export const CNAE_NBS_LINKS: CnaeNbsLink[] = cnaeNbsLinksData as CnaeNbsLink[];
+
+const NBS_POR_CODIGO = new Map(NBS.map((n) => [n.codigo, n]));
+const CNAE_POR_CODIGO = new Map(CNAE.map((c) => [c.codigo, c]));
+
+/** Retorna os CNAEs vinculados a um código NBS, conforme a tabela de correlação CNAE x LC 116 x NBS. */
+export function cnaesRelacionados(codigoNbs: string): CnaeRow[] {
+  const codigos = new Set(CNAE_NBS_LINKS.filter((l) => l.nbs === codigoNbs).map((l) => l.cnae));
+  return [...codigos].map((c) => CNAE_POR_CODIGO.get(c)).filter((c): c is CnaeRow => Boolean(c));
+}
 
 /** cClassTrib da redução de 30% para profissões intelectuais regulamentadas (art. 127 da LC 214/2025). */
 const CCLASSTRIB_PROFISSAO_REGULADA = CCLASSTRIB.find((c) => c.cClassTrib === 200052)!;
@@ -310,6 +342,33 @@ function buscarNbsPorAnexo(gruposBusca: string[][]): NbsRow[] {
   return resultados;
 }
 
+/** Reconhece um código de CNAE (dígitos, com ou sem pontuação "-" e "/", sem pontos — que são do formato de código NBS). */
+function ehFormatoCnae(termoTrim: string): boolean {
+  if (termoTrim.includes('.')) return false;
+  const semPontuacao = termoTrim.replace(/[\d\s/-]/g, '');
+  const digitos = termoTrim.replace(/[^\d]/g, '');
+  return semPontuacao.length === 0 && digitos.length >= 4;
+}
+
+/**
+ * Resolve NBS a partir de um CNAE (código ou palavra-chave da atividade),
+ * usando a tabela de correlação CNAE x Código de Serviço (LC 116) x NBS.
+ */
+function buscarNbsPorCnae(termoTrim: string, gruposBusca: string[][]): NbsRow[] {
+  const cnaesEncontrados = ehFormatoCnae(termoTrim)
+    ? CNAE.filter((c) => c.codigo.replace(/[^\d]/g, '').startsWith(termoTrim.replace(/[^\d]/g, '')))
+    : CNAE.filter((c) => descricaoCasaComBusca(gruposBusca, tokenizar(c.descricao)));
+  if (cnaesEncontrados.length === 0) return [];
+  const codigosCnae = new Set(cnaesEncontrados.map((c) => c.codigo));
+  const nbsCodigos = new Set(CNAE_NBS_LINKS.filter((l) => codigosCnae.has(l.cnae)).map((l) => l.nbs));
+  const resultado: NbsRow[] = [];
+  for (const codigo of nbsCodigos) {
+    const n = NBS_POR_CODIGO.get(codigo);
+    if (n) resultado.push(n);
+  }
+  return resultado;
+}
+
 export function buscarNbs(termo: string): NbsRow[] {
   const termoTrim = termo.trim();
   if (!termoTrim) return [];
@@ -325,16 +384,29 @@ export function buscarNbs(termo: string): NbsRow[] {
     }
   }
   const porAnexo = ehCodigo ? [] : buscarNbsPorAnexo(gruposBusca);
+  const porCnae = buscarNbsPorCnae(termoTrim, gruposBusca);
 
   const vistos = new Set<string>();
   const combinados: NbsRow[] = [];
-  for (const r of [...porAnexo, ...porCodigo, ...porDescricao]) {
+  for (const r of [...porCnae, ...porAnexo, ...porCodigo, ...porDescricao]) {
     const chave = `${r.codigo}::${r.descricao}`;
     if (vistos.has(chave)) continue;
     vistos.add(chave);
     combinados.push(r);
   }
   return combinados.slice(0, LIMITE_RESULTADOS);
+}
+
+/** Busca CNAEs por código (prefixo) ou palavra-chave da atividade. */
+export function buscarCnae(termo: string): CnaeRow[] {
+  const termoTrim = termo.trim();
+  if (!termoTrim) return [];
+  if (ehFormatoCnae(termoTrim)) {
+    const digitos = termoTrim.replace(/[^\d]/g, '');
+    return CNAE.filter((c) => c.codigo.replace(/[^\d]/g, '').startsWith(digitos)).slice(0, LIMITE_RESULTADOS);
+  }
+  const gruposBusca = tokensDeBusca(termoTrim);
+  return CNAE.filter((c) => descricaoCasaComBusca(gruposBusca, tokenizar(c.descricao))).slice(0, LIMITE_RESULTADOS);
 }
 
 /** Indicadores de operação (INDOP) plausíveis para o tipo de item, como referência — a operação real define o INDOP exato. */
