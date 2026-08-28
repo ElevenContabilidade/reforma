@@ -70,7 +70,7 @@ export function EmpresaForm({ dados, onChange }: Props) {
               <input
                 type="checkbox"
                 id="fatorR"
-                className="h-4 w-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500"
+                className="h-4 w-4 rounded border-slate-300 text-amber-600 focus:ring-amber-500"
                 checked={dados.atividadeSujeitaFatorR}
                 onChange={(e) => update('atividadeSujeitaFatorR', e.target.checked)}
               />

@@ -3,16 +3,10 @@ import * as pdfjsLib from 'pdfjs-dist';
 // builds "single-file" (ex.: artifact), onde não há um servidor de assets.
 import pdfjsWorkerSource from 'pdfjs-dist/build/pdf.worker.min.mjs?raw';
 import type { AnexoSimples, DadosExtraidosPgdas } from './types';
+import { normalizar } from './text';
 
 const workerBlob = new Blob([pdfjsWorkerSource], { type: 'text/javascript' });
 pdfjsLib.GlobalWorkerOptions.workerSrc = URL.createObjectURL(workerBlob);
-
-function normalizar(texto: string): string {
-  return texto
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .toLowerCase();
-}
 
 /** Converte "1.234.567,89" -> 1234567.89 */
 function paraNumero(valor: string): number {

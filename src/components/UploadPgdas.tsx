@@ -62,7 +62,7 @@ export function UploadPgdas({ dados, onChange }: Props) {
 
       <div
         className={`flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed px-6 py-10 text-center transition ${
-          arrastando ? 'border-teal-500 bg-teal-50' : 'border-slate-300 bg-slate-50'
+          arrastando ? 'border-amber-500 bg-amber-50' : 'border-slate-300 bg-slate-50'
         }`}
         onDragOver={(e) => {
           e.preventDefault();
@@ -76,7 +76,7 @@ export function UploadPgdas({ dados, onChange }: Props) {
         }}
       >
         {carregando ? (
-          <Loader2 className="h-8 w-8 animate-spin text-teal-600" />
+          <Loader2 className="h-8 w-8 animate-spin text-amber-600" />
         ) : (
           <FileUp className="h-8 w-8 text-slate-400" />
         )}
@@ -87,7 +87,7 @@ export function UploadPgdas({ dados, onChange }: Props) {
         <button
           type="button"
           onClick={() => inputRef.current?.click()}
-          className="rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-teal-700"
+          className="rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-amber-700"
         >
           Selecionar arquivo
         </button>

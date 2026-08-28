@@ -63,6 +63,14 @@ export function categoriaPorId(id: string): CategoriaItem | undefined {
   return CATEGORIAS_ITENS.find((c) => c.id === id);
 }
 
+/** Classes Tailwind do "pill" de redução, por percentual (reutilizado nas listas de itens e nas consultas de NCM/NBS). */
+export function classesReducaoBadge(reducaoPercentual: number): string {
+  if (reducaoPercentual === 100) return 'bg-emerald-100 text-emerald-700';
+  if (reducaoPercentual === 60) return 'bg-sky-100 text-sky-700';
+  if (reducaoPercentual === 30) return 'bg-violet-100 text-violet-700';
+  return 'bg-slate-100 text-slate-600';
+}
+
 /** Alíquotas de referência do "IVA Dual" (CBS + IBS), estimativa MF nov/2024. */
 export const ALIQUOTA_REFERENCIA_CBS = 8.8; // %
 export const ALIQUOTA_REFERENCIA_IBS = 17.7; // %

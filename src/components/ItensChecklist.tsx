@@ -1,4 +1,4 @@
-import { CATEGORIAS_ITENS, validarMix } from '../lib/reform';
+import { CATEGORIAS_ITENS, classesReducaoBadge, validarMix } from '../lib/reform';
 import type { CategoriaReducao, DadosEmpresa, MixReceitaItem } from '../lib/types';
 import { NumberInput } from './Field';
 import { formatarPercentual } from '../lib/format';
@@ -46,13 +46,13 @@ export function ItensChecklist({ dados, onChange }: Props) {
           return (
             <div
               key={categoria.id}
-              className={`rounded-xl border p-4 transition ${ativo ? 'border-teal-300 bg-teal-50/40' : 'border-slate-200'}`}
+              className={`rounded-xl border p-4 transition ${ativo ? 'border-amber-300 bg-amber-50/40' : 'border-slate-200'}`}
             >
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div className="flex gap-3">
                   <input
                     type="checkbox"
-                    className="mt-1 h-4 w-4 shrink-0 rounded border-slate-300 text-teal-600 focus:ring-teal-500"
+                    className="mt-1 h-4 w-4 shrink-0 rounded border-slate-300 text-amber-600 focus:ring-amber-500"
                     checked={ativo}
                     onChange={(e) => setPercentual(categoria.id, e.target.checked ? percentualDe(categoria.id) || 10 : 0)}
                   />
@@ -60,15 +60,7 @@ export function ItensChecklist({ dados, onChange }: Props) {
                     <div className="flex items-center gap-2">
                       <span className="font-medium text-slate-900">{categoria.nome}</span>
                       <span
-                        className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
-                          categoria.reducaoPercentual === 100
-                            ? 'bg-emerald-100 text-emerald-700'
-                            : categoria.reducaoPercentual === 60
-                              ? 'bg-teal-100 text-teal-700'
-                              : categoria.reducaoPercentual === 30
-                                ? 'bg-amber-100 text-amber-700'
-                                : 'bg-slate-100 text-slate-600'
-                        }`}
+                        className={`rounded-full px-2 py-0.5 text-xs font-semibold ${classesReducaoBadge(categoria.reducaoPercentual)}`}
                       >
                         {categoria.reducaoPercentual > 0 ? `−${categoria.reducaoPercentual}% na alíquota` : 'alíquota cheia'}
                       </span>

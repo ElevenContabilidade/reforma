@@ -1,28 +1,21 @@
 import { useEffect, useState } from 'react';
-import { Building2, FileUp, ListChecks, LayoutDashboard, Scale } from 'lucide-react';
 import type { DadosEmpresa, SimulacaoSalva } from './lib/types';
 import { novaDadosEmpresa } from './lib/defaults';
 import { gerarId, listarSimulacoes, salvarSimulacao, excluirSimulacao } from './lib/storage';
-import { SimulacoesSidebar } from './components/SimulacoesSidebar';
+import { Sidebar, type Pagina } from './components/Sidebar';
 import { EmpresaForm } from './components/EmpresaForm';
 import { ItensChecklist } from './components/ItensChecklist';
 import { UploadPgdas } from './components/UploadPgdas';
 import { Dashboard } from './components/Dashboard';
-
-type Aba = 'empresa' | 'itens' | 'upload' | 'dashboard';
-
-const ABAS: { id: Aba; label: string; icon: typeof Building2 }[] = [
-  { id: 'empresa', label: 'Dados da empresa', icon: Building2 },
-  { id: 'itens', label: 'Produtos e serviços', icon: ListChecks },
-  { id: 'upload', label: 'Upload PGDAS', icon: FileUp },
-  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-];
+import { ConsultaClassificacao } from './components/ConsultaClassificacao';
+import { NCM_ITENS } from './lib/ncmData';
+import { NBS_ITENS } from './lib/nbsData';
 
 export default function App() {
   const [simulacoes, setSimulacoes] = useState<SimulacaoSalva[]>([]);
   const [idAtual, setIdAtual] = useState<string | null>(null);
   const [dados, setDados] = useState<DadosEmpresa>(novaDadosEmpresa());
-  const [aba, setAba] = useState<Aba>('empresa');
+  const [pagina, setPagina] = useState<Pagina>('empresa');
 
   useEffect(() => {
     const lista = listarSimulacoes();
@@ -48,7 +41,7 @@ export default function App() {
     const id = gerarId();
     setIdAtual(id);
     setDados(novaDadosEmpresa());
-    setAba('empresa');
+    setPagina('empresa');
   }
 
   function handleSelecionar(id: string) {
@@ -56,7 +49,7 @@ export default function App() {
     if (!sim) return;
     setIdAtual(id);
     setDados(sim.dados);
-    setAba('empresa');
+    setPagina('empresa');
   }
 
   function handleExcluir(id: string) {
@@ -73,48 +66,41 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <header className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 py-4 sm:px-6">
-          <div className="rounded-xl bg-teal-600 p-2 text-white">
-            <Scale className="h-5 w-5" />
-          </div>
-          <div>
-            <h1 className="text-lg font-semibold text-slate-900">Simulador da Reforma Tributária</h1>
-            <p className="text-xs text-slate-500">Simples Nacional × Híbrido × Lucro Presumido × Lucro Real</p>
-          </div>
-        </div>
-      </header>
+    <div className="min-h-screen bg-slate-50 lg:flex">
+      <Sidebar
+        pagina={pagina}
+        onNavegar={setPagina}
+        simulacoes={simulacoes}
+        idAtual={idAtual}
+        onSelecionarCliente={handleSelecionar}
+        onNovoCliente={handleNovo}
+        onExcluirCliente={handleExcluir}
+      />
 
-      <main className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-6 sm:px-6 lg:flex-row">
-        <SimulacoesSidebar
-          simulacoes={simulacoes}
-          idAtual={idAtual}
-          onSelecionar={handleSelecionar}
-          onNovo={handleNovo}
-          onExcluir={handleExcluir}
-        />
-
-        <div className="min-w-0 flex-1">
-          <nav className="mb-6 flex gap-1 overflow-x-auto rounded-xl border border-slate-200 bg-white p-1 shadow-sm">
-            {ABAS.map(({ id, label, icon: Icon }) => (
-              <button
-                key={id}
-                onClick={() => setAba(id)}
-                className={`flex shrink-0 items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition ${
-                  aba === id ? 'bg-teal-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'
-                }`}
-              >
-                <Icon className="h-4 w-4" />
-                {label}
-              </button>
-            ))}
-          </nav>
-
-          {aba === 'empresa' && <EmpresaForm dados={dados} onChange={setDados} />}
-          {aba === 'itens' && <ItensChecklist dados={dados} onChange={setDados} />}
-          {aba === 'upload' && <UploadPgdas dados={dados} onChange={setDados} />}
-          {aba === 'dashboard' && <Dashboard dados={dados} />}
+      <main className="min-w-0 flex-1 px-4 py-6 sm:px-8 lg:py-8">
+        <div className="mx-auto max-w-5xl">
+          {pagina === 'empresa' && <EmpresaForm dados={dados} onChange={setDados} />}
+          {pagina === 'itens' && <ItensChecklist dados={dados} onChange={setDados} />}
+          {pagina === 'upload' && <UploadPgdas dados={dados} onChange={setDados} />}
+          {pagina === 'ncm' && (
+            <ConsultaClassificacao
+              titulo="Produto / NCM"
+              subtitulo="Descubra o tratamento tributário de um produto pela Reforma (redução de alíquota de CBS/IBS por NCM)."
+              placeholder="Digite o NCM, produto ou palavra-chave (ex: arroz, celular, medicamento)"
+              itens={NCM_ITENS}
+              rotuloCodigo="NCM"
+            />
+          )}
+          {pagina === 'nbs' && (
+            <ConsultaClassificacao
+              titulo="Serviço / NBS"
+              subtitulo="Descubra o tratamento tributário de uma atividade ou serviço pela Reforma (redução de alíquota de CBS/IBS por NBS)."
+              placeholder="Digite o NBS, atividade ou palavra-chave (ex: transporte, advocacia, saúde)"
+              itens={NBS_ITENS}
+              rotuloCodigo="NBS"
+            />
+          )}
+          {pagina === 'dashboard' && <Dashboard dados={dados} />}
         </div>
       </main>
     </div>
