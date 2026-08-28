@@ -43,3 +43,32 @@ body {
   background: #cbd5e1;
   border-radius: 9999px;
 }
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+
+  html,
+  body {
+    background: #fff !important;
+  }
+
+  main {
+    padding: 0 !important;
+  }
+
+  .print-area {
+    max-width: none !important;
+  }
+
+  .print-area * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    box-shadow: none !important;
+  }
+
+  .print-avoid-break {
+    break-inside: avoid;
+  }
+}

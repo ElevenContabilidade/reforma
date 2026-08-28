@@ -57,7 +57,7 @@ export function Sidebar({ pagina, onNavegar, simulacoes, idAtual, onSelecionarCl
   const clienteAtual = simulacoes.find((s) => s.id === idAtual);
 
   return (
-    <aside className="flex w-full shrink-0 flex-col bg-brand-900 text-stone-300 lg:h-screen lg:w-72 lg:sticky lg:top-0 lg:overflow-y-auto">
+    <aside className="no-print flex w-full shrink-0 flex-col bg-brand-900 text-stone-300 lg:h-screen lg:w-72 lg:sticky lg:top-0 lg:overflow-y-auto">
       <div className="border-b border-white/10 px-5 py-6">
         <EleveLogo />
         <div className="mt-4 border-t border-white/10 pt-3 text-center">

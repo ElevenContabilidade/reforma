@@ -76,7 +76,7 @@ export default function App() {
       />
 
       <main className="min-w-0 flex-1 px-4 py-6 sm:px-8 lg:py-8">
-        <div className="mx-auto max-w-5xl">
+        <div className="print-area mx-auto max-w-5xl">
           {pagina === 'empresa' && <EmpresaForm dados={dados} onChange={setDados} />}
           {pagina === 'itens' && <ItensChecklist dados={dados} onChange={setDados} />}
           {pagina === 'upload' && <UploadPgdas dados={dados} onChange={setDados} />}
