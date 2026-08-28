@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import {
-  Scale,
   Plus,
   Trash2,
   ChevronDown,
@@ -12,6 +11,7 @@ import {
   LayoutDashboard,
 } from 'lucide-react';
 import type { SimulacaoSalva } from '../lib/types';
+import { EleveLogo } from './EleveLogo';
 
 export type Pagina = 'empresa' | 'itens' | 'upload' | 'ncm' | 'nbs' | 'dashboard';
 
@@ -57,26 +57,24 @@ export function Sidebar({ pagina, onNavegar, simulacoes, idAtual, onSelecionarCl
   const clienteAtual = simulacoes.find((s) => s.id === idAtual);
 
   return (
-    <aside className="flex w-full shrink-0 flex-col bg-brand-900 text-slate-300 lg:h-screen lg:w-72 lg:sticky lg:top-0 lg:overflow-y-auto">
-      <div className="flex items-center gap-2.5 border-b border-white/10 px-5 py-5">
-        <div className="rounded-lg bg-gold-200 p-1.5 text-brand-900">
-          <Scale className="h-5 w-5" />
-        </div>
-        <div>
+    <aside className="flex w-full shrink-0 flex-col bg-brand-900 text-stone-300 lg:h-screen lg:w-72 lg:sticky lg:top-0 lg:overflow-y-auto">
+      <div className="border-b border-white/10 px-5 py-5">
+        <EleveLogo />
+        <div className="mt-3 border-t border-white/10 pt-3">
           <p className="text-sm font-semibold text-white">Simulador Tributário</p>
-          <p className="text-[11px] text-slate-400">Reforma Tributária</p>
+          <p className="text-[11px] text-stone-400">Reforma Tributária</p>
         </div>
       </div>
 
       <div className="border-b border-white/10 px-4 py-4">
-        <p className="mb-2 px-1 text-[11px] font-semibold uppercase tracking-wide text-slate-500">Cliente</p>
+        <p className="mb-2 px-1 text-[11px] font-semibold uppercase tracking-wide text-stone-500">Cliente</p>
         <div className="relative">
           <button
             onClick={() => setListaAberta((v) => !v)}
             className="flex w-full items-center justify-between gap-2 rounded-lg bg-white/5 px-3 py-2.5 text-left text-sm text-white transition hover:bg-white/10"
           >
             <span className="truncate">{clienteAtual?.dados.nomeCliente || 'Cliente sem nome'}</span>
-            <ChevronDown className={`h-4 w-4 shrink-0 text-slate-400 transition ${listaAberta ? 'rotate-180' : ''}`} />
+            <ChevronDown className={`h-4 w-4 shrink-0 text-stone-400 transition ${listaAberta ? 'rotate-180' : ''}`} />
           </button>
 
           {listaAberta && (
@@ -92,7 +90,7 @@ export function Sidebar({ pagina, onNavegar, simulacoes, idAtual, onSelecionarCl
                 Novo cliente
               </button>
               <div className="max-h-64 overflow-y-auto">
-                {simulacoes.length === 0 && <p className="px-3 py-4 text-center text-xs text-slate-500">Nenhum cliente salvo.</p>}
+                {simulacoes.length === 0 && <p className="px-3 py-4 text-center text-xs text-stone-500">Nenhum cliente salvo.</p>}
                 {simulacoes.map((s) => (
                   <div key={s.id} className={`group flex items-center gap-1 px-1.5 ${s.id === idAtual ? 'bg-white/10' : ''}`}>
                     <button
@@ -100,13 +98,13 @@ export function Sidebar({ pagina, onNavegar, simulacoes, idAtual, onSelecionarCl
                         onSelecionarCliente(s.id);
                         setListaAberta(false);
                       }}
-                      className="flex-1 truncate px-1.5 py-2 text-left text-sm text-slate-200"
+                      className="flex-1 truncate px-1.5 py-2 text-left text-sm text-stone-200"
                     >
                       {s.dados.nomeCliente || 'Cliente sem nome'}
                     </button>
                     <button
                       onClick={() => onExcluirCliente(s.id)}
-                      className="rounded p-1 text-slate-500 opacity-0 transition hover:bg-rose-500/10 hover:text-rose-400 group-hover:opacity-100"
+                      className="rounded p-1 text-stone-500 opacity-0 transition hover:bg-rose-500/10 hover:text-rose-400 group-hover:opacity-100"
                       title="Excluir cliente"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
@@ -122,14 +120,14 @@ export function Sidebar({ pagina, onNavegar, simulacoes, idAtual, onSelecionarCl
       <nav className="flex-1 space-y-6 px-4 py-5">
         {GRUPOS.map((grupo) => (
           <div key={grupo.titulo}>
-            <p className="mb-2 px-1 text-[11px] font-semibold uppercase tracking-wide text-slate-500">{grupo.titulo}</p>
+            <p className="mb-2 px-1 text-[11px] font-semibold uppercase tracking-wide text-stone-500">{grupo.titulo}</p>
             <div className="space-y-1">
               {grupo.itens.map(({ id, label, icon: Icon }) => (
                 <button
                   key={id}
                   onClick={() => onNavegar(id)}
                   className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-medium transition ${
-                    pagina === id ? 'bg-gold-200 text-brand-900' : 'text-slate-300 hover:bg-white/5 hover:text-white'
+                    pagina === id ? 'bg-gold-200 text-brand-900' : 'text-stone-300 hover:bg-white/5 hover:text-white'
                   }`}
                 >
                   <Icon className="h-4 w-4 shrink-0" />

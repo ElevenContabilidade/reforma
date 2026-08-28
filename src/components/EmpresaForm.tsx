@@ -19,8 +19,8 @@ export function EmpresaForm({ dados, onChange }: Props) {
 
   return (
     <div className="space-y-8">
-      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 className="mb-4 text-base font-semibold text-slate-900">Dados do cliente</h2>
+      <section className="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm">
+        <h2 className="mb-4 text-base font-semibold text-stone-900">Dados do cliente</h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field label="Nome / Razão social">
             <TextInput value={dados.nomeCliente} onChange={(v) => update('nomeCliente', v)} placeholder="Ex: Padaria Bom Pão Ltda" />
@@ -49,8 +49,8 @@ export function EmpresaForm({ dados, onChange }: Props) {
         </div>
       </section>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 className="mb-4 text-base font-semibold text-slate-900">Simples Nacional</h2>
+      <section className="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm">
+        <h2 className="mb-4 text-base font-semibold text-stone-900">Simples Nacional</h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field label="Anexo do Simples Nacional" hint={dados.atividadeSujeitaFatorR ? 'Calculado automaticamente pelo Fator R' : undefined}>
             <SelectInput
@@ -70,26 +70,26 @@ export function EmpresaForm({ dados, onChange }: Props) {
               <input
                 type="checkbox"
                 id="fatorR"
-                className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
+                className="h-4 w-4 rounded border-stone-300 text-brand-600 focus:ring-brand-500"
                 checked={dados.atividadeSujeitaFatorR}
                 onChange={(e) => update('atividadeSujeitaFatorR', e.target.checked)}
               />
-              <label htmlFor="fatorR" className="text-sm text-slate-600">
+              <label htmlFor="fatorR" className="text-sm text-stone-600">
                 Sim, aplicar regra do Fator R
               </label>
             </div>
           </Field>
         </div>
         {dados.atividadeSujeitaFatorR && (
-          <p className="mt-3 text-xs text-slate-500">
-            Fator R atual: <span className="font-semibold text-slate-700">{formatarPercentual(fr, 1)}</span> — limite {FATOR_R_LIMITE}%.{' '}
+          <p className="mt-3 text-xs text-stone-500">
+            Fator R atual: <span className="font-semibold text-stone-700">{formatarPercentual(fr, 1)}</span> — limite {FATOR_R_LIMITE}%.{' '}
             {fr >= FATOR_R_LIMITE ? 'Enquadra em Anexo III.' : 'Enquadra em Anexo V.'}
           </p>
         )}
       </section>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 className="mb-4 text-base font-semibold text-slate-900">Dados financeiros</h2>
+      <section className="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm">
+        <h2 className="mb-4 text-base font-semibold text-stone-900">Dados financeiros</h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <Field label="Faturamento mensal" hint="Receita bruta do mês de referência">
             <NumberInput value={dados.faturamentoMensal} onChange={(v) => update('faturamentoMensal', v)} min={0} suffix="R$" />

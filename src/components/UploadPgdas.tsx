@@ -53,16 +53,16 @@ export function UploadPgdas({ dados, onChange }: Props) {
   }
 
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-      <h2 className="mb-1 text-base font-semibold text-slate-900">Upload do extrato PGDAS-D</h2>
-      <p className="mb-5 text-sm text-slate-500">
+    <section className="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm">
+      <h2 className="mb-1 text-base font-semibold text-stone-900">Upload do extrato PGDAS-D</h2>
+      <p className="mb-5 text-sm text-stone-500">
         Envie o PDF do extrato do PGDAS-D (Programa Gerador do DAS) para preencher automaticamente RBT12, faturamento do
         período, folha de pagamento e o anexo do Simples Nacional. Confira sempre os valores extraídos antes de simular.
       </p>
 
       <div
         className={`flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed px-6 py-10 text-center transition ${
-          arrastando ? 'border-brand-500 bg-brand-50' : 'border-slate-300 bg-slate-50'
+          arrastando ? 'border-brand-500 bg-brand-50' : 'border-stone-300 bg-stone-50'
         }`}
         onDragOver={(e) => {
           e.preventDefault();
@@ -78,11 +78,11 @@ export function UploadPgdas({ dados, onChange }: Props) {
         {carregando ? (
           <Loader2 className="h-8 w-8 animate-spin text-brand-600" />
         ) : (
-          <FileUp className="h-8 w-8 text-slate-400" />
+          <FileUp className="h-8 w-8 text-stone-400" />
         )}
         <div>
-          <p className="text-sm font-medium text-slate-700">Arraste o PDF aqui ou clique para selecionar</p>
-          <p className="text-xs text-slate-400">Somente arquivos PDF do extrato PGDAS-D</p>
+          <p className="text-sm font-medium text-stone-700">Arraste o PDF aqui ou clique para selecionar</p>
+          <p className="text-xs text-stone-400">Somente arquivos PDF do extrato PGDAS-D</p>
         </div>
         <button
           type="button"
@@ -115,32 +115,32 @@ export function UploadPgdas({ dados, onChange }: Props) {
           </div>
           <dl className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm sm:grid-cols-3">
             <div>
-              <dt className="text-slate-500">RBT12</dt>
-              <dd className="font-medium text-slate-800">{extraido.rbt12 ? formatarMoeda(extraido.rbt12) : '—'}</dd>
+              <dt className="text-stone-500">RBT12</dt>
+              <dd className="font-medium text-stone-800">{extraido.rbt12 ? formatarMoeda(extraido.rbt12) : '—'}</dd>
             </div>
             <div>
-              <dt className="text-slate-500">Faturamento do período</dt>
-              <dd className="font-medium text-slate-800">
+              <dt className="text-stone-500">Faturamento do período</dt>
+              <dd className="font-medium text-stone-800">
                 {extraido.faturamentoMensal ? formatarMoeda(extraido.faturamentoMensal) : '—'}
               </dd>
             </div>
             <div>
-              <dt className="text-slate-500">Folha (FS12)</dt>
-              <dd className="font-medium text-slate-800">
+              <dt className="text-stone-500">Folha (FS12)</dt>
+              <dd className="font-medium text-stone-800">
                 {extraido.folhaPagamento12m ? formatarMoeda(extraido.folhaPagamento12m) : '—'}
               </dd>
             </div>
             <div>
-              <dt className="text-slate-500">Anexo</dt>
-              <dd className="font-medium text-slate-800">{extraido.anexo ?? '—'}</dd>
+              <dt className="text-stone-500">Anexo</dt>
+              <dd className="font-medium text-stone-800">{extraido.anexo ?? '—'}</dd>
             </div>
             <div>
-              <dt className="text-slate-500">Valor do DAS</dt>
-              <dd className="font-medium text-slate-800">{extraido.valorDas ? formatarMoeda(extraido.valorDas) : '—'}</dd>
+              <dt className="text-stone-500">Valor do DAS</dt>
+              <dd className="font-medium text-stone-800">{extraido.valorDas ? formatarMoeda(extraido.valorDas) : '—'}</dd>
             </div>
             <div>
-              <dt className="text-slate-500">Competência</dt>
-              <dd className="font-medium text-slate-800">{extraido.competencia ?? '—'}</dd>
+              <dt className="text-stone-500">Competência</dt>
+              <dd className="font-medium text-stone-800">{extraido.competencia ?? '—'}</dd>
             </div>
           </dl>
           <button

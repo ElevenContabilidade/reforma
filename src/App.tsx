@@ -64,7 +64,7 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 lg:flex">
+    <div className="min-h-screen bg-stone-50 lg:flex">
       <Sidebar
         pagina={pagina}
         onNavegar={setPagina}
