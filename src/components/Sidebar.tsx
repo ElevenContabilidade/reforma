@@ -57,9 +57,9 @@ export function Sidebar({ pagina, onNavegar, simulacoes, idAtual, onSelecionarCl
   const clienteAtual = simulacoes.find((s) => s.id === idAtual);
 
   return (
-    <aside className="flex w-full shrink-0 flex-col bg-slate-900 text-slate-300 lg:h-screen lg:w-72 lg:sticky lg:top-0 lg:overflow-y-auto">
+    <aside className="flex w-full shrink-0 flex-col bg-brand-900 text-slate-300 lg:h-screen lg:w-72 lg:sticky lg:top-0 lg:overflow-y-auto">
       <div className="flex items-center gap-2.5 border-b border-white/10 px-5 py-5">
-        <div className="rounded-lg bg-amber-500 p-1.5 text-slate-900">
+        <div className="rounded-lg bg-gold-200 p-1.5 text-brand-900">
           <Scale className="h-5 w-5" />
         </div>
         <div>
@@ -80,13 +80,13 @@ export function Sidebar({ pagina, onNavegar, simulacoes, idAtual, onSelecionarCl
           </button>
 
           {listaAberta && (
-            <div className="absolute z-10 mt-1 w-full overflow-hidden rounded-lg border border-white/10 bg-slate-800 shadow-xl">
+            <div className="absolute z-10 mt-1 w-full overflow-hidden rounded-lg border border-white/10 bg-brand-800 shadow-xl">
               <button
                 onClick={() => {
                   onNovoCliente();
                   setListaAberta(false);
                 }}
-                className="flex w-full items-center gap-2 border-b border-white/10 px-3 py-2.5 text-left text-sm text-amber-400 transition hover:bg-white/5"
+                className="flex w-full items-center gap-2 border-b border-white/10 px-3 py-2.5 text-left text-sm text-gold-300 transition hover:bg-white/5"
               >
                 <Plus className="h-4 w-4" />
                 Novo cliente
@@ -129,7 +129,7 @@ export function Sidebar({ pagina, onNavegar, simulacoes, idAtual, onSelecionarCl
                   key={id}
                   onClick={() => onNavegar(id)}
                   className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-medium transition ${
-                    pagina === id ? 'bg-amber-500 text-slate-900' : 'text-slate-300 hover:bg-white/5 hover:text-white'
+                    pagina === id ? 'bg-gold-200 text-brand-900' : 'text-slate-300 hover:bg-white/5 hover:text-white'
                   }`}
                 >
                   <Icon className="h-4 w-4 shrink-0" />

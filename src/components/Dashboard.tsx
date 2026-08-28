@@ -44,10 +44,10 @@ export function Dashboard({ dados }: Props) {
 
   return (
     <div className="space-y-6">
-      <div className="rounded-2xl border border-amber-200 bg-gradient-to-br from-amber-50 to-white p-6 shadow-sm">
+      <div className="rounded-2xl border border-gold-300 bg-gradient-to-br from-gold-50 to-white p-6 shadow-sm">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-start gap-3">
-            <div className="rounded-full bg-amber-600 p-2 text-white">
+            <div className="rounded-full bg-brand-600 p-2 text-white">
               <Trophy className="h-5 w-5" />
             </div>
             <div>
@@ -74,7 +74,7 @@ export function Dashboard({ dados }: Props) {
             key={r.regime}
             onClick={() => setSelecionado(r.regime)}
             className={`rounded-2xl border p-5 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md ${
-              detalhado.regime === r.regime ? 'border-amber-400 ring-2 ring-amber-500/20' : 'border-slate-200 bg-white'
+              detalhado.regime === r.regime ? 'border-brand-400 ring-2 ring-brand-500/20' : 'border-slate-200 bg-white'
             }`}
           >
             <div className="mb-2 flex items-center justify-between">

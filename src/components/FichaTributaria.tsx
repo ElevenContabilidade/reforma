@@ -61,7 +61,7 @@ export function FichaTributaria({ ficha }: { ficha: FichaTributariaData }) {
               href={classificacao.link}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex items-center gap-1 text-amber-700 underline decoration-amber-300 underline-offset-2 hover:text-amber-800"
+              className="inline-flex items-center gap-1 text-brand-700 underline decoration-brand-300 underline-offset-2 hover:text-brand-800"
             >
               {classificacao.baseLegalTexto ?? 'LC 214/2025'}
               <ExternalLink className="h-3 w-3" />

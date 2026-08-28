@@ -2,6 +2,26 @@
 
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+
+  /* Paleta da marca Eleven Contabilidade & Consultoria (bordô + dourado). */
+  --color-brand-50: #fbeeee;
+  --color-brand-100: #f4d6d6;
+  --color-brand-200: #e6adad;
+  --color-brand-300: #d17f80;
+  --color-brand-400: #b3494b;
+  --color-brand-500: #8c2426;
+  --color-brand-600: #6b1013;
+  --color-brand-700: #530d0f;
+  --color-brand-800: #3d0a0b;
+  --color-brand-900: #290608;
+  --color-brand-950: #1a0405;
+
+  --color-gold-50: #fffcf3;
+  --color-gold-100: #fbf1d7;
+  --color-gold-200: #f6dfa1;
+  --color-gold-300: #eeca6d;
+  --color-gold-400: #e0ad42;
+  --color-gold-500: #c9922b;
 }
 
 html {

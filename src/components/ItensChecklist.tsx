@@ -46,13 +46,13 @@ export function ItensChecklist({ dados, onChange }: Props) {
           return (
             <div
               key={categoria.id}
-              className={`rounded-xl border p-4 transition ${ativo ? 'border-amber-300 bg-amber-50/40' : 'border-slate-200'}`}
+              className={`rounded-xl border p-4 transition ${ativo ? 'border-brand-300 bg-brand-50/40' : 'border-slate-200'}`}
             >
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div className="flex gap-3">
                   <input
                     type="checkbox"
-                    className="mt-1 h-4 w-4 shrink-0 rounded border-slate-300 text-amber-600 focus:ring-amber-500"
+                    className="mt-1 h-4 w-4 shrink-0 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
                     checked={ativo}
                     onChange={(e) => setPercentual(categoria.id, e.target.checked ? percentualDe(categoria.id) || 10 : 0)}
                   />

@@ -36,7 +36,7 @@ export function ConsultaOficial({ tipo, titulo, subtitulo, placeholder }: Props)
             setSelecionado(null);
           }}
           placeholder={placeholder}
-          className="w-full rounded-lg border border-slate-300 bg-white py-2.5 pl-10 pr-3 text-sm text-slate-900 shadow-sm outline-none transition focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20"
+          className="w-full rounded-lg border border-slate-300 bg-white py-2.5 pl-10 pr-3 text-sm text-slate-900 shadow-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
         />
       </div>
 
@@ -70,8 +70,8 @@ export function ConsultaOficial({ tipo, titulo, subtitulo, placeholder }: Props)
                     onClick={() => setSelecionado(item)}
                     className={`w-full rounded-lg border px-3 py-2.5 text-left text-sm transition ${
                       selecionado?.codigo === item.codigo
-                        ? 'border-amber-400 bg-amber-50'
-                        : 'border-slate-200 hover:border-amber-200 hover:bg-amber-50/40'
+                        ? 'border-brand-400 bg-brand-50'
+                        : 'border-slate-200 hover:border-brand-200 hover:bg-brand-50/40'
                     }`}
                   >
                     <span className="font-mono text-xs font-semibold text-slate-400">{item.codigo}</span>
