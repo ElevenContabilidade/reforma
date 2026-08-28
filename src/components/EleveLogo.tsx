@@ -1,34 +1,53 @@
 /**
- * Marca "eleven." — recriação aproximada do ícone (barras diagonais + seta)
- * a partir da logo enviada pelo cliente. Se um arquivo de logo oficial
- * (PNG/SVG) for fornecido depois, substituir este componente pela imagem
- * real garante fidelidade total à marca.
+ * Marca "eleven." — ícone vetorizado a partir do arquivo oficial enviado pela
+ * cliente (3 barras diagonais formando uma seta ascendente), com fidelidade
+ * total ao traçado original.
  */
-export function EleveIcon({ className }: { className?: string }) {
+const ICONE_PATHS = [
+  'M219,0 L0,218 L42,260 L261,42 Z',
+  'M427,6 L311,41 L331,62 L88,305 L216,434 L261,393 L173,305 L375,103 L398,124 Z',
+  'M394,175 L262,306 L304,348 L436,217 Z',
+];
+
+let idSeq = 0;
+
+export function EleveIcon({ className, variant = 'gold' }: { className?: string; variant?: 'gold' | 'brand' }) {
+  const gradientId = `eleve-icon-grad-${variant}-${++idSeq}`;
+  const stops =
+    variant === 'gold'
+      ? (['#fbf1d7', '#f6dfa1', '#c9922b'] as const)
+      : (['#8c2426', '#6b1013', '#290608'] as const);
+
   return (
-    <svg viewBox="0 0 64 64" className={className} fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-      <g stroke="currentColor" strokeWidth="7.5" strokeLinecap="round" strokeLinejoin="round">
-        <line x1="9" y1="53" x2="24" y2="38" />
-        <line x1="22" y1="53" x2="37" y2="38" />
-        <line x1="35" y1="53" x2="55" y2="33" />
-        <polyline points="46,33 55,33 55,42" />
-      </g>
+    <svg viewBox="0 0 437 435" className={className} xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <defs>
+        <linearGradient id={gradientId} x1="0%" y1="100%" x2="100%" y2="0%">
+          <stop offset="0%" stopColor={stops[2]} />
+          <stop offset="50%" stopColor={stops[0]} />
+          <stop offset="100%" stopColor={stops[2]} />
+        </linearGradient>
+      </defs>
+      {ICONE_PATHS.map((d) => (
+        <path key={d} d={d} fill={`url(#${gradientId})`} />
+      ))}
     </svg>
   );
 }
 
-export function EleveLogo({ className }: { className?: string }) {
+export function EleveLogo({ className, variant = 'gold' }: { className?: string; variant?: 'gold' | 'brand' }) {
+  const corTexto = variant === 'gold' ? 'text-gold-100' : 'text-brand-900';
+  const corPonto = variant === 'gold' ? 'text-gold-400' : 'text-brand-500';
+  const corTagline = variant === 'gold' ? 'text-stone-400' : 'text-brand-600';
+
   return (
-    <div className={`flex items-center gap-2.5 ${className ?? ''}`}>
-      <EleveIcon className="h-8 w-8 shrink-0 text-gold-200" />
-      <div className="leading-none">
-        <p className="text-xl font-semibold tracking-tight text-gold-100">
-          eleven<span className="text-gold-400">.</span>
-        </p>
-        <p className="mt-1 text-[9px] font-semibold uppercase tracking-[0.14em] text-stone-400">
-          Contabilidade &amp; Consultoria
-        </p>
-      </div>
+    <div className={`flex flex-col items-center text-center ${className ?? ''}`}>
+      <EleveIcon variant={variant} className="h-14 w-14 shrink-0" />
+      <p className={`mt-2 text-2xl font-semibold leading-none tracking-tight ${corTexto}`}>
+        eleven<span className={corPonto}>.</span>
+      </p>
+      <p className={`mt-1.5 text-[9px] font-semibold uppercase tracking-[0.14em] ${corTagline}`}>
+        Contabilidade &amp; Consultoria
+      </p>
     </div>
   );
 }
