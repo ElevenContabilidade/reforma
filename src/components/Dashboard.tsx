@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { Trophy, TrendingDown, Info, Printer } from 'lucide-react';
+import { Trophy, TrendingDown, Info, Printer, ExternalLink } from 'lucide-react';
 import type { DadosEmpresa, ResultadoRegime } from '../lib/types';
 import { calcularTodosRegimes } from '../lib/calculators';
 import { cronogramaTransicao } from '../lib/reform';
@@ -9,6 +9,7 @@ import { EleveIcon } from './EleveLogo';
 
 interface Props {
   dados: DadosEmpresa;
+  idAtual: string | null;
 }
 
 const CORES: Record<ResultadoRegime['regime'], string> = {
@@ -18,7 +19,7 @@ const CORES: Record<ResultadoRegime['regime'], string> = {
   real: '#dc2626',
 };
 
-export function Dashboard({ dados }: Props) {
+export function Dashboard({ dados, idAtual }: Props) {
   const resultados = useMemo(() => calcularTodosRegimes(dados), [dados]);
   const [selecionado, setSelecionado] = useState<ResultadoRegime['regime'] | null>(null);
 
@@ -34,6 +35,14 @@ export function Dashboard({ dados }: Props) {
   }));
 
   const detalhado = resultados.find((r) => r.regime === selecionado) ?? melhor;
+
+  function abrirEmNovaAbaParaImprimir() {
+    const url = new URL(window.location.href);
+    url.search = '';
+    url.searchParams.set('print', '1');
+    if (idAtual) url.searchParams.set('cliente', idAtual);
+    window.open(url.toString(), '_blank');
+  }
 
   if (dados.faturamentoMensal <= 0) {
     return (
@@ -57,15 +66,29 @@ export function Dashboard({ dados }: Props) {
         </div>
       </div>
 
-      <div className="no-print flex items-center justify-between">
+      <div className="no-print flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <h2 className="text-base font-semibold text-stone-900">Dashboard</h2>
-        <button
-          onClick={() => window.print()}
-          className="inline-flex items-center gap-1.5 rounded-lg border border-stone-300 bg-white px-3 py-1.5 text-sm font-medium text-stone-700 shadow-sm transition hover:bg-stone-50"
-        >
-          <Printer className="h-4 w-4" />
-          Imprimir
-        </button>
+        <div className="flex flex-col items-end gap-1">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => window.print()}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-stone-300 bg-white px-3 py-1.5 text-sm font-medium text-stone-700 shadow-sm transition hover:bg-stone-50"
+            >
+              <Printer className="h-4 w-4" />
+              Imprimir
+            </button>
+            <button
+              onClick={abrirEmNovaAbaParaImprimir}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-stone-300 bg-white px-3 py-1.5 text-sm font-medium text-stone-700 shadow-sm transition hover:bg-stone-50"
+            >
+              <ExternalLink className="h-4 w-4" />
+              Abrir em nova aba
+            </button>
+          </div>
+          <p className="max-w-xs text-right text-[11px] text-stone-400">
+            Se "Imprimir" não abrir a caixa de impressão (comum ao visualizar dentro do Claude), use "Abrir em nova aba".
+          </p>
+        </div>
       </div>
 
       <div className="print-avoid-break rounded-2xl border border-gold-300 bg-gradient-to-br from-gold-50 to-white p-6 shadow-sm">
