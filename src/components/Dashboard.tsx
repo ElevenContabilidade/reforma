@@ -6,7 +6,6 @@ import { calcularTodosRegimes } from '../lib/calculators';
 import { cronogramaTransicao, CORES_REGIME as CORES } from '../lib/reform';
 import { formatarMoeda, formatarPercentual } from '../lib/format';
 import { EleveIcon } from './EleveLogo';
-import { ComparativoLadoALado } from './ComparativoLadoALado';
 
 interface Props {
   dados: DadosEmpresa;
@@ -132,8 +131,6 @@ export function Dashboard({ dados, idAtual }: Props) {
           </button>
         ))}
       </div>
-
-      <ComparativoLadoALado dados={dados} resultados={resultados} />
 
       <div className="print-avoid-break rounded-2xl border border-stone-200 bg-white p-6 shadow-sm">
         <h3 className="mb-4 text-base font-semibold text-stone-900">Carga tributária mensal por regime</h3>

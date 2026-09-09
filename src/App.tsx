@@ -7,6 +7,7 @@ import { EmpresaForm } from './components/EmpresaForm';
 import { ItensChecklist } from './components/ItensChecklist';
 import { UploadPgdas } from './components/UploadPgdas';
 import { Dashboard } from './components/Dashboard';
+import { Comparacao } from './components/Comparacao';
 import { ConsultaOficial } from './components/ConsultaOficial';
 
 export default function App() {
@@ -111,6 +112,7 @@ export default function App() {
             />
           )}
           {pagina === 'dashboard' && <Dashboard dados={dados} idAtual={idAtual} />}
+          {pagina === 'comparacao' && <Comparacao dados={dados} />}
         </div>
       </main>
     </div>
