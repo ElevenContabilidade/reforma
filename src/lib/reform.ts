@@ -1,4 +1,12 @@
-import type { CategoriaItem, MixReceitaItem } from './types';
+import type { CategoriaItem, MixReceitaItem, ResultadoRegime } from './types';
+
+/** Cor de referência de cada regime, reutilizada no gráfico e nos comparativos do Dashboard. */
+export const CORES_REGIME: Record<ResultadoRegime['regime'], string> = {
+  simples: '#0d9488',
+  'simples-hibrido': '#2563eb',
+  presumido: '#d97706',
+  real: '#dc2626',
+};
 
 /**
  * Categorias de produtos/serviços conforme a LC 214/2025 (regulamentação da
