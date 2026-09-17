@@ -1,8 +1,9 @@
 import { useRef, useState } from 'react';
-import { FileUp, Loader2, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { FileUp, Loader2, CheckCircle2, AlertTriangle, Eraser } from 'lucide-react';
 import { extrairDadosPgdas } from '../lib/pgdasParser';
 import type { DadosEmpresa, DadosExtraidosPgdas } from '../lib/types';
 import { formatarMoeda } from '../lib/format';
+import { novaDadosEmpresa } from '../lib/defaults';
 
 interface Props {
   dados: DadosEmpresa;
@@ -16,7 +17,16 @@ export function UploadPgdas({ dados, onChange, onAplicado }: Props) {
   const [erro, setErro] = useState<string | null>(null);
   const [arrastando, setArrastando] = useState(false);
   const [aplicado, setAplicado] = useState(false);
+  const [confirmandoLimpeza, setConfirmandoLimpeza] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  function limparDados() {
+    onChange(novaDadosEmpresa());
+    setExtraido(null);
+    setErro(null);
+    setConfirmandoLimpeza(false);
+    if (inputRef.current) inputRef.current.value = '';
+  }
 
   async function processarArquivo(arquivo: File | undefined) {
     if (!arquivo) return;
@@ -63,7 +73,38 @@ export function UploadPgdas({ dados, onChange, onAplicado }: Props) {
 
   return (
     <section className="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm">
-      <h2 className="mb-1 text-base font-semibold text-stone-900">Upload do extrato PGDAS-D</h2>
+      <div className="mb-1 flex items-start justify-between gap-4">
+        <h2 className="text-base font-semibold text-stone-900">Upload do extrato PGDAS-D</h2>
+        {confirmandoLimpeza ? (
+          <div className="flex shrink-0 items-center gap-2 text-sm">
+            <span className="text-stone-600">Limpar todos os campos?</span>
+            <button
+              type="button"
+              onClick={limparDados}
+              className="rounded-lg bg-rose-600 px-3 py-1.5 font-medium text-white transition hover:bg-rose-700"
+            >
+              Sim, limpar
+            </button>
+            <button
+              type="button"
+              onClick={() => setConfirmandoLimpeza(false)}
+              className="rounded-lg border border-stone-300 px-3 py-1.5 font-medium text-stone-600 transition hover:bg-stone-50"
+            >
+              Cancelar
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setConfirmandoLimpeza(true)}
+            className="flex shrink-0 items-center gap-1.5 rounded-lg border border-stone-300 px-3 py-1.5 text-sm font-medium text-stone-600 transition hover:bg-stone-50"
+            title="Zera todos os campos do formulário antes de importar um novo PGDAS-D"
+          >
+            <Eraser className="h-3.5 w-3.5" />
+            Limpar dados
+          </button>
+        )}
+      </div>
       <p className="mb-5 text-sm text-stone-500">
         Envie o PDF do extrato do PGDAS-D (Programa Gerador do DAS) para preencher automaticamente CNPJ, nome
         empresarial, RBT12, faturamento do período, folha de pagamento e o anexo do Simples Nacional. Confira sempre
