@@ -20,25 +20,12 @@ export default function App() {
     const lista = listarSimulacoes();
     setSimulacoes(lista);
 
-    const params = new URLSearchParams(window.location.search);
-    const idParaImprimir = params.get('cliente');
-    const simParaImprimir = idParaImprimir ? lista.find((s) => s.id === idParaImprimir) : null;
-
-    if (simParaImprimir) {
-      setIdAtual(simParaImprimir.id);
-      setDados(simParaImprimir.dados);
-    } else if (lista.length > 0) {
+    if (lista.length > 0) {
       setIdAtual(lista[0].id);
       setDados(lista[0].dados);
     } else {
       const id = gerarId();
       setIdAtual(id);
-    }
-
-    if (params.get('print') === '1') {
-      setPagina('dashboard');
-      window.history.replaceState({}, '', window.location.pathname);
-      setTimeout(() => window.print(), 600);
     }
   }, []);
 
@@ -113,7 +100,7 @@ export default function App() {
               placeholder="Digite o NBS, atividade ou palavra-chave (ex: transporte, advocacia, saúde)"
             />
           )}
-          {pagina === 'dashboard' && <Dashboard dados={dados} idAtual={idAtual} />}
+          {pagina === 'dashboard' && <Dashboard dados={dados} />}
           {pagina === 'comparacao' && <Comparacao dados={dados} />}
         </div>
       </main>

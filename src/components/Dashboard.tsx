@@ -9,10 +9,9 @@ import { EleveIcon } from './EleveLogo';
 
 interface Props {
   dados: DadosEmpresa;
-  idAtual: string | null;
 }
 
-export function Dashboard({ dados, idAtual }: Props) {
+export function Dashboard({ dados }: Props) {
   const resultados = useMemo(() => calcularTodosRegimes(dados), [dados]);
   const [selecionado, setSelecionado] = useState<ResultadoRegime['regime'] | null>(null);
 
@@ -30,11 +29,26 @@ export function Dashboard({ dados, idAtual }: Props) {
   const detalhado = resultados.find((r) => r.regime === selecionado) ?? melhor;
 
   function abrirEmNovaAbaParaImprimir() {
-    const url = new URL(window.location.href);
-    url.search = '';
-    url.searchParams.set('print', '1');
-    if (idAtual) url.searchParams.set('cliente', idAtual);
-    window.open(url.toString(), '_blank');
+    const printArea = document.querySelector('.print-area');
+    if (!printArea) return;
+
+    // Gera a página via Blob (em vez de navegar para a URL do claude.ai), pois
+    // dentro do visualizador de Artifacts o navegador costuma bloquear a
+    // reabertura da própria origem claude.ai numa nova aba.
+    const estilos = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]'))
+      .map((el) => el.outerHTML)
+      .join('\n');
+    const titulo = `Simulador da Reforma Tributária - ${dados.nomeCliente || 'Cliente'}`.replace(/[<>&]/g, '');
+    const html = `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>${titulo}</title>${estilos}</head><body>${printArea.outerHTML}</body></html>`;
+
+    const blob = new Blob([html], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const novaAba = window.open(url, '_blank');
+    if (!novaAba) return;
+    novaAba.addEventListener('load', () => {
+      novaAba.focus();
+      novaAba.print();
+    });
   }
 
   if (dados.faturamentoMensal <= 0) {
