@@ -70,6 +70,8 @@ export interface SimulacaoSalva {
 }
 
 export interface DadosExtraidosPgdas {
+  cnpj?: string;
+  razaoSocial?: string;
   rbt12?: number;
   faturamentoMensal?: number;
   folhaPagamento12m?: number;

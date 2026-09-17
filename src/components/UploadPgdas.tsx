@@ -47,6 +47,8 @@ export function UploadPgdas({ dados, onChange, onAplicado }: Props) {
     if (!extraido) return;
     onChange({
       ...dados,
+      cnpj: extraido.cnpj ?? dados.cnpj,
+      nomeCliente: extraido.razaoSocial ?? dados.nomeCliente,
       rbt12: extraido.rbt12 ?? dados.rbt12,
       faturamentoMensal: extraido.faturamentoMensal ?? dados.faturamentoMensal,
       folhaPagamento12m: extraido.folhaPagamento12m ?? dados.folhaPagamento12m,
@@ -63,8 +65,9 @@ export function UploadPgdas({ dados, onChange, onAplicado }: Props) {
     <section className="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm">
       <h2 className="mb-1 text-base font-semibold text-stone-900">Upload do extrato PGDAS-D</h2>
       <p className="mb-5 text-sm text-stone-500">
-        Envie o PDF do extrato do PGDAS-D (Programa Gerador do DAS) para preencher automaticamente RBT12, faturamento do
-        período, folha de pagamento e o anexo do Simples Nacional. Confira sempre os valores extraídos antes de simular.
+        Envie o PDF do extrato do PGDAS-D (Programa Gerador do DAS) para preencher automaticamente CNPJ, nome
+        empresarial, RBT12, faturamento do período, folha de pagamento e o anexo do Simples Nacional. Confira sempre
+        os valores extraídos antes de simular.
       </p>
 
       <div
@@ -121,6 +124,14 @@ export function UploadPgdas({ dados, onChange, onAplicado }: Props) {
             Dados encontrados no PDF
           </div>
           <dl className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm sm:grid-cols-3">
+            <div>
+              <dt className="text-stone-500">CNPJ</dt>
+              <dd className="font-medium text-stone-800">{extraido.cnpj ?? '—'}</dd>
+            </div>
+            <div className="col-span-2">
+              <dt className="text-stone-500">Nome empresarial</dt>
+              <dd className="font-medium text-stone-800">{extraido.razaoSocial ?? '—'}</dd>
+            </div>
             <div>
               <dt className="text-stone-500">RBT12</dt>
               <dd className="font-medium text-stone-800">{extraido.rbt12 ? formatarMoeda(extraido.rbt12) : '—'}</dd>

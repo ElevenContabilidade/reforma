@@ -29,9 +29,14 @@ function buscarValorAposRotulo(textoNormalizado: string, textoOriginal: string, 
 }
 
 function detectarAnexo(textoNormalizado: string): AnexoSimples | undefined {
-  const match = textoNormalizado.match(/anexo\s*(i{1,3}v?|v)\b/);
-  if (!match) return undefined;
-  const romano = match[1].toUpperCase();
+  // Prioriza a frase "tributados pelo Anexo X", que indica o anexo efetivamente
+  // aplicado à atividade nessa apuração (evita pegar menções soltas à palavra "anexo").
+  const especifico = textoNormalizado.match(/tributados pelo anexo\s*(i{1,3}v?|v)\b/);
+  if (especifico) return especifico[1].toUpperCase() as AnexoSimples;
+
+  const generico = textoNormalizado.match(/anexo\s*(i{1,3}v?|v)\b/);
+  if (!generico) return undefined;
+  const romano = generico[1].toUpperCase();
   if (['I', 'II', 'III', 'IV', 'V'].includes(romano)) return romano as AnexoSimples;
   return undefined;
 }
@@ -39,6 +44,17 @@ function detectarAnexo(textoNormalizado: string): AnexoSimples | undefined {
 function detectarCompetencia(textoOriginal: string): string | undefined {
   const match = textoOriginal.match(/(?:per[ií]odo de apura[çc][ãa]o|compet[êe]ncia)\D{0,15}(\d{2}\/\d{4})/i);
   return match?.[1];
+}
+
+/** Extrai o CNPJ completo (matriz ou filial) do bloco "CNPJ Estabelecimento". */
+function detectarCnpj(textoOriginal: string): string | undefined {
+  const match = textoOriginal.match(/CNPJ\s+Estabelecimento:?\s*(\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2})/i);
+  return match?.[1];
+}
+
+function detectarRazaoSocial(textoOriginal: string): string | undefined {
+  const match = textoOriginal.match(/Nome\s+Empresarial:?\s*(.+?)\s*(?:Data de Abertura|Data de abertura no CNPJ)/i);
+  return match?.[1]?.replace(/\s+/g, ' ').trim();
 }
 
 export async function extrairDadosPgdas(arquivo: File): Promise<DadosExtraidosPgdas> {
@@ -80,8 +96,10 @@ export async function extrairDadosPgdas(arquivo: File): Promise<DadosExtraidosPg
 
   const anexo = detectarAnexo(textoNormalizado);
   const competencia = detectarCompetencia(textoCompleto);
+  const cnpj = detectarCnpj(textoCompleto);
+  const razaoSocial = detectarRazaoSocial(textoCompleto);
 
-  const textoDetectado = Boolean(rbt12 || faturamentoMensal || folhaPagamento12m || valorDas || anexo);
+  const textoDetectado = Boolean(rbt12 || faturamentoMensal || folhaPagamento12m || valorDas || anexo || cnpj);
 
-  return { rbt12, faturamentoMensal, folhaPagamento12m, anexo, valorDas, competencia, textoDetectado };
+  return { cnpj, razaoSocial, rbt12, faturamentoMensal, folhaPagamento12m, anexo, valorDas, competencia, textoDetectado };
 }
