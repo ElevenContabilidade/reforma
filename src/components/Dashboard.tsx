@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { Trophy, TrendingDown, Info, Printer, ExternalLink } from 'lucide-react';
+import { Trophy, TrendingDown, Info, Printer } from 'lucide-react';
 import type { DadosEmpresa, ResultadoRegime } from '../lib/types';
 import { calcularTodosRegimes } from '../lib/calculators';
 import { cronogramaTransicao, CORES_REGIME as CORES } from '../lib/reform';
@@ -28,7 +28,7 @@ export function Dashboard({ dados }: Props) {
 
   const detalhado = resultados.find((r) => r.regime === selecionado) ?? melhor;
 
-  function abrirEmNovaAbaParaImprimir() {
+  function imprimir() {
     const printArea = document.querySelector('.print-area');
     if (!printArea) return;
 
@@ -76,24 +76,15 @@ export function Dashboard({ dados }: Props) {
       <div className="no-print flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <h2 className="text-base font-semibold text-stone-900">Dashboard</h2>
         <div className="flex flex-col items-end gap-1">
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => window.print()}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-stone-300 bg-white px-3 py-1.5 text-sm font-medium text-stone-700 shadow-sm transition hover:bg-stone-50"
-            >
-              <Printer className="h-4 w-4" />
-              Imprimir
-            </button>
-            <button
-              onClick={abrirEmNovaAbaParaImprimir}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-stone-300 bg-white px-3 py-1.5 text-sm font-medium text-stone-700 shadow-sm transition hover:bg-stone-50"
-            >
-              <ExternalLink className="h-4 w-4" />
-              Abrir em nova aba
-            </button>
-          </div>
+          <button
+            onClick={imprimir}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-stone-300 bg-white px-3 py-1.5 text-sm font-medium text-stone-700 shadow-sm transition hover:bg-stone-50"
+          >
+            <Printer className="h-4 w-4" />
+            Imprimir
+          </button>
           <p className="max-w-xs text-right text-[11px] text-stone-400">
-            Se "Imprimir" não abrir a caixa de impressão (comum ao visualizar dentro do Claude), use "Abrir em nova aba".
+            Abre uma nova aba já pronta para impressão/PDF.
           </p>
         </div>
       </div>
