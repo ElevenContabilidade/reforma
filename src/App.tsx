@@ -94,7 +94,9 @@ export default function App() {
         <div className="print-area mx-auto max-w-5xl">
           {pagina === 'empresa' && <EmpresaForm dados={dados} onChange={setDados} />}
           {pagina === 'itens' && <ItensChecklist dados={dados} onChange={setDados} />}
-          {pagina === 'upload' && <UploadPgdas dados={dados} onChange={setDados} />}
+          {pagina === 'upload' && (
+            <UploadPgdas dados={dados} onChange={setDados} onAplicado={() => setPagina('empresa')} />
+          )}
           {pagina === 'ncm' && (
             <ConsultaOficial
               tipo="NCM"

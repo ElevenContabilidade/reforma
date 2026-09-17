@@ -7,13 +7,15 @@ import { formatarMoeda } from '../lib/format';
 interface Props {
   dados: DadosEmpresa;
   onChange: (dados: DadosEmpresa) => void;
+  onAplicado?: () => void;
 }
 
-export function UploadPgdas({ dados, onChange }: Props) {
+export function UploadPgdas({ dados, onChange, onAplicado }: Props) {
   const [carregando, setCarregando] = useState(false);
   const [extraido, setExtraido] = useState<DadosExtraidosPgdas | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   const [arrastando, setArrastando] = useState(false);
+  const [aplicado, setAplicado] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   async function processarArquivo(arquivo: File | undefined) {
@@ -50,6 +52,11 @@ export function UploadPgdas({ dados, onChange }: Props) {
       folhaPagamento12m: extraido.folhaPagamento12m ?? dados.folhaPagamento12m,
       anexoSimples: extraido.anexo ?? dados.anexoSimples,
     });
+    setAplicado(true);
+    setTimeout(() => {
+      setAplicado(false);
+      onAplicado?.();
+    }, 700);
   }
 
   return (
@@ -146,9 +153,17 @@ export function UploadPgdas({ dados, onChange }: Props) {
           <button
             type="button"
             onClick={aplicarDados}
-            className="mt-4 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-emerald-700"
+            disabled={aplicado}
+            className="mt-4 flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-emerald-700 disabled:opacity-80"
           >
-            Aplicar dados ao formulário
+            {aplicado ? (
+              <>
+                <CheckCircle2 className="h-4 w-4" />
+                Aplicado! Indo para Dados da empresa…
+              </>
+            ) : (
+              'Aplicar dados ao formulário'
+            )}
           </button>
         </div>
       )}
