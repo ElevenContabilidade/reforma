@@ -27,6 +27,7 @@ export function Dashboard({ dados }: Props) {
   }));
 
   const detalhado = resultados.find((r) => r.regime === selecionado) ?? melhor;
+  const dataHoje = new Date().toLocaleDateString('pt-BR');
 
   function imprimir() {
     const printArea = document.querySelector('.print-area');
@@ -73,7 +74,7 @@ export function Dashboard({ dados }: Props) {
             eleven<span className="text-brand-600">.</span> Contabilidade &amp; Consultoria
           </p>
           <p className="text-xs text-stone-500">
-            Simulador da Reforma Tributária · {dados.nomeCliente || 'Cliente sem nome'} · {new Date().toLocaleDateString('pt-BR')}
+            Simulador da Reforma Tributária · {dados.nomeCliente || 'Cliente sem nome'} · {dataHoje}
           </p>
         </div>
       </div>
@@ -158,6 +159,38 @@ export function Dashboard({ dados }: Props) {
               </Bar>
             </BarChart>
           </ResponsiveContainer>
+        </div>
+      </div>
+
+      <div className="print-avoid-break hidden overflow-hidden rounded-lg border border-stone-200 print:block">
+        <p className="border-b border-stone-200 bg-white py-2 text-center text-sm font-bold uppercase tracking-wide text-brand-800">
+          Regras do Simples Nacional — Opção e Exclusão
+        </p>
+        <div className="grid grid-cols-4 text-center text-white">
+          <div className="bg-brand-700 px-2 py-3">
+            <p className="text-[10px] font-semibold uppercase tracking-wide">Janela de Opção</p>
+            <p className="mt-1 text-sm font-bold">01 a 30/09/2026</p>
+          </div>
+          <div className="bg-brand-700 px-2 py-3">
+            <p className="text-[10px] font-semibold uppercase tracking-wide">Início dos Efeitos</p>
+            <p className="mt-1 text-sm font-bold">1º de Janeiro/2027</p>
+          </div>
+          <div className="bg-brand-700 px-2 py-3">
+            <p className="text-[10px] font-semibold uppercase tracking-wide">Cancelamento/Desistência</p>
+            <p className="mt-1 text-sm font-bold">até 30/11/2026</p>
+          </div>
+          <div className="bg-gold-400 px-2 py-3 text-brand-900">
+            <p className="text-[10px] font-semibold uppercase tracking-wide">Renovação</p>
+            <p className="mt-1 text-sm font-bold">Semestral</p>
+          </div>
+        </div>
+        <p className="bg-white py-2 text-center text-[11px] italic text-stone-500">
+          Contador(a) responsável: Kauane Gomes · Data da análise: {dataHoje}
+        </p>
+        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 bg-brand-800 px-4 py-2 text-[11px] text-white">
+          <span>Tel: (85) 99427-6469</span>
+          <span>Email: contabilidade@somoseleven.com</span>
+          <span>@eleven.contabilidade</span>
         </div>
       </div>
 
