@@ -374,6 +374,9 @@ tr.total td { font-weight: 800; border-bottom: 0; }
 .field { display: grid; gap: 4px; min-width: 0; }
 .field.full { grid-column: 1 / -1; }
 .doclinks { display: grid; gap: 6px; }
+.caixa-val { display: grid; justify-items: end; text-align: right; font-variant-numeric: tabular-nums; }
+.caixa-val b { font-family: var(--f-display); font-size: 18px; }
+.caixa-val small { font-size: 12px; color: var(--muted); }
 .doclink { display: flex; align-items: center; justify-content: space-between; gap: 10px; border: 1px solid var(--line); border-radius: 10px; padding: 6px 8px 6px 10px; background: var(--bg); }
 .doclink.on { border-color: var(--wine); background: var(--wine-soft); }
 .field .doclink label { display: flex; flex: 1; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; letter-spacing: 0; text-transform: none; color: var(--ink); min-width: 0; cursor: pointer; margin: 0; }
@@ -596,6 +599,7 @@ a.btn-primary { color: var(--on-wine); }
     { id: "ingressos", label: "Ingressos" },
     { id: "gastronomia", label: "Gastronomia" },
     { id: "custos", label: "Custos" },
+    { id: "caixa", label: "Caixa" },
     { id: "orientacoes", label: "Orientações" },
     { id: "documentos", label: "Documentos" }
   ];
@@ -719,10 +723,10 @@ a.btn-primary { color: var(--on-wine); }
     { k: "categoria", l: "Grupo", t: "select", opts: [""].concat(DOC_CATS), ph: "Escolha o grupo", req: true },
     { k: "nome", l: "Nome (opcional)", ph: "Ex.: Ingressos Louvre - 25/11", full: true }
   ];
-  var COLS = ["viagens", "itens", "deslocs", "documentos", "checklist", "gastos"];
+  var COLS = ["viagens", "itens", "deslocs", "documentos", "checklist", "gastos", "contas"];
 
   // ---------- Estado ----------
-  var state = { viagens: {}, itens: {}, deslocs: {}, documentos: {}, checklist: {}, gastos: {}, tripId: null, tab: "geral", loaded: {}, mode: "connecting" };
+  var state = { viagens: {}, itens: {}, deslocs: {}, documentos: {}, checklist: {}, gastos: {}, contas: {}, tripId: null, tab: "geral", loaded: {}, mode: "connecting" };
   try { state.tripId = localStorage.getItem("kauri-trip"); state.tab = localStorage.getItem("kauri-tab2") || "geral"; } catch (e) {}
   if (!TABS.some(function (t) { return t.id === state.tab; })) state.tab = "geral";
 
@@ -943,7 +947,7 @@ a.btn-primary { color: var(--on-wine); }
     var keepScroll = null, board = main.querySelector(".board");
     if (board) keepScroll = board.scrollLeft;
     var v = {
-      geral: viewGeral, roteiro: viewBoard, mapas: viewMapas, orientacoes: viewOrient, ingressos: viewIngressos, gastronomia: viewGastro, custos: viewCustos, documentos: viewDocs,
+      geral: viewGeral, roteiro: viewBoard, mapas: viewMapas, orientacoes: viewOrient, ingressos: viewIngressos, gastronomia: viewGastro, custos: viewCustos, caixa: viewCaixa, documentos: viewDocs,
       voo: viewTransporte,
       hospedagem: function (t) { return viewList(t, "hospedagem", "Hospedagens", cardHospedagem); }
     }[state.tab];
@@ -1607,6 +1611,58 @@ a.btn-primary { color: var(--on-wine); }
     return head + table + (fxHtml ? '<div class="fx">' + fxHtml + "</div>" + (allRates ? "" : '<p class="row-sub">Preencha a cotação para ver o total convertido em reais.</p>') : "") + extra;
   }
 
+  // ---- Caixa: dinheiro em espécie, contas digitais e cartões ----
+  var CONTA_TIPOS = ["Dinheiro em espécie", "Conta digital", "Cartão de crédito", "Cartão de débito", "Outro"];
+  var CONTA_SCHEMA = [
+    { k: "nome", l: "Nome", req: true, ph: "Ex.: Nomad, Revolut, Euros em espécie", full: true },
+    { k: "tipo", l: "Tipo", t: "select", opts: CONTA_TIPOS },
+    { k: "dono", l: "De quem", t: "select", opts: ["Os dois", "Kauane", "Iuri"] },
+    { k: "moeda", l: "Moeda", t: "select", opts: MOEDAS },
+    { k: "saldo", l: "Saldo / limite disponível", t: "number" },
+    { k: "obs", l: "Observação", ph: "Ex.: cartão virtual, sem IOF, final 1234", full: true }
+  ];
+  function tripContas(tripId) {
+    return Object.keys(state.contas).map(function (id) { return Object.assign({ id: id }, state.contas[id]); })
+      .filter(function (c) { return c.viagemId === tripId; })
+      .sort(function (a, b) { return CONTA_TIPOS.indexOf(a.tipo) - CONTA_TIPOS.indexOf(b.tipo) || String(a.nome).localeCompare(String(b.nome)); });
+  }
+  function openConta(id) {
+    var trip = currentTrip(); if (!trip) return;
+    var c = id ? state.contas[id] : null;
+    openSheet({
+      title: c ? "Atualizar " + (c.nome || "conta") : "Nova conta ou dinheiro", schema: CONTA_SCHEMA, data: c || { tipo: "Conta digital", moeda: "EUR", dono: "Os dois" }, deleteLabel: "Excluir",
+      onSave: function (vals) { vals.saldo = vals.saldo === "" ? "" : num(vals.saldo); return saveDoc("contas", id || newId(), Object.assign({}, c || {}, vals, { viagemId: trip.id, atualizadoEm: new Date().toISOString() })).then(function () { toast("Caixa atualizado"); }); },
+      onDelete: c ? function () { return removeDoc("contas", id).then(function () { toast("Excluído"); }); } : null
+    });
+  }
+  function viewCaixa(trip) {
+    var cs = tripContas(trip.id), fx = trip.cambio || {};
+    var rate = function (m) { return m === "BRL" ? 1 : num(fx[m]); };
+    var head = '<div class="section-head"><div><h2>Caixa</h2><p>Quanto vocês têm disponível agora: dinheiro em espécie, contas digitais e limite dos cartões. Atualize o saldo sempre que trocar dinheiro ou gastar.</p></div><button class="btn btn-primary" type="button" data-conta="">+ Adicionar</button></div>';
+    if (!cs.length) return head + '<div class="empty"><h3>Nada no caixa ainda</h3><p>Adicione o dinheiro em espécie, a Nomad, a Revolut, a AstroPay e os cartões.</p><button class="btn btn-primary" type="button" data-conta="">Adicionar</button></div>';
+    var isCard = function (c) { return c.tipo === "Cartão de crédito"; };
+    var box = function (list, label, totalLabel) {
+      var por = {}, tot = 0, sem = [];
+      list.forEach(function (c) { var v = num(c.saldo); if (!v) return; var m = c.moeda || "BRL"; por[m] = (por[m] || 0) + v; var r = rate(m); if (r > 0) tot += v * r; else if (sem.indexOf(m) < 0) sem.push(m); });
+      var line = Object.keys(por).map(function (m) { return "<strong>" + esc(money(por[m], m)) + "</strong>"; }).join(" · ");
+      if (!line) return "";
+      return '<div class="costs"><span class="k">' + esc(label) + "</span>" + line + '<span class="cost-total"><span class="k">' + esc(totalLabel) + "</span><strong>" + esc(money(tot, "BRL")) + "</strong>" +
+        (sem.length ? "<small>sem " + esc(sem.join(", ")) + ": preencha a cotação em Custos</small>" : "<small>convertido pela cotação da aba Custos</small>") + "</span></div>";
+    };
+    var html = head + box(cs.filter(function (c) { return !isCard(c); }), "Dinheiro e contas", "Disponível em reais") + box(cs.filter(isCard), "Limite nos cartões", "Limite em reais");
+    CONTA_TIPOS.forEach(function (t) {
+      var g = cs.filter(function (c) { return (c.tipo || "Outro") === t; }); if (!g.length) return;
+      html += '<div class="group-label">' + esc(t) + '</div><div class="list">' + g.map(function (c) {
+        var v = c.saldo === "" || c.saldo == null ? null : num(c.saldo), r = rate(c.moeda || "BRL");
+        var quando = c.atualizadoEm ? "atualizado " + fmtDay(c.atualizadoEm.slice(0, 10)) + " às " + new Date(c.atualizadoEm).toTimeString().slice(0, 5) : "";
+        return '<div class="row"><div class="thumb t-voo">' + ic(t === "Dinheiro em espécie" ? "bag" : "doc") + '</div><div style="min-width:0"><div class="row-title">' + esc(c.nome) + '</div><div class="row-sub">' + esc([c.dono, c.moeda, quando].filter(Boolean).join(" · ")) + "</div>" + (c.obs ? '<div class="row-sub">' + esc(c.obs) + "</div>" : "") + "</div>" +
+          '<div class="row-actions"><div class="caixa-val">' + (v == null ? '<span class="row-sub">Informe o saldo</span>' : "<b>" + esc(money(v, c.moeda || "BRL")) + "</b>" + (c.moeda !== "BRL" && r > 0 ? "<small>" + esc(money(v * r, "BRL")) + "</small>" : "")) + "</div>" +
+          '<button type="button" class="btn btn-small" data-conta="' + esc(c.id) + '">Atualizar</button></div></div>';
+      }).join("") + "</div>";
+    });
+    return html;
+  }
+
   // ---- Documentos ----
   function viewDocs(trip) {
     var docs = tripDocs(trip.id);
@@ -2040,6 +2096,7 @@ a.btn-primary { color: var(--on-wine); }
     if (ds.desloc) { openDesloc(ds.desloc); return; }
     if (t.id === "btn-search") { searchPlace(currentTrip()); return; }
     if (ds.doc) { openDoc(ds.doc); return; }
+    if (ds.conta != null) { openConta(ds.conta); return; }
     if (ds.linkupload) { $("link-input").click(); return; }
     if (ds.viewdoc) { openDocViewer(ds.viewdoc, ds.back || ""); return; }
     if (ds.backitem) { var bi = state.itens[ds.backitem]; if (bi) openItem(bi.tipo, ds.backitem); else closeSheet(); return; }
