@@ -171,7 +171,9 @@ main { padding-block: 18px 120px; }
 .desloc.set { color: var(--ink); }
 .desloc .pen { width: 22px; height: 22px; border-radius: 6px; background: var(--wine); color: var(--on-wine); display: grid; place-items: center; }
 .desloc .pen svg { width: 12px; height: 12px; }
-.act[data-drag] { cursor: grab; }
+.act[data-drag] { cursor: grab; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+.act[data-drag] img { -webkit-user-drag: none; user-drag: none; pointer-events: none; }
+.act.holding { box-shadow: 0 0 0 3px var(--gold); transition: box-shadow .15s; }
 .icon-btn.mv { touch-action: none; cursor: grab; }
 body.is-dragging .board { scroll-snap-type: none; }
 .chip.drop-chip { background: var(--gold); border-color: var(--gold); color: #2a1214; }
@@ -1794,13 +1796,19 @@ a.btn-primary { color: var(--on-wine); }
   // Arrastar cartões do roteiro (mouse: o cartão inteiro; toque: pelo botão ↕)
   var drag = null, dropAt = null, suppressClick = false;
   function clearDrop() { document.querySelectorAll(".drop-before,.drop-end,.drop-chip").forEach(function (n) { n.classList.remove("drop-before", "drop-end", "drop-chip"); }); }
+  document.addEventListener("dragstart", function (e) { if (e.target.closest && e.target.closest("[data-drag]")) e.preventDefault(); });
+  document.addEventListener("touchmove", function (e) { if (drag && (drag.active || drag.held)) e.preventDefault(); }, { passive: false });
   document.addEventListener("pointerdown", function (e) {
     if (state.tab !== "roteiro" || sheet || e.button > 0) return;
     var card = e.target.closest && e.target.closest("[data-drag]"); if (!card) return;
     var onHandle = !!e.target.closest(".icon-btn.mv");
-    if (e.target.closest("button") && !onHandle) return;
-    if (e.pointerType !== "mouse" && !onHandle) return;
-    drag = { id: card.dataset.drag, x: e.clientX, y: e.clientY, active: false, card: card };
+    var btn = e.target.closest("button");
+    if (btn && !onHandle && !btn.classList.contains("act-open")) return;
+    drag = { id: card.dataset.drag, x: e.clientX, y: e.clientY, active: false, card: card, held: e.pointerType === "mouse" || onHandle };
+    if (!drag.held) {
+      var dd = drag;
+      dd.timer = setTimeout(function () { if (drag === dd) { dd.held = true; card.classList.add("holding"); } }, 350);
+    }
   });
   function findDrop(x, y) {
     var el = document.elementFromPoint(x, y); if (!el) return null;
@@ -1816,6 +1824,8 @@ a.btn-primary { color: var(--on-wine); }
     if (!drag) return;
     if (!drag.active) {
       if (Math.abs(e.clientX - drag.x) + Math.abs(e.clientY - drag.y) < 7) return;
+      if (!drag.held) { clearTimeout(drag.timer); drag = null; return; }
+      drag.card.classList.remove("holding");
       drag.active = true;
       var r = drag.card.getBoundingClientRect();
       drag.dx = e.clientX - r.left; drag.dy = e.clientY - r.top;
@@ -1851,6 +1861,7 @@ a.btn-primary { color: var(--on-wine); }
   function endDrag() {
     if (!drag) return;
     var d = drag; drag = null;
+    clearTimeout(d.timer); d.card.classList.remove("holding");
     if (!d.active) return;
     if (d.raf) cancelAnimationFrame(d.raf);
     if (d.ghost) d.ghost.remove();
