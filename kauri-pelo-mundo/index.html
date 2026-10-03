@@ -275,6 +275,32 @@ tr.total td { font-weight: 800; border-bottom: 0; }
 .fx label { display: flex; align-items: center; gap: 8px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 6px 10px; font-size: 14px; }
 .fx input { width: 90px; border: 1px solid var(--line); border-radius: 7px; padding: 5px 8px; background: var(--bg); }
 
+.or-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-bottom: 18px; }
+.or-card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; display: grid; align-content: start; min-width: 0; }
+.or-card h3 { font-size: 17px; padding: 12px 14px; background: var(--band); color: var(--on-band); display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.or-card h3 small { font-family: var(--f-body); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--gold); font-weight: 800; }
+.or-row { padding: 9px 14px; border-top: 1px solid var(--line); display: grid; gap: 2px; font-size: 14px; }
+.or-row:first-of-type { border-top: 0; }
+.or-row .k { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 800; }
+.or-row b { font-variant-numeric: tabular-nums; }
+.or-tag { display: inline-block; font-size: 11px; font-weight: 800; padding: 2px 8px; border-radius: 999px; margin-right: 4px; }
+.or-tag.sim { background: var(--wine-soft); color: var(--wine); }
+.or-tag.nao { background: var(--ok-soft); color: var(--ok); }
+.or-tag.atencao { background: var(--gold-soft); color: var(--gold-ink); }
+.or-money { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-bottom: 8px; }
+.or-money .stat .v { font-size: 22px; }
+.or-steps { display: grid; gap: 8px; margin-bottom: 18px; }
+.or-step { display: grid; grid-template-columns: 74px minmax(0, 1fr); gap: 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; align-items: start; }
+.or-step .d { font-family: var(--f-mono); font-weight: 700; color: var(--gold-ink); background: var(--gold-soft); border-radius: 8px; padding: 4px 6px; text-align: center; font-size: 13px; }
+.or-step p { margin: 2px 0 0; font-size: 14px; color: var(--muted); }
+.or-list { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 6px 14px; margin-bottom: 18px; }
+.or-list .ck { padding: 8px 0; border-bottom: 1px solid var(--line); width: 100%; align-items: flex-start; }
+.or-list .ck:last-child { border-bottom: 0; }
+.or-list .ck .t small { display: block; color: var(--muted); font-size: 12px; margin-top: 2px; }
+.or-list .ck.on .t small { text-decoration: none; }
+.or-note { font-size: 13px; color: var(--muted); max-width: 70ch; }
+.or-src a { color: var(--wine); }
+@media (max-width: 760px) { .or-grid, .or-money { grid-template-columns: 1fr; } }
 .empty { border: 1.5px dashed var(--line); border-radius: 14px; padding: 28px 20px; text-align: center; color: var(--muted); display: grid; gap: 10px; justify-items: center; }
 .empty h3 { color: var(--ink); font-size: 18px; }
 .notice { font-size: 13px; background: var(--gold-soft); color: var(--gold-ink); border-radius: 10px; padding: 10px 12px; margin-bottom: 16px; }
@@ -487,6 +513,7 @@ a.btn-primary { color: var(--on-wine); }
     { id: "ingressos", label: "Ingressos" },
     { id: "gastronomia", label: "Gastronomia" },
     { id: "custos", label: "Custos" },
+    { id: "orientacoes", label: "Orientações" },
     { id: "documentos", label: "Documentos" }
   ];
   var TIPO_NOME = { voo: "Voo", hospedagem: "Hospedagem", passagem: "Passagem", roteiro: "Atividade" };
@@ -564,10 +591,10 @@ a.btn-primary { color: var(--on-wine); }
     { k: "nome", l: "Nome", req: true, full: true },
     { k: "categoria", l: "Tipo", t: "select", opts: ["Voo", "Hospedagem", "Passagem", "Ingresso", "Seguro", "Documento pessoal", "Outro"] }
   ];
-  var COLS = ["viagens", "itens", "deslocs", "documentos"];
+  var COLS = ["viagens", "itens", "deslocs", "documentos", "checklist"];
 
   // ---------- Estado ----------
-  var state = { viagens: {}, itens: {}, deslocs: {}, documentos: {}, tripId: null, tab: "geral", loaded: {}, mode: "connecting" };
+  var state = { viagens: {}, itens: {}, deslocs: {}, documentos: {}, checklist: {}, tripId: null, tab: "geral", loaded: {}, mode: "connecting" };
   try { state.tripId = localStorage.getItem("kauri-trip"); state.tab = localStorage.getItem("kauri-tab2") || "geral"; } catch (e) {}
   if (!TABS.some(function (t) { return t.id === state.tab; })) state.tab = "geral";
 
@@ -779,7 +806,7 @@ a.btn-primary { color: var(--on-wine); }
     var keepScroll = null, board = main.querySelector(".board");
     if (board) keepScroll = board.scrollLeft;
     var v = {
-      geral: viewGeral, roteiro: viewBoard, mapas: viewMapas, ingressos: viewIngressos, gastronomia: viewGastro, custos: viewCustos, documentos: viewDocs,
+      geral: viewGeral, roteiro: viewBoard, mapas: viewMapas, orientacoes: viewOrient, ingressos: viewIngressos, gastronomia: viewGastro, custos: viewCustos, documentos: viewDocs,
       voo: viewTransporte,
       hospedagem: function (t) { return viewList(t, "hospedagem", "Hospedagens", cardHospedagem); }
     }[state.tab];
@@ -1181,6 +1208,96 @@ a.btn-primary { color: var(--on-wine); }
     return head + chips + '<div class="map-layout">' + map + side + "</div>";
   }
 
+  // ---- Orientações de viagem ----
+  var CHECK = [
+    { id: "passaporte", t: "Passaportes válidos até pelo menos 01/03/2027", d: "Espaço Schengen exige validade mínima de 3 meses após a saída (29/11) e emissão há menos de 10 anos." },
+    { id: "eta", t: "Pedir a ETA do Reino Unido (um pedido para cada um)", d: "App oficial \"UK ETA\" ou gov.uk/eta. £ 20 por pessoa, resposta em até 3 dias úteis. Faça até 10/11." },
+    { id: "seguro", t: "Contratar seguro viagem com cobertura de € 30.000 ou mais", d: "Um seguro \"Europa\" cobre Espanha, França e Reino Unido. Leve a apólice impressa e no celular, com o nome dos dois." },
+    { id: "cartao-seguro", t: "Se o seguro for do cartão de crédito, emitir o certificado", d: "Vale só se as passagens foram pagas com o cartão. O certificado é emitido no site do banco ou da bandeira." },
+    { id: "reservas", t: "Imprimir ou salvar offline as reservas", d: "Hotéis, voos, Eurostar e ingressos. As reservas estão no nome do Iuri e valem para os dois: viajem juntos na imigração." },
+    { id: "dinheiro", t: "Separar como vão comprovar dinheiro na imigração", d: "Cartão internacional com limite + extrato recente da conta. Veja os valores nesta aba." },
+    { id: "etias", t: "Conferir no início de novembro se o ETIAS começou", d: "Até agora a União Europeia não liberou o ETIAS. Se começar antes da viagem, cada um precisa pedir (€ 20)." },
+    { id: "checkin", t: "Fazer check-in online de cada voo", d: "Iberia: 24 h antes. Vueling (Paris → Barcelona): abre 7 dias antes." },
+    { id: "adaptador", t: "Comprar adaptadores de tomada", d: "Espanha e França: tipo C/F. Reino Unido: tipo G (três pinos retangulares). Voltagem 230 V." },
+    { id: "chip", t: "Resolver internet no celular (eSIM ou roaming)", d: "Um eSIM europeu com Reino Unido incluso costuma sair mais barato que o roaming da operadora." },
+    { id: "cartoes", t: "Avisar o banco da viagem e levar 2 cartões diferentes", d: "Prefira cartão ou conta global com aproximação. Em Londres quase tudo é por aproximação." },
+    { id: "receita", t: "Guardar notas fiscais das compras", d: "Para o Tax Free e para a cota de isenção na volta ao Brasil (US$ 1.000 por pessoa)." }
+  ];
+  function viewOrient(trip) {
+    var fx = trip.cambio || {}, pax = +trip.viajantes || 2;
+    var brl = function (v, c) { var r = +fx[c]; return r ? " (≈ " + money(v * r, "BRL") + ")" : ""; };
+    var esp = Math.max(1098.90, 122.10 * 6), fra = 65 * 5;
+    var html = '<div class="section-head"><div><h2>Orientações da viagem</h2><p>O que cada país pede para brasileiros, quanto comprovar e o que fazer antes de embarcar. Regras conferidas em outubro de 2026; revise 15 dias antes.</p></div></div>';
+    html += '<div class="group-label">Quanto comprovar na imigração (para ' + pax + " pessoas)</div>" +
+      '<div class="or-money">' +
+      '<div class="stat"><div class="k">Espanha</div><div class="v">' + esc(money(esp * pax, "EUR")) + '</div><div class="s">' + esc(money(esp, "EUR")) + " por pessoa. Mínimo legal de € 1.098,90 por pessoa (estadias até 9 dias)" + esc(brl(esp * pax, "EUR")) + "</div></div>" +
+      '<div class="stat"><div class="k">França</div><div class="v">' + esc(money(fra * pax, "EUR")) + '</div><div class="s">€ 65 por pessoa por dia com hotel reservado (5 dias em Paris). Sem hotel: € 120 por dia' + esc(brl(fra * pax, "EUR")) + "</div></div>" +
+      '<div class="stat"><div class="k">Reino Unido</div><div class="v">Sem valor fixo</div><div class="s">Mostrar que consegue se manter os 4 dias: hotel pago, passagem de saída (Eurostar) e cartão/saldo.</div></div></div>' +
+      '<p class="or-note">Vale cartão de crédito com limite, cartão de débito ou conta global com saldo, extrato bancário recente ou dinheiro em espécie. Na prática, a imigração costuma pedir só se desconfiar, mas tenham à mão. Preencha a cotação na aba Custos para ver os valores em reais.</p>';
+
+    html += '<div class="group-label" style="margin-top:18px">Exigências por país</div><div class="or-grid">' +
+      orCard("Espanha", "Barcelona e Madri", [
+        ["Visto", '<span class="or-tag nao">Não precisa</span> Turismo até 90 dias a cada 180 no Espaço Schengen.'],
+        ["Autorização eletrônica", '<span class="or-tag atencao">ETIAS ainda não começou</span> Previsto para o fim de 2026 ou 2027. Confira antes de ir.'],
+        ["Registro na fronteira", "Sistema EES: na primeira entrada (Madri, 16/11) tiram foto e digitais. Não carimbam mais o passaporte."],
+        ["Passaporte", "Válido por 3 meses após sair do Schengen (até 01/03/2027) e emitido há menos de 10 anos."],
+        ["Seguro viagem", '<span class="or-tag sim">Exigido na prática</span> Cobertura mínima de € 30.000. A imigração pode pedir.'],
+        ["Dinheiro", "€ 122,10 por pessoa/dia, mínimo de € 1.098,90 por pessoa."],
+        ["Também levar", "Reservas dos hotéis e passagem de volta (29/11)."],
+        ["Tax Free", "Sem valor mínimo. Peça o formulário DIVA na loja e valide no aeroporto na saída."],
+        ["Tomada / emergência", "Tipo C/F, 230 V · Emergência: 112"]
+      ]) +
+      orCard("Reino Unido", "Londres", [
+        ["Visto", '<span class="or-tag nao">Não precisa</span> Turismo até 6 meses.'],
+        ["Autorização eletrônica", '<span class="or-tag sim">ETA obrigatória</span> £ 20 por pessoa, pelo app UK ETA. Vale 2 anos.'],
+        ["Passaporte", "Válido durante toda a estadia (20 a 24/11)."],
+        ["Seguro viagem", '<span class="or-tag atencao">Não é exigido, mas leve</span> Atendimento no NHS é cobrado de turistas, e caro.'],
+        ["Dinheiro", "Sem valor fixo. Mostrar hotel, Eurostar de saída e cartão."],
+        ["Também levar", "Endereço do hotel em Londres e motivo da viagem (turismo)."],
+        ["Tax Free", '<span class="or-tag sim">Não existe</span> O Reino Unido acabou com a devolução de imposto para turistas em 2021.'],
+        ["Moeda", "Libra (£). Quase tudo aceita cartão por aproximação, inclusive metrô e ônibus."],
+        ["Tomada / emergência", "Tipo G (três pinos), 230 V · Emergência: 999 ou 112"]
+      ]) +
+      orCard("França", "Paris", [
+        ["Visto", '<span class="or-tag nao">Não precisa</span> Mesmo Espaço Schengen da Espanha.'],
+        ["Autorização eletrônica", '<span class="or-tag atencao">ETIAS ainda não começou</span>'],
+        ["Registro na fronteira", "A imigração francesa fica em Londres, na estação St Pancras, antes do Eurostar (24/11). Lá fazem o registro EES de novo."],
+        ["Passaporte", "Mesma regra do Schengen: válido até 01/03/2027."],
+        ["Seguro viagem", '<span class="or-tag sim">Exigido na prática</span> Cobertura mínima de € 30.000.'],
+        ["Dinheiro", "€ 65 por pessoa/dia com hotel reservado; € 120 sem hotel."],
+        ["Também levar", "Reserva do Hôtel Montmartre e passagem para Barcelona (28/11)."],
+        ["Tax Free", "A partir de € 100,01 na mesma loja e no mesmo dia. Valide no quiosque PABLO antes de sair da UE."],
+        ["Tomada / emergência", "Tipo C/E, 230 V · Emergência: 112"]
+      ]) + "</div>";
+
+    html += '<div class="group-label">Passagens pela imigração nesta viagem</div><div class="or-steps">' +
+      orStep("16/11", "Madri: entrada no Espaço Schengen", "Controle de passaporte no T4S, com registro EES (foto e digitais). Podem pedir hotel, volta, dinheiro e seguro. Depois, conexão para Barcelona.") +
+      orStep("20/11", "Madri → Londres: saída do Schengen e entrada no Reino Unido", "Saída registrada no EES em Madri. Em Gatwick, a ETA já fica ligada ao passaporte; tenham o endereço do hotel.") +
+      orStep("24/11", "Londres → Paris: saída do Reino Unido e entrada no Schengen", "Os dois controles acontecem em St Pancras, antes de embarcar. Cheguem 90 minutos antes.") +
+      orStep("28/11", "Paris → Barcelona", "Voo dentro do Schengen: sem imigração, só documento no embarque.") +
+      orStep("29/11", "Madri: saída do Schengen", "Controle de saída no T4S durante a conexão para Fortaleza. Nos dois períodos ficam bem abaixo do limite de 90 dias.") + "</div>";
+
+    html += '<div class="group-label">Antes de embarcar</div><div class="or-list">' + CHECK.map(function (c) {
+      var on = !!(state.checklist[trip.id + "_" + c.id] || {}).feito;
+      return '<button type="button" class="ck' + (on ? " on" : "") + '" data-ck="' + c.id + '"><span class="bx">' + (on ? ic("check") : "") + '</span><span class="t">' + esc(c.t) + "<small>" + esc(c.d) + "</small></span></button>";
+    }).join("") + "</div>";
+
+    html += '<div class="group-label">Dinheiro, impostos e volta ao Brasil</div><div class="or-grid">' +
+      orCard("Compras no exterior", "IOF", [["Cartão de crédito, débito, pré-pago e conta global", "IOF de 3,5% sobre cada compra."], ["Dica", "Conta global com cartão costuma ter câmbio melhor que o cartão de crédito. Compare antes."]]) +
+      orCard("Volta ao Brasil", "Receita Federal", [["Cota de isenção", "US$ 1.000 por pessoa em compras no exterior (viagem aérea)."], ["Free shop na chegada", "Mais US$ 1.000 por pessoa."], ["Acima da cota", "Declarar na e-DBV e pagar 50% sobre o que passar. Sem declarar, a multa aumenta."]]) +
+      orCard("Dinheiro em espécie", "Limites", [["Saída e entrada no Brasil", "Acima de R$ 10.000 em espécie, declarar na e-DPV."], ["União Europeia e Reino Unido", "A partir de € 10.000 ou £ 10.000, declarar na alfândega."]]) + "</div>";
+
+    html += '<div class="group-label">Clima em novembro</div><div class="or-grid">' +
+      orCard("Barcelona e Madri", "16 a 20/11 e 28 a 29/11", [["Barcelona", "Entre 10 °C e 17 °C."], ["Madri", "Entre 4 °C e 14 °C, mais frio à noite."]]) +
+      orCard("Londres", "20 a 24/11", [["Temperatura", "Entre 5 °C e 11 °C, garoa frequente."], ["Levar", "Casaco impermeável e guarda-chuva pequeno."]]) +
+      orCard("Paris", "24 a 28/11", [["Temperatura", "Entre 4 °C e 10 °C."], ["Escurece cedo", "Por volta de 17h. Planeje os passeios ao ar livre para o começo do dia."]]) + "</div>";
+
+    html += '<p class="or-note or-src">Fontes: <a href="https://www.boe.es/buscar/act.php?id=BOE-A-2007-9608" target="_blank" rel="noopener">BOE, Orden PRE/1282/2007 (Espanha)</a> · <a href="https://france-visas.gouv.fr/en/votre-arrivee-en-france" target="_blank" rel="noopener">France-Visas</a> · <a href="https://www.gov.uk/eta/apply" target="_blank" rel="noopener">GOV.UK ETA</a> · <a href="https://travel-europe.europa.eu/etias_en" target="_blank" rel="noopener">ETIAS (União Europeia)</a> · <a href="https://www.consilium.europa.eu/en/policies/entryexit-system/" target="_blank" rel="noopener">EES (Conselho da UE)</a> · <a href="https://www.gov.br/receitafederal/pt-br/assuntos/aduana-e-comercio-exterior/manuais/viajantes" target="_blank" rel="noopener">Receita Federal, viajantes</a>. Valores e regras podem mudar: confirme nos sites oficiais perto da data.</p>';
+    return html;
+  }
+  function orCard(t, sub, rows) { return '<div class="or-card"><h3>' + esc(t) + "<small>" + esc(sub) + "</small></h3>" + rows.map(function (r) { return '<div class="or-row"><span class="k">' + esc(r[0]) + "</span><span>" + r[1] + "</span></div>"; }).join("") + "</div>"; }
+  function orStep(d, t, p) { return '<div class="or-step"><span class="d">' + esc(d) + "</span><div><b>" + esc(t) + "</b><p>" + esc(p) + "</p></div></div>"; }
+
   // ---- Ingressos ----
   function actRow(it, actions) {
     return '<div class="row"><button type="button" class="act-open thumb ' + catClass(it.categoria) + '" data-detail="' + esc(it.id) + '" aria-label="Ver detalhes">' + (it.foto ? '<img src="' + esc(it.foto) + '" alt="" loading="lazy">' : ic(CAT_ICON[it.categoria] || "tree")) + '</button><div style="min-width:0"><button type="button" class="act-open row-title" data-detail="' + esc(it.id) + '">' + esc(it.titulo) + '</button><div class="row-sub">' +
@@ -1487,6 +1604,7 @@ a.btn-primary { color: var(--on-wine); }
       return;
     }
     if (ds.mvday) { var dd = $("mv-day").value, rc2 = $("mv-recalc").checked, mid2 = ds.mvday; closeSheet(); if (dd !== state.itens[mid2].data) moveItem(mid2, dd, null, rc2); return; }
+    if (ds.ck) { var trc = currentTrip(); if (!trc) return; var ckId = trc.id + "_" + ds.ck, cur = state.checklist[ckId]; saveDoc("checklist", ckId, { viagemId: trc.id, feito: !(cur && cur.feito) }).catch(function (x) { toast(errMsg(x)); }); return; }
     if (ds.mapday) { mapDay = ds.mapday; render(); return; }
     if (ds.mapfull) { mapFull = !mapFull; mz.day = null; document.body.style.overflow = mapFull ? "hidden" : ""; render(); return; }
     if (ds.mz) { var cc = $("map-canvas"); if (!cc) return; if (ds.mz === "reset") { mz.s = 1; mz.tx = 0; mz.ty = 0; mzApply(); } else mzZoomAt(ds.mz === "in" ? 1.5 : 1 / 1.5, cc.clientWidth / 2, cc.clientHeight / 2); return; }
