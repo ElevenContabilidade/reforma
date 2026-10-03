@@ -78,7 +78,11 @@ svg.i { width: 18px; height: 18px; flex: none; }
 
 /* Cartão da viagem */
 .trip-card { margin-top: -48px; background: var(--surface); border-radius: 20px; box-shadow: var(--shadow); overflow: hidden; position: relative; }
-.trip-top { display: grid; grid-template-columns: 76px minmax(0, 1fr) auto; gap: 14px; align-items: center; padding: 16px; border-bottom: 1px solid var(--line); }
+.trip-top { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 14px; align-items: center; padding: 16px; border-bottom: 1px solid var(--line); }
+.trip-cover.has-photo { width: 84px; height: 84px; position: relative; border: 3px solid var(--gold); border-radius: 50%; padding: 0; overflow: hidden; background: var(--surface-2); }
+.trip-cover.has-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.trip-cover .cover-edit { position: absolute; inset: auto 0 0 0; background: rgba(42, 18, 20, .6); color: #fff; font-size: 9px; font-weight: 700; padding: 3px 0 6px; text-align: center; opacity: 0; transition: opacity .15s; }
+.trip-cover.has-photo:hover .cover-edit, .trip-cover.has-photo:focus-visible .cover-edit { opacity: 1; }
 .trip-cover { width: 76px; height: 76px; border-radius: 14px; background: linear-gradient(160deg, var(--band-2), var(--band)); display: grid; place-items: center; }
 .trip-top .eyebrow { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--gold-ink); font-weight: 800; }
 .trip-top h1 { font-size: clamp(20px, 4.6vw, 28px); font-weight: 700; letter-spacing: -.01em; line-height: 1.15; overflow-wrap: anywhere; }
@@ -94,13 +98,24 @@ svg.i { width: 18px; height: 18px; flex: none; }
 .cd-msg { font-size: 15px; color: var(--muted); margin-top: 6px; }
 .trip-illus { flex: none; }
 
-/* Abas */
-.tabs-bar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--bg); border-bottom: 1px solid var(--line); margin-top: 14px; }
-.tabs { display: flex; gap: 2px; overflow-x: auto; scrollbar-width: none; }
-.tabs::-webkit-scrollbar { display: none; }
-.tab { flex: none; border: 0; background: transparent; padding: 12px 12px 10px; font-weight: 600; font-size: 15px; color: var(--muted); border-bottom: 3px solid transparent; display: flex; gap: 6px; align-items: center; }
+/* Abas: no celular, todas visíveis em botões que quebram linha; no computador, coluna fixa à esquerda */
+.shell { max-width: 960px; margin: 0 auto; padding-inline: 16px; }
+.tabs-bar { background: var(--bg); border-bottom: 1px solid var(--line); margin-top: 14px; padding-bottom: 10px; }
+.tabs { display: flex; flex-wrap: wrap; gap: 6px; }
+.tab { flex: none; border: 1px solid var(--line); background: var(--surface); padding: 7px 12px; border-radius: 999px; font-weight: 600; font-size: 14px; color: var(--muted); display: flex; gap: 6px; align-items: center; }
 .tab .count { font-size: 11px; background: var(--surface-2); color: var(--muted); border-radius: 999px; padding: 1px 7px; font-variant-numeric: tabular-nums; }
-.tab[aria-selected="true"] { color: var(--wine); border-bottom-color: var(--wine); }
+.tab[aria-selected="true"] { color: #fff; background: var(--wine); border-color: var(--wine); }
+.tab[aria-selected="true"] .count { background: rgba(255, 255, 255, .22); color: #fff; }
+@media (min-width: 900px) {
+  .wrap { max-width: 1220px; }
+  .shell { max-width: 1220px; display: grid; grid-template-columns: 210px minmax(0, 1fr); gap: 28px; align-items: start; }
+  .tabs-bar { position: sticky; top: calc(16px + env(safe-area-inset-top, 0px)); margin-top: 18px; border: 1px solid var(--line); border-radius: 16px; padding: 8px; background: var(--surface); box-shadow: var(--shadow); }
+  .tabs { flex-direction: column; flex-wrap: nowrap; gap: 2px; }
+  .tab { justify-content: space-between; border: 0; border-radius: 10px; padding: 10px 12px; font-size: 15px; background: transparent; text-align: left; }
+  .tab:hover { background: var(--surface-2); color: var(--ink); }
+  .tab[aria-selected="true"] { background: var(--wine-soft); color: var(--wine); }
+  .tab[aria-selected="true"] .count { background: var(--wine); color: #fff; }
+}
 
 main { padding-block: 18px 120px; }
 .section-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
@@ -432,7 +447,8 @@ a.btn-primary { color: var(--on-wine); }
   .form-grid { grid-template-columns: 1fr; }
   .event { grid-template-columns: 46px minmax(0, 1fr); }
   .event .tag { grid-column: 2; justify-self: start; }
-  .trip-top { grid-template-columns: 60px minmax(0, 1fr) auto; }
+  .trip-top { grid-template-columns: auto minmax(0, 1fr) auto; }
+  .trip-cover.has-photo { width: 72px; height: 72px; }
   .trip-cover { width: 60px; height: 60px; }
   .trip-illus { display: none; }
   .cd-digits span { width: 34px; height: 44px; font-size: 26px; }
@@ -470,11 +486,13 @@ a.btn-primary { color: var(--on-wine); }
 
 <div class="wrap"><section class="trip-card" id="trip-card"><div class="trip-top"><div class="trip-cover"></div><div><div class="eyebrow">Carregando</div><h1>Suas viagens</h1></div></div></section></div>
 
+<div class="shell">
 <nav class="tabs-bar" aria-label="Seções">
-  <div class="wrap"><div class="tabs" role="tablist" id="tabs"></div></div>
+  <div class="tabs" role="tablist" aria-orientation="vertical" id="tabs"></div>
 </nav>
 
-<main class="wrap" id="main"></main>
+<main id="main"></main>
+</div>
 
 <button class="fab" id="fab" type="button" aria-haspopup="true"><span aria-hidden="true" style="font-size:20px;line-height:1">+</span> Adicionar</button>
 <div class="add-menu" id="add-menu" hidden>
@@ -484,6 +502,7 @@ a.btn-primary { color: var(--on-wine); }
   <button type="button" data-add="passagem">Passagem (trem, ônibus, barco)</button>
   <button type="button" data-action="upload">Documento (PDF ou foto)</button>
 </div>
+<input type="file" id="cover-input" accept="image/*" hidden>
 <input type="file" id="file-input" accept="application/pdf,image/*" multiple hidden>
 <input type="file" id="photo-input" accept="image/*" hidden>
 <div id="sheet-root"></div>
@@ -813,7 +832,8 @@ a.btn-primary { color: var(--on-wine); }
       el.innerHTML = '<div class="trip-top"><div class="trip-cover">' + ic("plane", "i") + '</div><div><div class="eyebrow">' + (allLoaded() ? "Bem-vinda" : "Carregando") + "</div><h1>O mundo te espera, Kauri.</h1></div></div>";
       return;
     }
-    el.innerHTML = '<div class="trip-top"><div class="trip-cover"><svg width="40" height="40" viewBox="0 0 36 36" aria-hidden="true"><circle cx="18" cy="18" r="15" fill="none" stroke="#e0ad42" stroke-width="2"/><ellipse cx="18" cy="18" rx="6.5" ry="15" fill="none" stroke="#e0ad42" stroke-width="1.5"/><path d="M4 13h28M4 23h28" stroke="#e0ad42" stroke-width="1.5"/></svg></div>' +
+    var cover = trip.fotoCapa ? '<button type="button" class="trip-cover has-photo" data-action="cover" aria-label="Trocar foto"><img src="' + esc(trip.fotoCapa) + '" alt="Kauane e Iuri"><span class="cover-edit">Trocar foto</span></button>' : "";
+    el.innerHTML = '<div class="trip-top">' + (cover || '<div class="trip-cover"><svg width="40" height="40" viewBox="0 0 36 36" aria-hidden="true"><circle cx="18" cy="18" r="15" fill="none" stroke="#e0ad42" stroke-width="2"/><ellipse cx="18" cy="18" rx="6.5" ry="15" fill="none" stroke="#e0ad42" stroke-width="1.5"/><path d="M4 13h28M4 23h28" stroke="#e0ad42" stroke-width="1.5"/></svg></div>') +
       '<div style="min-width:0"><div class="eyebrow">' + esc(trip.nome) + "</div><h1>" + esc(trip.destino || trip.nome) + '</h1><div class="trip-dates">' + ic("cal") + esc(fmtLong(trip.inicio)) + " – " + esc(fmtLong(trip.fim)) + "</div></div>" +
       '<button class="trip-edit" type="button" id="btn-edit-trip" aria-label="Editar viagem">' + ic("pen") + "</button></div>" +
       (state.tab === "geral" ? '<div class="trip-bottom"><div id="countdown">' + countdownHTML(trip) + "</div>" + ILLUS + "</div>" : "");
@@ -1784,6 +1804,7 @@ a.btn-primary { color: var(--on-wine); }
     var ds = t.dataset;
     if (ds.tab) { if (mapFull) { mapFull = false; document.body.style.overflow = ""; } state.tab = ds.tab; boardPositioned = false; try { localStorage.setItem("kauri-tab2", state.tab); } catch (x) {} render(); return; }
     if (t.id === "fab" || ds.action === "menu") { var m = $("add-menu"); m.hidden = !m.hidden; e.stopPropagation(); return; }
+    if (ds.action === "cover") { if (!assets) { toast("Para trocar a foto, abra pelo app do Claude."); return; } $("cover-input").click(); return; }
     if (ds.action === "upload") { $("add-menu").hidden = true; openUpload(); return; }
     if (ds.add) { $("add-menu").hidden = true; var pre = {}; if (ds.day) pre.data = ds.day; if (ds.cat) pre.categoria = ds.cat; openItem(ds.add, null, pre); return; }
     if (ds.edit) { var it = state.itens[ds.edit]; if (it) { closeSheet(); openItem(it.tipo, ds.edit); } return; }
@@ -1837,6 +1858,14 @@ a.btn-primary { color: var(--on-wine); }
     var el = e.target;
     if (el.id === "trip-select") { state.tripId = el.value; boardPositioned = false; render(); return; }
     if (el.id === "file-input") { uploadFiles(el.files); el.value = ""; return; }
+    if (el.id === "cover-input") {
+      var f = el.files[0], tr = currentTrip(); el.value = "";
+      if (!f || !tr || !assets) return;
+      toast("Enviando a foto...");
+      assets.upload(f).then(function (r) { return patchDoc("viagens", tr.id, { fotoCapa: r.url, fotoCapaId: r.id }); })
+        .then(function () { toast("Foto atualizada"); }).catch(function (x) { toast(errMsg(x)); });
+      return;
+    }
     if (el.id === "f-arquivos") { var nm = $("f-nome"); if (nm && !nm.value && el.files.length === 1) nm.value = el.files[0].name.replace(/\.[^.]+$/, "").replace(/[_]+/g, " "); return; }
     if (el.id === "photo-input") { uploadPhoto(el.files[0]); el.value = ""; return; }
     if (el.dataset && el.dataset.fx) {
