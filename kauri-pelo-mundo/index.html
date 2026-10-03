@@ -5,7 +5,8 @@
 <style>
 /* Layout: faixa bordô da marca + cartão da viagem com contagem regressiva; abas roláveis; roteiro em colunas por dia (rolagem lateral). */
 :root {
-  --bg: #f7f2f0;
+  --bg: #ffffff;
+  color-scheme: light;
   --surface: #ffffff;
   --surface-2: #f3ebe8;
   --ink: #2a1214;
@@ -43,16 +44,6 @@
   --f-display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
   --f-body: "Manrope", "Segoe UI", system-ui, sans-serif;
   --f-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
-}
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --bg: #160b0c; --surface: #221315; --surface-2: #2c191b; --ink: #f6ece9; --muted: #b59f9f;
-    --line: #3b2427; --wine: #e08a8c; --wine-soft: #3a1a1c; --gold: #e3b14e; --gold-soft: #3a2a12;
-    --gold-ink: #f3d48f; --band: #3d0a0b; --band-2: #530d0f; --on-band: #fbf1d7; --on-wine: #1a0405;
-    --ok: #7fcf9f; --ok-soft: #173325; --danger: #ff8a80; --board: #1d1012; --metro: #7fcf9f; --train: #c7a3e8; --river: #7fb8d8; --paper: #241618; --grid: rgba(227, 177, 78, .08); --map-land: #2a2326; --map-park: #2c3a2e; --map-water: #1c3247; --map-road: #4b4144; --map-casing: #3a3134; --map-major: #8d7031; --map-major-c: #6b5526; --map-rail: #5c5154; --map-label: #cdbcbc; --map-halo: #1a1214;
-    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 6px 18px rgba(0,0,0,.3);
-    color-scheme: dark;
-  }
 }
 :root[data-theme="dark"] {
   --bg: #160b0c; --surface: #221315; --surface-2: #2c191b; --ink: #f6ece9; --muted: #b59f9f;
@@ -601,6 +592,7 @@ a.btn-primary { color: var(--on-wine); }
       { k: "ingresso", l: "Ingresso comprado", t: "checkbox" },
       { k: "site", l: "Site oficial para comprar", ph: "https://", full: true },
       { k: "precoRef", l: "Preço oficial por pessoa", t: "number" },
+      { k: "precoMoeda", l: "Moeda do preço oficial", t: "select", opts: MOEDAS },
       { k: "precoNota", l: "Observação do preço", ph: "Ex.: com torres € 36" }
     ]
   };
@@ -1393,17 +1385,20 @@ a.btn-primary { color: var(--on-wine); }
     return '<div class="row"><button type="button" class="act-open thumb ' + catClass(it.categoria) + '" data-detail="' + esc(it.id) + '" aria-label="Ver detalhes">' + (it.foto ? '<img src="' + esc(it.foto) + '" alt="" loading="lazy">' : ic(CAT_ICON[it.categoria] || "tree")) + '</button><div style="min-width:0"><button type="button" class="act-open row-title" data-detail="' + esc(it.id) + '">' + esc(it.titulo) + '</button><div class="row-sub">' +
       esc([fmtDay(it.data) + (it.hora ? " · " + it.hora : ""), it.endereco || it.local, num(it.valor) ? money(it.valor, it.moeda) : ""].filter(Boolean).join(" · ")) + "</div>" + (it.obs ? '<div class="row-sub">' + esc(it.obs) + "</div>" : "") + '</div><div class="row-actions">' + actions + "</div></div>";
   }
+  // O preço oficial tem moeda própria: o valor pago pode estar em reais (moeda do card).
+  function refCur(it) { return it.precoMoeda || (it.moeda && it.moeda !== "BRL" ? it.moeda : "EUR"); }
   function priceLine(it, pax) {
     if (it.precoRef === 0) return "Gratuito, com reserva";
     if (!num(it.precoRef)) return it.precoNota ? "" : "Preço varia";
-    return money(it.precoRef, it.moeda) + " por pessoa · " + money(it.precoRef * pax, it.moeda) + " para " + pax;
+    var c = refCur(it);
+    return money(it.precoRef, c) + " por pessoa · " + money(it.precoRef * pax, c) + " para " + pax;
   }
   function viewIngressos(trip) {
     var pax = +trip.viajantes || 2;
     var items = tripItems(trip.id, "roteiro").filter(needsTicket);
     var pend = items.filter(function (i) { return !i.ingresso; }), ok = items.filter(function (i) { return i.ingresso; });
     var tot = {};
-    pend.forEach(function (i) { var v = num(i.precoRef); if (v) { var c = i.moeda || "EUR"; tot[c] = (tot[c] || 0) + v * pax; } });
+    pend.forEach(function (i) { var v = num(i.precoRef); if (v) { var c = refCur(i); tot[c] = (tot[c] || 0) + v * pax; } });
     var totTxt = Object.keys(tot).map(function (c) { return "<strong>" + esc(money(tot[c], c)) + "</strong>"; }).join(" · ");
     var head = '<div class="section-head"><div><h2>Ingressos</h2><p>Preço oficial de referência (adulto, compra online) e o link do site oficial de cada atração. Os valores mudam com data e horário: confira na hora de comprar.</p></div></div>' +
       (totTxt ? '<div class="costs"><span class="k">Falta comprar (' + pax + " pessoas)</span>" + totTxt + "</div>" : "");
