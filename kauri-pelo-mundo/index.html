@@ -374,6 +374,12 @@ tr.total td { font-weight: 800; border-bottom: 0; }
 .field { display: grid; gap: 4px; min-width: 0; }
 .field.full { grid-column: 1 / -1; }
 .doclinks { display: grid; gap: 6px; }
+.row.conta-row { grid-template-columns: 88px minmax(0, 1fr) auto; }
+@media (max-width: 640px) { .row.conta-row { grid-template-columns: 88px minmax(0, 1fr); } }
+.thumb.cash-tile { width: 56px; justify-self: center; }
+.thumb.logo-tile { width: 88px; height: 48px; background: #fff; border: 1px solid var(--line); padding: 6px 8px; }
+.thumb.logo-tile img { width: 100%; height: 100%; object-fit: contain; }
+.thumb.cash-tile { background: var(--gold-soft); color: var(--gold-ink); font-family: var(--f-display); font-weight: 800; font-size: 18px; border: 1px solid rgba(201, 146, 43, .4); }
 .caixa-val { display: grid; justify-items: end; text-align: right; font-variant-numeric: tabular-nums; }
 .caixa-val b { font-family: var(--f-display); font-size: 18px; }
 .caixa-val small { font-size: 12px; color: var(--muted); }
@@ -1621,6 +1627,20 @@ a.btn-primary { color: var(--on-wine); }
     { k: "saldo", l: "Saldo / limite disponível", t: "number" },
     { k: "obs", l: "Observação", ph: "Ex.: cartão virtual, sem IOF, final 1234", full: true }
   ];
+  // Logos das empresas (arquivos do próprio app); a conta é reconhecida pelo nome
+  var CONTA_LOGOS = [
+    [/revolut/i, "/_blob/e2e9729d91cb8f8457a87e33f0ecf322"],
+    [/santander/i, "/_blob/58c64da378e3ac7904e940e3402d1d9f"],
+    [/nomad/i, "/_blob/d346753650506d09d4851e108c9c645d"],
+    [/astro\s*pay/i, "/_blob/7f50e1b015e6e23bddbb5430cc605c3c"]
+  ];
+  var MOEDA_SIMB = { EUR: "€", GBP: "£", USD: "US$", BRL: "R$", CHF: "Fr", JPY: "¥", ARS: "$", CLP: "$", UYU: "$" };
+  function contaThumb(c) {
+    var hit = CONTA_LOGOS.filter(function (l) { return l[0].test(c.nome || ""); })[0];
+    if (hit) return '<div class="thumb logo-tile"><img src="' + hit[1] + '" alt="' + esc(c.nome) + '"></div>';
+    if (c.tipo === "Dinheiro em espécie") return '<div class="thumb cash-tile">' + esc(MOEDA_SIMB[c.moeda] || c.moeda || "$") + "</div>";
+    return '<div class="thumb t-voo">' + ic("doc") + "</div>";
+  }
   function tripContas(tripId) {
     return Object.keys(state.contas).map(function (id) { return Object.assign({ id: id }, state.contas[id]); })
       .filter(function (c) { return c.viagemId === tripId; })
@@ -1655,7 +1675,7 @@ a.btn-primary { color: var(--on-wine); }
       html += '<div class="group-label">' + esc(t) + '</div><div class="list">' + g.map(function (c) {
         var v = c.saldo === "" || c.saldo == null ? null : num(c.saldo), r = rate(c.moeda || "BRL");
         var quando = c.atualizadoEm ? "atualizado " + fmtDay(c.atualizadoEm.slice(0, 10)) + " às " + new Date(c.atualizadoEm).toTimeString().slice(0, 5) : "";
-        return '<div class="row"><div class="thumb t-voo">' + ic(t === "Dinheiro em espécie" ? "bag" : "doc") + '</div><div style="min-width:0"><div class="row-title">' + esc(c.nome) + '</div><div class="row-sub">' + esc([c.dono, c.moeda, quando].filter(Boolean).join(" · ")) + "</div>" + (c.obs ? '<div class="row-sub">' + esc(c.obs) + "</div>" : "") + "</div>" +
+        return '<div class="row conta-row">' + contaThumb(c) + '<div style="min-width:0"><div class="row-title">' + esc(c.nome) + '</div><div class="row-sub">' + esc([c.dono, c.moeda, quando].filter(Boolean).join(" · ")) + "</div>" + (c.obs ? '<div class="row-sub">' + esc(c.obs) + "</div>" : "") + "</div>" +
           '<div class="row-actions"><div class="caixa-val">' + (v == null ? '<span class="row-sub">Informe o saldo</span>' : "<b>" + esc(money(v, c.moeda || "BRL")) + "</b>" + (c.moeda !== "BRL" && r > 0 ? "<small>" + esc(money(v * r, "BRL")) + "</small>" : "")) + "</div>" +
           '<button type="button" class="btn btn-small" data-conta="' + esc(c.id) + '">Atualizar</button></div></div>';
       }).join("") + "</div>";
@@ -1705,8 +1725,8 @@ a.btn-primary { color: var(--on-wine); }
   }
 
   // ---------- Assistente (texto ou ditado do teclado) ----------
-  var ai = { open: false, busy: false, msgs: [{ role: "bot", text: "Oi! Me conte o que aconteceu e eu lanço no app. Exemplos:\n• hoje gastamos 38 euros no almoço\n• ontem pagamos 12 libras de metrô\n• já fizemos a Sagrada Família\n• quanto já gastamos com alimentação?" }] };
-  var AI_SUGS = ["Hoje gastamos 38 euros no almoço", "Quanto já gastamos com alimentação?", "Compramos o ingresso da Torre Eiffel"];
+  var ai = { open: false, busy: false, msgs: [{ role: "bot", text: "Oi! Me conte o que aconteceu e eu lanço no app. Exemplos:\n• hoje gastamos 38 euros no almoço\n• ontem pagamos 12 libras de metrô\n• já fizemos a Sagrada Família\n• quanto já gastamos com alimentação?\n• saquei 200 euros da Revolut\n• temos 300 libras em espécie" }] };
+  var AI_SUGS = ["Hoje gastamos 38 euros no almoço", "Saquei 200 euros da Revolut", "Quanto temos no caixa?"];
   function renderAI() {
     var fab = $("ai-fab"), panel = $("ai-panel"), trip = currentTrip();
     fab.hidden = !sampler || !trip || ai.open;
@@ -1717,7 +1737,7 @@ a.btn-primary { color: var(--on-wine); }
       '<div class="ai-msgs" id="ai-msgs">' + ai.msgs.map(function (m, i) {
         var h = '<div class="msg ' + m.role + '">' + esc(m.text) + "</div>";
         if (m.acoes && m.acoes.length) {
-          h += '<div class="acts' + (m.estado ? " done" : "") + '"><span class="k">' + (m.estado === "feito" ? "Lançado" : m.estado === "cancelado" ? "Cancelado" : "Confirme para lançar") + "</span><ul>" + m.acoes.map(function (a) { return "<li>" + esc(descAcao(a)) + "</li>"; }).join("") + "</ul>" +
+          h += '<div class="acts' + (m.estado ? " done" : "") + '"><span class="k">' + (m.estado === "feito" ? "Lançado" : m.estado === "cancelado" ? "Cancelado" : "Confirme para lançar") + "</span><ul>" + (function () { var run = {}; return m.acoes.map(function (a) { return "<li>" + esc(descAcao(a, run)) + "</li>"; }).join(""); })() + "</ul>" +
             (m.estado ? "" : '<div class="btns"><button type="button" class="btn btn-small btn-primary" data-aiok="' + i + '">Confirmar</button><button type="button" class="btn btn-small" data-ainot="' + i + '">Cancelar</button></div>') + "</div>";
         }
         return h;
@@ -1727,11 +1747,14 @@ a.btn-primary { color: var(--on-wine); }
       '<div class="ai-hint">Para falar: toque no microfone do teclado do celular e dite a mensagem.</div></form>';
     var box = $("ai-msgs"); box.scrollTop = box.scrollHeight;
   }
-  function descAcao(a) {
+  function descAcao(a, run) {
+    run = run || {};
     if (a.tipo === "gasto") return "Gasto: " + money(num(a.valor), a.moeda || "EUR") + " · " + (a.categoria || "Outros") + " · " + fmtDay(a.data) + (a.descricao ? " · " + a.descricao : "");
     var it = state.itens[a.itemId] || {}, g = state.gastos[a.gastoId] || {};
     if (a.tipo === "feito") return "Marcar como feito: " + (it.titulo || a.itemId);
     if (a.tipo === "ingresso") return "Ingresso comprado: " + (it.titulo || a.itemId) + (num(a.valor) ? " · " + money(num(a.valor), a.moeda || "EUR") : "");
+    if (a.tipo === "caixa") { var cc = state.contas[a.contaId] || {}, op = { definir: "Saldo de ", somar: "Entrada em ", subtrair: "Saída de " }[a.operacao]; var nv = novoSaldo(a, run[a.contaId]); if (nv != null) run[a.contaId] = nv; return "Caixa: " + op + (cc.nome || "") + " " + money(a.valor, a.moeda) + (nv != null ? " → fica " + money(nv, cc.moeda || "BRL") : ""); }
+    if (a.tipo === "nova_conta") return "Nova conta no caixa: " + a.nome + " (" + a.contaTipo + ", " + a.moeda + ")" + (num(a.saldo) ? " com " + money(num(a.saldo), a.moeda) : "");
     if (a.tipo === "excluir_gasto") return "Excluir gasto: " + money(num(g.valor), g.moeda || "BRL") + " · " + (g.descricao || g.categoria || "");
     return a.tipo;
   }
@@ -1742,11 +1765,13 @@ a.btn-primary { color: var(--on-wine); }
     var gs = tripGastos(trip.id).slice(0, 40).map(function (g) { return g.id + " | " + g.data + " | " + g.categoria + " | " + g.valor + " " + g.moeda + " | " + (g.descricao || ""); });
     var tot = {};
     costItems(trip.id).forEach(function (it) { var v = num(it.valor); if (!v) return; var k2 = costCat(it) + " (" + (it.moeda || "BRL") + ")"; tot[k2] = (tot[k2] || 0) + v; });
+    var cx = tripContas(trip.id).map(function (c) { return c.id + " | " + c.nome + " | " + c.tipo + " | " + (c.moeda || "BRL") + " | saldo: " + (c.saldo === "" || c.saldo == null ? "não informado" : c.saldo) + " | de: " + (c.dono || "Os dois"); });
     return "Hoje é " + today() + ". Viagem: " + (trip.nome || "") + ", " + trip.inicio + " a " + trip.fim + ".\nDias e cidades:\n" + days.join("\n") +
       "\nCotação para reais: " + JSON.stringify(trip.cambio || {}) +
       "\nTotais lançados por categoria e moeda: " + JSON.stringify(tot) +
       "\nGastos do dia a dia já lançados (id | data | categoria | valor | descrição):\n" + (gs.join("\n") || "nenhum") +
-      "\nAtividades do roteiro (id | data hora | nome | situação):\n" + rot.join("\n");
+      "\nAtividades do roteiro (id | data hora | nome | situação):\n" + rot.join("\n") +
+      "\nCaixa (id | nome | tipo | moeda | saldo | de quem):\n" + (cx.join("\n") || "nenhuma conta");
   }
   function sendAI(text) {
     var trip = currentTrip(); if (!trip || !sampler || ai.busy) return;
@@ -1754,8 +1779,8 @@ a.btn-primary { color: var(--on-wine); }
     var hist = ai.msgs.slice(-8, -1).map(function (m) { return (m.role === "me" ? "Pessoa: " : "Assistente: ") + m.text; }).join("\n");
     var prompt = "Você é a assistente do app de viagem do casal Kauane e Iuri. Ela fala português do Brasil. Transforme a mensagem em lançamentos no app ou responda dúvidas usando os dados abaixo.\n\n" + aiContext(trip) +
       "\n\nConversa recente:\n" + (hist || "(início)") + "\n\nMensagem nova: " + text +
-      "\n\nRegras:\n- Gasto: datas no formato AAAA-MM-DD; \"hoje\" e \"ontem\" contam a partir da data de hoje. Se a moeda não for dita, use a da cidade daquele dia (Espanha e França: EUR; Londres: GBP; Brasil ou voo de volta: BRL). Categoria: uma de " + GASTO_CATS.join(", ") + ". Uma ação por gasto; se citar vários, separe.\n- \"já fizemos/visitamos X\": ação feito com o id da atividade. \"compramos o ingresso de X\": ação ingresso com o id (e valor/moeda se disser).\n- Para apagar um gasto lançado errado: excluir_gasto com o id.\n- Perguntas sobre valores: responda com os totais, convertendo para reais com a cotação quando ajudar.\n- Se faltar valor ou não der para saber a atividade, pergunte e não crie ação.\n- Resposta curta, simples, sem emoji, confirmando o que entendeu.\n\n" +
-      "Responda somente JSON: {\"resposta\":\"texto\",\"acoes\":[{\"tipo\":\"gasto\",\"data\":\"AAAA-MM-DD\",\"categoria\":\"...\",\"valor\":0,\"moeda\":\"EUR\",\"descricao\":\"curta\"} ou {\"tipo\":\"feito\",\"itemId\":\"...\"} ou {\"tipo\":\"ingresso\",\"itemId\":\"...\",\"valor\":0,\"moeda\":\"EUR\"} ou {\"tipo\":\"excluir_gasto\",\"gastoId\":\"...\"}]}";
+      "\n\nRegras:\n- Gasto: datas no formato AAAA-MM-DD; \"hoje\" e \"ontem\" contam a partir da data de hoje. Se a moeda não for dita, use a da cidade daquele dia (Espanha e França: EUR; Londres: GBP; Brasil ou voo de volta: BRL). Categoria: uma de " + GASTO_CATS.join(", ") + ". Uma ação por gasto; se citar vários, separe.\n- \"já fizemos/visitamos X\": ação feito com o id da atividade. \"compramos o ingresso de X\": ação ingresso com o id (e valor/moeda se disser).\n- Para apagar um gasto lançado errado: excluir_gasto com o id.\n- Caixa: \"temos 500 euros em espécie\" ou \"saldo da Nomad é 300\" = caixa com operacao definir. \"saquei/tirei 200 da Revolut\" = caixa subtrair na Revolut e, se o dinheiro foi para a mão, caixa somar na conta de espécie da mesma moeda. \"carreguei/coloquei 1000 reais na Nomad\" = caixa somar (use a moeda dita; o app converte). Se um gasto disser como foi pago (\"paguei com a Revolut\", \"em dinheiro\"), crie o gasto e também caixa subtrair na conta usada. Conta que não existe: nova_conta (tipo: Dinheiro em espécie, Conta digital, Cartão de crédito, Cartão de débito ou Outro).\n- Perguntas sobre valores: responda com os totais, convertendo para reais com a cotação quando ajudar.\n- Se faltar valor ou não der para saber a atividade, pergunte e não crie ação.\n- Resposta curta, simples, sem emoji, confirmando o que entendeu.\n\n" +
+      "Responda somente JSON: {\"resposta\":\"texto\",\"acoes\":[{\"tipo\":\"gasto\",\"data\":\"AAAA-MM-DD\",\"categoria\":\"...\",\"valor\":0,\"moeda\":\"EUR\",\"descricao\":\"curta\"} ou {\"tipo\":\"feito\",\"itemId\":\"...\"} ou {\"tipo\":\"ingresso\",\"itemId\":\"...\",\"valor\":0,\"moeda\":\"EUR\"} ou {\"tipo\":\"excluir_gasto\",\"gastoId\":\"...\"} ou {\"tipo\":\"caixa\",\"contaId\":\"...\",\"operacao\":\"definir|somar|subtrair\",\"valor\":0,\"moeda\":\"EUR\"} ou {\"tipo\":\"nova_conta\",\"nome\":\"...\",\"contaTipo\":\"...\",\"moeda\":\"EUR\",\"saldo\":0}]}";
     sampler.json(prompt, { modelTier: "default", cache: false }).then(function (r) {
       var acoes = (r && Array.isArray(r.acoes) ? r.acoes : []).filter(validAcao).slice(0, 12);
       ai.msgs.push({ role: "bot", text: String((r && r.resposta) || (acoes.length ? "Confira e confirme:" : "Não entendi. Pode repetir com o valor e o que foi?")), acoes: acoes });
@@ -1768,17 +1793,37 @@ a.btn-primary { color: var(--on-wine); }
     if (a.tipo === "gasto") { a.valor = Math.round(num(a.valor) * 100) / 100; if (GASTO_CATS.indexOf(a.categoria) < 0) a.categoria = "Outros"; a.moeda = String(a.moeda || "EUR").toUpperCase(); return a.valor > 0 && /^\d{4}-\d{2}-\d{2}$/.test(a.data || ""); }
     if (a.tipo === "feito" || a.tipo === "ingresso") return !!state.itens[a.itemId];
     if (a.tipo === "excluir_gasto") return !!state.gastos[a.gastoId];
+    if (a.tipo === "caixa") { a.valor = Math.round(num(a.valor) * 100) / 100; var ct = state.contas[a.contaId]; if (!ct) return false; a.moeda = String(a.moeda || ct.moeda || "BRL").toUpperCase(); return ["definir", "somar", "subtrair"].indexOf(a.operacao) >= 0 && (a.valor > 0 || (a.operacao === "definir" && a.valor === 0)); }
+    if (a.tipo === "nova_conta") { a.moeda = String(a.moeda || "BRL").toUpperCase(); if (CONTA_TIPOS.indexOf(a.contaTipo) < 0) a.contaTipo = "Conta digital"; return !!String(a.nome || "").trim(); }
     return false;
+  }
+  // Converte entre moedas passando por reais, com a cotação da aba Custos
+  function convMoeda(v, de, para) {
+    if (de === para) return v;
+    var fx = (currentTrip() || {}).cambio || {}, r1 = de === "BRL" ? 1 : num(fx[de]), r2 = para === "BRL" ? 1 : num(fx[para]);
+    return r1 > 0 && r2 > 0 ? Math.round(v * r1 / r2 * 100) / 100 : null;
+  }
+  function novoSaldo(a, base) {
+    var c = state.contas[a.contaId]; if (!c) return null;
+    var v = convMoeda(a.valor, a.moeda, c.moeda || "BRL"); if (v == null) return null;
+    var atual = base != null ? base : num(c.saldo);
+    return Math.round((a.operacao === "definir" ? v : a.operacao === "somar" ? atual + v : atual - v) * 100) / 100;
   }
   function applyAcoes(i) {
     var m = ai.msgs[i], trip = currentTrip(); if (!m || m.estado || !trip) return;
+    // Saldos do caixa: aplica as operações em ordem e grava um saldo final por conta
+    var finais = {}, faltaCot = "";
+    m.acoes.forEach(function (a) { if (a.tipo !== "caixa") return; var nv = novoSaldo(a, finais[a.contaId]); if (nv == null) faltaCot = a.moeda; else finais[a.contaId] = nv; });
+    if (faltaCot) { toast("Falta a cotação de " + faltaCot + " na aba Custos para atualizar o caixa."); return; }
     m.estado = "salvando";
-    Promise.all(m.acoes.map(function (a) {
+    Promise.all(Object.keys(finais).map(function (cid) { return patchDoc("contas", cid, { saldo: finais[cid], atualizadoEm: new Date().toISOString() }); }).concat(m.acoes.map(function (a) {
       if (a.tipo === "gasto") return saveDoc("gastos", newId(), { viagemId: trip.id, data: a.data, categoria: a.categoria, valor: a.valor, moeda: a.moeda, descricao: String(a.descricao || "").slice(0, 120), origem: "assistente", criadoEm: new Date().toISOString() });
       if (a.tipo === "feito") return patchDoc("itens", a.itemId, { feito: true });
       if (a.tipo === "ingresso") { var up = { ingresso: true, precisaIngresso: true }; if (num(a.valor)) { up.valor = num(a.valor); up.moeda = String(a.moeda || "EUR").toUpperCase(); } return patchDoc("itens", a.itemId, up); }
       if (a.tipo === "excluir_gasto") return removeDoc("gastos", a.gastoId);
-    })).then(function () { m.estado = "feito"; toast("Lançado no app"); }).catch(function (x) { m.estado = ""; toast(errMsg(x)); }).then(renderAI);
+      if (a.tipo === "caixa") return null;
+      if (a.tipo === "nova_conta") return saveDoc("contas", newId(), { viagemId: trip.id, nome: String(a.nome).slice(0, 60), tipo: a.contaTipo, moeda: a.moeda, dono: "Os dois", saldo: num(a.saldo) || "", obs: "", atualizadoEm: new Date().toISOString() });
+    }))).then(function () { m.estado = "feito"; toast("Lançado no app"); }).catch(function (x) { m.estado = ""; toast(errMsg(x)); }).then(renderAI);
   }
   document.addEventListener("click", function (e) {
     var t = e.target.closest("#ai-fab, [data-aiclose], [data-aiok], [data-ainot], [data-aisug]"); if (!t) return;
