@@ -334,6 +334,31 @@ tr.total td { font-weight: 800; border-bottom: 0; }
 .notice { font-size: 13px; background: var(--gold-soft); color: var(--gold-ink); border-radius: 10px; padding: 10px 12px; margin-bottom: 16px; }
 
 .fab { position: fixed; right: 16px; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); z-index: 8; background: var(--wine); color: var(--on-wine); border: 0; border-radius: 999px; padding: 14px 20px; font-weight: 700; box-shadow: 0 8px 24px rgba(107, 16, 19, .35); display: flex; align-items: center; gap: 8px; }
+.ai-fab { position: fixed; left: 16px; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); z-index: 8; background: var(--ink); color: #fff; border: 0; border-radius: 999px; padding: 14px 18px; font-weight: 700; box-shadow: 0 8px 24px rgba(42, 18, 20, .3); display: flex; align-items: center; gap: 8px; }
+.ai-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--gold); box-shadow: 0 0 0 3px rgba(201, 146, 43, .3); }
+.ai-panel { position: fixed; z-index: 26; right: 16px; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); width: min(430px, calc(100% - 32px)); height: min(660px, calc(100% - 32px)); background: var(--surface); border: 1px solid var(--line); border-radius: 20px; box-shadow: 0 18px 50px rgba(42, 18, 20, .25); display: grid; grid-template-rows: auto minmax(0, 1fr) auto; overflow: hidden; }
+.ai-panel[hidden] { display: none; }
+.ai-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 14px; background: linear-gradient(135deg, var(--band), var(--wine)); color: var(--on-band); }
+.ai-head h2 { font-size: 17px; }
+.ai-head p { margin: 0; font-size: 12px; opacity: .85; }
+.ai-head .x { background: rgba(255, 255, 255, .15); color: #fff; }
+.ai-msgs { overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 10px; background: var(--bg); }
+.msg { max-width: 88%; padding: 9px 12px; border-radius: 14px; font-size: 14px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.msg.me { align-self: flex-end; background: var(--wine); color: #fff; border-bottom-right-radius: 4px; }
+.msg.bot { align-self: flex-start; background: var(--surface-2); color: var(--ink); border-bottom-left-radius: 4px; }
+.msg.busy { color: var(--muted); font-style: italic; }
+.acts { align-self: stretch; border: 1px solid var(--gold); background: var(--gold-soft); border-radius: 14px; padding: 10px 12px; display: grid; gap: 8px; font-size: 14px; }
+.acts ul { margin: 0; padding-left: 18px; }
+.acts .k { font-size: 11px; letter-spacing: .1em; text-transform: uppercase; font-weight: 800; color: var(--gold-ink); }
+.acts .btns { display: flex; gap: 8px; flex-wrap: wrap; }
+.acts.done { border-color: var(--line); background: var(--surface-2); color: var(--muted); }
+.ai-form { border-top: 1px solid var(--line); padding: 10px 12px calc(10px + env(safe-area-inset-bottom, 0px)); display: grid; gap: 6px; background: var(--surface); }
+.ai-row { display: flex; gap: 8px; align-items: flex-end; }
+.ai-row textarea { flex: 1; min-width: 0; resize: none; border: 1px solid var(--line); border-radius: 12px; padding: 9px 11px; min-height: 44px; max-height: 120px; background: var(--bg); }
+.ai-hint { font-size: 11px; color: var(--muted); }
+.ai-sugs { display: flex; gap: 6px; flex-wrap: wrap; }
+.ai-sugs button { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 5px 10px; font-size: 12px; font-weight: 600; color: var(--muted); }
+@media (max-width: 600px) { .ai-panel { inset: 0; width: auto; height: auto; border-radius: 0; border: 0; padding-top: env(safe-area-inset-top, 0px); } .ai-fab { padding: 12px 14px; } }
 .add-menu { position: fixed; right: 16px; bottom: calc(76px + env(safe-area-inset-bottom, 0px)); z-index: 8; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow); padding: 6px; display: grid; min-width: 210px; }
 .add-menu button { border: 0; background: transparent; text-align: left; padding: 10px 12px; border-radius: 8px; font-weight: 600; }
 .add-menu button:hover { background: var(--surface-2); }
@@ -494,6 +519,8 @@ a.btn-primary { color: var(--on-wine); }
 <main id="main"></main>
 </div>
 
+<button class="ai-fab" id="ai-fab" type="button" hidden aria-controls="ai-panel"><span class="ai-dot" aria-hidden="true"></span> Assistente</button>
+<section class="ai-panel" id="ai-panel" hidden aria-label="Assistente da viagem"></section>
 <button class="fab" id="fab" type="button" aria-haspopup="true"><span aria-hidden="true" style="font-size:20px;line-height:1">+</span> Adicionar</button>
 <div class="add-menu" id="add-menu" hidden>
   <button type="button" data-add="roteiro">Atividade do roteiro</button>
@@ -643,10 +670,10 @@ a.btn-primary { color: var(--on-wine); }
     { k: "categoria", l: "Grupo", t: "select", opts: [""].concat(DOC_CATS), ph: "Escolha o grupo", req: true },
     { k: "nome", l: "Nome (opcional)", ph: "Ex.: Ingressos Louvre - 25/11", full: true }
   ];
-  var COLS = ["viagens", "itens", "deslocs", "documentos", "checklist"];
+  var COLS = ["viagens", "itens", "deslocs", "documentos", "checklist", "gastos"];
 
   // ---------- Estado ----------
-  var state = { viagens: {}, itens: {}, deslocs: {}, documentos: {}, checklist: {}, tripId: null, tab: "geral", loaded: {}, mode: "connecting" };
+  var state = { viagens: {}, itens: {}, deslocs: {}, documentos: {}, checklist: {}, gastos: {}, tripId: null, tab: "geral", loaded: {}, mode: "connecting" };
   try { state.tripId = localStorage.getItem("kauri-trip"); state.tab = localStorage.getItem("kauri-tab2") || "geral"; } catch (e) {}
   if (!TABS.some(function (t) { return t.id === state.tab; })) state.tab = "geral";
 
@@ -697,7 +724,7 @@ a.btn-primary { color: var(--on-wine); }
     }).catch(function () { clearTimeout(fallback); goLocal(); });
     use("assets").then(function (a) { assets = a; if (state.tab === "documentos") render(); }).catch(function () {});
     use("downloads").then(function (d) { downloads = d; }).catch(function () {});
-    use("sample").then(function (s) { sampler = s; var b = $("btn-search"); if (b) b.hidden = !s; }).catch(function () {});
+    use("sample").then(function (s) { sampler = s; var b = $("btn-search"); if (b) b.hidden = !s; renderAI(); }).catch(function () {});
   }
   function goLocal() {
     if (state.mode === "cloud") return;
@@ -745,6 +772,12 @@ a.btn-primary { color: var(--on-wine); }
       .filter(function (it) { return it.viagemId === tripId && (!tipo || it.tipo === tipo); })
       .sort(function (a, b) { return sortKey(a).localeCompare(sortKey(b)); });
   }
+  function tripGastos(tripId) {
+    return Object.keys(state.gastos).map(function (id) { return Object.assign({ id: id, tipo: "gasto" }, state.gastos[id]); })
+      .filter(function (g) { return g.viagemId === tripId; })
+      .sort(function (a, b) { return (b.data || "").localeCompare(a.data || "") || (b.criadoEm || "").localeCompare(a.criadoEm || ""); });
+  }
+  function costItems(tripId) { return tripItems(tripId).concat(tripGastos(tripId)); }
   function tripDocs(tripId) {
     return Object.keys(state.documentos).map(function (id) { return Object.assign({ id: id }, state.documentos[id]); })
       .filter(function (d) { return d.viagemId === tripId; })
@@ -798,6 +831,7 @@ a.btn-primary { color: var(--on-wine); }
     renderTabs(trip);
     renderMain(trip);
     $("fab").hidden = !trip;
+    $("ai-fab").hidden = !sampler || !trip || ai.open;
   }
 
   function renderPicker(trip) {
@@ -1009,11 +1043,11 @@ a.btn-primary { color: var(--on-wine); }
       stat("Noites sem hotel", missing.length, missing.length ? "noite de " + missing.join(", ") : "todas cobertas", missing.length) +
       stat("Ingressos a comprar", tick, "veja a aba Ingressos", tick) +
       stat("Atividades", count("roteiro"), all.filter(function (i) { return i.feito; }).length + " feitas") + "</div>";
-    var custo = costLine(all);
+    var allc = costItems(trip.id), custo = costLine(allc);
     if (custo) {
       // Total convertido em reais com a cotação da aba Custos
       var fxg = trip.cambio || {}, totBRL = 0, semCot = [];
-      all.forEach(function (it) { var v = num(it.valor); if (!v) return; var c = it.moeda || "BRL", r = c === "BRL" ? 1 : num(fxg[c]); if (r > 0) totBRL += v * r; else if (semCot.indexOf(c) < 0) semCot.push(c); });
+      allc.forEach(function (it) { var v = num(it.valor); if (!v) return; var c = it.moeda || "BRL", r = c === "BRL" ? 1 : num(fxg[c]); if (r > 0) totBRL += v * r; else if (semCot.indexOf(c) < 0) semCot.push(c); });
       html += '<div class="costs"><span class="k">Gasto lançado</span>' + custo +
         '<span class="cost-total"><span class="k">Total gasto até agora</span><strong>' + esc(money(totBRL, "BRL")) + "</strong>" +
         (semCot.length ? '<small>sem ' + esc(semCot.join(", ")) + ': preencha a cotação em Custos</small>' : '<small>convertido pela cotação da aba Custos</small>') + "</span></div>";
@@ -1466,7 +1500,10 @@ a.btn-primary { color: var(--on-wine); }
   }
 
   // ---- Custos ----
+  var GASTO_CATS = ["Alimentação", "Transporte", "Compras", "Passeios e ingressos", "Hospedagem", "Outros"];
+  var GASTO_MAP = { "Alimentação": "Gastronomia", "Transporte": "Trens e transportes", "Compras": "Compras", "Passeios e ingressos": "Passeios e ingressos", "Hospedagem": "Hospedagens", "Outros": "Outros" };
   function costCat(it) {
+    if (it.tipo === "gasto") return GASTO_MAP[it.categoria] || "Outros";
     if (it.tipo === "voo") return "Voos";
     if (it.tipo === "hospedagem") return "Hospedagens";
     if (it.tipo === "passagem") return "Trens e transportes";
@@ -1475,10 +1512,11 @@ a.btn-primary { color: var(--on-wine); }
     return "Passeios e ingressos";
   }
   function viewCustos(trip) {
-    var all = tripItems(trip.id), cats = ["Voos", "Hospedagens", "Trens e transportes", "Passeios e ingressos", "Gastronomia", "Compras"];
+    var all = costItems(trip.id), cats = ["Voos", "Hospedagens", "Trens e transportes", "Passeios e ingressos", "Gastronomia", "Compras", "Outros"];
     var tot = {}, curs = {};
     all.forEach(function (it) { var v = num(it.valor); if (!v) return; var c = it.moeda || "BRL", k = costCat(it); curs[c] = 1; tot[k] = tot[k] || {}; tot[k][c] = (tot[k][c] || 0) + v; });
     var cl = Object.keys(curs).sort(function (a, b) { return a === "BRL" ? -1 : b === "BRL" ? 1 : a.localeCompare(b); });
+    if (!tot.Outros) cats.pop();
     var fx = trip.cambio || {};
     var rate = function (c) { return c === "BRL" ? 1 : num(fx[c]); };
     var allRates = cl.every(function (c) { return rate(c) > 0; });
@@ -1498,6 +1536,11 @@ a.btn-primary { color: var(--on-wine); }
     var extra = "";
     if (pend.length) extra += '<div class="group-label">A pagar nas hospedagens</div><div class="list">' + pend.map(function (h) { return '<div class="row"><div class="thumb t-hospedagem">' + ic("bed") + '</div><div style="min-width:0"><div class="row-title">' + esc(h.nome) + '</div><div class="row-sub">' + esc(h.cidade || "") + " · check-in " + esc(fmtDay(h.checkin)) + '</div></div><div class="row-actions"><strong class="mono">' + esc(money(h.pendente, h.moeda)) + "</strong></div></div>"; }).join("") + "</div>";
     if (semValor.length) extra += '<div class="group-label">Sem valor lançado</div><div class="list">' + semValor.map(function (v) { return '<div class="row"><div class="thumb ' + (v.tipo === "voo" ? "t-voo" : "t-passagem") + '">' + ic(v.tipo === "voo" ? "plane" : "train") + '</div><div style="min-width:0"><div class="row-title">' + esc(v.tipo === "voo" ? (v.numero || "Voo") + " · " + v.origem + " → " + v.destino : (v.meio || "") + " · " + v.origem) + '</div><div class="row-sub">' + esc(fmtDay(v.partida)) + '</div></div><div class="row-actions"><button type="button" class="btn btn-small" data-edit="' + esc(v.id) + '">Lançar valor</button></div></div>'; }).join("") + "</div>";
+    var gs = tripGastos(trip.id);
+    if (gs.length) extra = '<div class="group-label">Gastos do dia a dia (' + gs.length + ')</div><div class="list">' + gs.map(function (g) {
+      return '<div class="row"><div class="thumb t-Restaurante">' + ic("doc") + '</div><div style="min-width:0"><div class="row-title">' + esc(money(num(g.valor), g.moeda || "BRL")) + " · " + esc(g.categoria || "Outros") + '</div><div class="row-sub">' + esc(fmtDay(g.data) + (g.descricao ? " · " + g.descricao : "")) + "</div></div>" +
+        '<div class="row-actions"><button type="button" class="btn btn-small btn-danger" data-delgasto="' + esc(g.id) + '">Excluir</button></div></div>';
+    }).join("") + "</div>" + extra;
     return head + table + (fxHtml ? '<div class="fx">' + fxHtml + "</div>" + (allRates ? "" : '<p class="row-sub">Preencha a cotação para ver o total convertido em reais.</p>') : "") + extra;
   }
 
@@ -1541,6 +1584,101 @@ a.btn-primary { color: var(--on-wine); }
       });
     }, Promise.resolve()).then(function () { if (done) toast(done + (done === 1 ? " arquivo enviado" : " arquivos enviados") + (categoria ? " em " + categoria : "")); return done; });
   }
+
+  // ---------- Assistente (texto ou ditado do teclado) ----------
+  var ai = { open: false, busy: false, msgs: [{ role: "bot", text: "Oi! Me conte o que aconteceu e eu lanço no app. Exemplos:\n• hoje gastamos 38 euros no almoço\n• ontem pagamos 12 libras de metrô\n• já fizemos a Sagrada Família\n• quanto já gastamos com alimentação?" }] };
+  var AI_SUGS = ["Hoje gastamos 38 euros no almoço", "Quanto já gastamos com alimentação?", "Compramos o ingresso da Torre Eiffel"];
+  function renderAI() {
+    var fab = $("ai-fab"), panel = $("ai-panel"), trip = currentTrip();
+    fab.hidden = !sampler || !trip || ai.open;
+    panel.hidden = !ai.open;
+    if (!ai.open) return;
+    var draft = ($("ai-text") || {}).value || "";
+    panel.innerHTML = '<div class="ai-head"><div><h2>Assistente da viagem</h2><p>Lança gastos, marca o que já fizeram e responde dúvidas</p></div><button type="button" class="x" data-aiclose="1" aria-label="Fechar">×</button></div>' +
+      '<div class="ai-msgs" id="ai-msgs">' + ai.msgs.map(function (m, i) {
+        var h = '<div class="msg ' + m.role + '">' + esc(m.text) + "</div>";
+        if (m.acoes && m.acoes.length) {
+          h += '<div class="acts' + (m.estado ? " done" : "") + '"><span class="k">' + (m.estado === "feito" ? "Lançado" : m.estado === "cancelado" ? "Cancelado" : "Confirme para lançar") + "</span><ul>" + m.acoes.map(function (a) { return "<li>" + esc(descAcao(a)) + "</li>"; }).join("") + "</ul>" +
+            (m.estado ? "" : '<div class="btns"><button type="button" class="btn btn-small btn-primary" data-aiok="' + i + '">Confirmar</button><button type="button" class="btn btn-small" data-ainot="' + i + '">Cancelar</button></div>') + "</div>";
+        }
+        return h;
+      }).join("") + (ai.busy ? '<div class="msg bot busy">Pensando...</div>' : "") + "</div>" +
+      '<form class="ai-form" id="ai-form">' + (ai.msgs.length < 2 ? '<div class="ai-sugs">' + AI_SUGS.map(function (q) { return '<button type="button" data-aisug="' + esc(q) + '">' + esc(q) + "</button>"; }).join("") + "</div>" : "") +
+      '<div class="ai-row"><textarea id="ai-text" rows="1" placeholder="Escreva ou dite pelo microfone do teclado" aria-label="Mensagem para a assistente">' + esc(draft) + '</textarea><button type="submit" class="btn btn-primary"' + (ai.busy ? " disabled" : "") + ">Enviar</button></div>" +
+      '<div class="ai-hint">Para falar: toque no microfone do teclado do celular e dite a mensagem.</div></form>';
+    var box = $("ai-msgs"); box.scrollTop = box.scrollHeight;
+  }
+  function descAcao(a) {
+    if (a.tipo === "gasto") return "Gasto: " + money(num(a.valor), a.moeda || "EUR") + " · " + (a.categoria || "Outros") + " · " + fmtDay(a.data) + (a.descricao ? " · " + a.descricao : "");
+    var it = state.itens[a.itemId] || {}, g = state.gastos[a.gastoId] || {};
+    if (a.tipo === "feito") return "Marcar como feito: " + (it.titulo || a.itemId);
+    if (a.tipo === "ingresso") return "Ingresso comprado: " + (it.titulo || a.itemId) + (num(a.valor) ? " · " + money(num(a.valor), a.moeda || "EUR") : "");
+    if (a.tipo === "excluir_gasto") return "Excluir gasto: " + money(num(g.valor), g.moeda || "BRL") + " · " + (g.descricao || g.categoria || "");
+    return a.tipo;
+  }
+  function aiContext(trip) {
+    var all = tripItems(trip.id), days = [], d = trip.inicio;
+    for (var k = 0; d && d <= trip.fim && k < 60; k++, d = addDays(trip.inicio, k)) days.push(d + " " + (dayCity(all, d) || ""));
+    var rot = all.filter(function (i) { return i.tipo === "roteiro"; }).map(function (i) { return i.id + " | " + i.data + " " + (i.hora || "") + " | " + i.titulo + (i.feito ? " | feito" : "") + (needsTicket(i) ? (i.ingresso ? " | ingresso comprado" : " | ingresso a comprar") : ""); });
+    var gs = tripGastos(trip.id).slice(0, 40).map(function (g) { return g.id + " | " + g.data + " | " + g.categoria + " | " + g.valor + " " + g.moeda + " | " + (g.descricao || ""); });
+    var tot = {};
+    costItems(trip.id).forEach(function (it) { var v = num(it.valor); if (!v) return; var k2 = costCat(it) + " (" + (it.moeda || "BRL") + ")"; tot[k2] = (tot[k2] || 0) + v; });
+    return "Hoje é " + today() + ". Viagem: " + (trip.nome || "") + ", " + trip.inicio + " a " + trip.fim + ".\nDias e cidades:\n" + days.join("\n") +
+      "\nCotação para reais: " + JSON.stringify(trip.cambio || {}) +
+      "\nTotais lançados por categoria e moeda: " + JSON.stringify(tot) +
+      "\nGastos do dia a dia já lançados (id | data | categoria | valor | descrição):\n" + (gs.join("\n") || "nenhum") +
+      "\nAtividades do roteiro (id | data hora | nome | situação):\n" + rot.join("\n");
+  }
+  function sendAI(text) {
+    var trip = currentTrip(); if (!trip || !sampler || ai.busy) return;
+    ai.msgs.push({ role: "me", text: text }); ai.busy = true; renderAI();
+    var hist = ai.msgs.slice(-8, -1).map(function (m) { return (m.role === "me" ? "Pessoa: " : "Assistente: ") + m.text; }).join("\n");
+    var prompt = "Você é a assistente do app de viagem do casal Kauane e Iuri. Ela fala português do Brasil. Transforme a mensagem em lançamentos no app ou responda dúvidas usando os dados abaixo.\n\n" + aiContext(trip) +
+      "\n\nConversa recente:\n" + (hist || "(início)") + "\n\nMensagem nova: " + text +
+      "\n\nRegras:\n- Gasto: datas no formato AAAA-MM-DD; \"hoje\" e \"ontem\" contam a partir da data de hoje. Se a moeda não for dita, use a da cidade daquele dia (Espanha e França: EUR; Londres: GBP; Brasil ou voo de volta: BRL). Categoria: uma de " + GASTO_CATS.join(", ") + ". Uma ação por gasto; se citar vários, separe.\n- \"já fizemos/visitamos X\": ação feito com o id da atividade. \"compramos o ingresso de X\": ação ingresso com o id (e valor/moeda se disser).\n- Para apagar um gasto lançado errado: excluir_gasto com o id.\n- Perguntas sobre valores: responda com os totais, convertendo para reais com a cotação quando ajudar.\n- Se faltar valor ou não der para saber a atividade, pergunte e não crie ação.\n- Resposta curta, simples, sem emoji, confirmando o que entendeu.\n\n" +
+      "Responda somente JSON: {\"resposta\":\"texto\",\"acoes\":[{\"tipo\":\"gasto\",\"data\":\"AAAA-MM-DD\",\"categoria\":\"...\",\"valor\":0,\"moeda\":\"EUR\",\"descricao\":\"curta\"} ou {\"tipo\":\"feito\",\"itemId\":\"...\"} ou {\"tipo\":\"ingresso\",\"itemId\":\"...\",\"valor\":0,\"moeda\":\"EUR\"} ou {\"tipo\":\"excluir_gasto\",\"gastoId\":\"...\"}]}";
+    sampler.json(prompt, { modelTier: "default", cache: false }).then(function (r) {
+      var acoes = (r && Array.isArray(r.acoes) ? r.acoes : []).filter(validAcao).slice(0, 12);
+      ai.msgs.push({ role: "bot", text: String((r && r.resposta) || (acoes.length ? "Confira e confirme:" : "Não entendi. Pode repetir com o valor e o que foi?")), acoes: acoes });
+    }).catch(function (x) {
+      ai.msgs.push({ role: "bot", text: x && x.code === "not_granted" ? "Preciso da sua permissão para usar o Claude neste app. Tente de novo e aceite o pedido." : "Não consegui responder agora. " + errMsg(x) });
+    }).then(function () { ai.busy = false; renderAI(); });
+  }
+  function validAcao(a) {
+    if (!a || !a.tipo) return false;
+    if (a.tipo === "gasto") { a.valor = Math.round(num(a.valor) * 100) / 100; if (GASTO_CATS.indexOf(a.categoria) < 0) a.categoria = "Outros"; a.moeda = String(a.moeda || "EUR").toUpperCase(); return a.valor > 0 && /^\d{4}-\d{2}-\d{2}$/.test(a.data || ""); }
+    if (a.tipo === "feito" || a.tipo === "ingresso") return !!state.itens[a.itemId];
+    if (a.tipo === "excluir_gasto") return !!state.gastos[a.gastoId];
+    return false;
+  }
+  function applyAcoes(i) {
+    var m = ai.msgs[i], trip = currentTrip(); if (!m || m.estado || !trip) return;
+    m.estado = "salvando";
+    Promise.all(m.acoes.map(function (a) {
+      if (a.tipo === "gasto") return saveDoc("gastos", newId(), { viagemId: trip.id, data: a.data, categoria: a.categoria, valor: a.valor, moeda: a.moeda, descricao: String(a.descricao || "").slice(0, 120), origem: "assistente", criadoEm: new Date().toISOString() });
+      if (a.tipo === "feito") return patchDoc("itens", a.itemId, { feito: true });
+      if (a.tipo === "ingresso") { var up = { ingresso: true, precisaIngresso: true }; if (num(a.valor)) { up.valor = num(a.valor); up.moeda = String(a.moeda || "EUR").toUpperCase(); } return patchDoc("itens", a.itemId, up); }
+      if (a.tipo === "excluir_gasto") return removeDoc("gastos", a.gastoId);
+    })).then(function () { m.estado = "feito"; toast("Lançado no app"); }).catch(function (x) { m.estado = ""; toast(errMsg(x)); }).then(renderAI);
+  }
+  document.addEventListener("click", function (e) {
+    var t = e.target.closest("#ai-fab, [data-aiclose], [data-aiok], [data-ainot], [data-aisug]"); if (!t) return;
+    var ds = t.dataset;
+    if (t.id === "ai-fab") { ai.open = true; renderAI(); var ta = $("ai-text"); if (ta) ta.focus(); return; }
+    if (ds.aiclose) { ai.open = false; renderAI(); return; }
+    if (ds.aiok != null) { applyAcoes(+ds.aiok); return; }
+    if (ds.ainot != null) { var m = ai.msgs[+ds.ainot]; if (m) { m.estado = "cancelado"; renderAI(); } return; }
+    if (ds.aisug) { sendAI(ds.aisug); return; }
+  });
+  document.addEventListener("submit", function (e) {
+    if (e.target.id !== "ai-form") return;
+    e.preventDefault();
+    var ta = $("ai-text"), v = ta.value.trim(); if (!v) return;
+    ta.value = ""; sendAI(v);
+  });
+  document.addEventListener("keydown", function (e) {
+    if (e.target.id === "ai-text" && e.key === "Enter" && !e.shiftKey && window.matchMedia("(min-width: 700px)").matches) { e.preventDefault(); $("ai-form").requestSubmit(); }
+  });
 
   // ---------- Visualizador de documentos ----------
   var pdfLibP = null;
@@ -1802,6 +1940,11 @@ a.btn-primary { color: var(--on-wine); }
     if (t.id === "sheet-bg" && e.target === t) { closeSheet(); return; }
     if (t.hasAttribute("data-close")) { closeSheet(); return; }
     var ds = t.dataset;
+    if (ds.delgasto) {
+      if (!t.classList.contains("armed")) { t.classList.add("armed"); t.textContent = "Confirmar"; return; }
+      removeDoc("gastos", ds.delgasto).then(function () { toast("Gasto excluído"); }).catch(function (x) { toast(errMsg(x)); });
+      return;
+    }
     if (ds.tab) { if (mapFull) { mapFull = false; document.body.style.overflow = ""; } state.tab = ds.tab; boardPositioned = false; try { localStorage.setItem("kauri-tab2", state.tab); } catch (x) {} render(); return; }
     if (t.id === "fab" || ds.action === "menu") { var m = $("add-menu"); m.hidden = !m.hidden; e.stopPropagation(); return; }
     if (ds.action === "cover") { if (!assets) { toast("Para trocar a foto, abra pelo app do Claude."); return; } $("cover-input").click(); return; }
