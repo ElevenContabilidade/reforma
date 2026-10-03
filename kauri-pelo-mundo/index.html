@@ -380,6 +380,10 @@ tr.total td { font-weight: 800; border-bottom: 0; }
 .thumb.logo-tile { width: 88px; height: 48px; background: #fff; border: 1px solid var(--line); padding: 6px 8px; }
 .thumb.logo-tile img { width: 100%; height: 100%; object-fit: contain; }
 .thumb.cash-tile { background: var(--gold-soft); color: var(--gold-ink); font-family: var(--f-display); font-weight: 800; font-size: 18px; border: 1px solid rgba(201, 146, 43, .4); }
+.row.compra-row { grid-template-columns: 44px minmax(0, 1fr) auto; }
+.compra-check { display: grid; place-items: center; width: 44px; height: 44px; cursor: pointer; }
+.compra-check input { width: 22px; height: 22px; accent-color: var(--wine); }
+.row.compra-row.done .row-title { text-decoration: line-through; color: var(--muted); }
 .caixa-val { display: grid; justify-items: end; text-align: right; font-variant-numeric: tabular-nums; }
 .caixa-val b { font-family: var(--f-display); font-size: 18px; }
 .caixa-val small { font-size: 12px; color: var(--muted); }
@@ -606,6 +610,7 @@ a.btn-primary { color: var(--on-wine); }
     { id: "hospedagem", label: "Hospedagens", tipo: "hospedagem" },
     { id: "ingressos", label: "Ingressos" },
     { id: "gastronomia", label: "Gastronomia" },
+    { id: "compras", label: "Compras" },
     { id: "custos", label: "Custos" },
     { id: "caixa", label: "Caixa" },
     { id: "orientacoes", label: "Orientações" },
@@ -743,10 +748,10 @@ a.btn-primary { color: var(--on-wine); }
     { k: "categoria", l: "Grupo", t: "select", opts: [""].concat(DOC_CATS), ph: "Escolha o grupo", req: true },
     { k: "nome", l: "Nome (opcional)", ph: "Ex.: Ingressos Louvre - 25/11", full: true }
   ];
-  var COLS = ["viagens", "itens", "deslocs", "documentos", "checklist", "gastos", "contas"];
+  var COLS = ["viagens", "itens", "deslocs", "documentos", "checklist", "gastos", "contas", "compras"];
 
   // ---------- Estado ----------
-  var state = { viagens: {}, itens: {}, deslocs: {}, documentos: {}, checklist: {}, gastos: {}, contas: {}, tripId: null, tab: "geral", loaded: {}, mode: "connecting" };
+  var state = { viagens: {}, itens: {}, deslocs: {}, documentos: {}, checklist: {}, gastos: {}, contas: {}, compras: {}, tripId: null, tab: "geral", loaded: {}, mode: "connecting" };
   try { state.tripId = localStorage.getItem("kauri-trip"); state.tab = localStorage.getItem("kauri-tab2") || "geral"; } catch (e) {}
   if (!TABS.some(function (t) { return t.id === state.tab; })) state.tab = "geral";
 
@@ -850,7 +855,16 @@ a.btn-primary { color: var(--on-wine); }
       .filter(function (g) { return g.viagemId === tripId; })
       .sort(function (a, b) { return (b.data || "").localeCompare(a.data || "") || (b.criadoEm || "").localeCompare(a.criadoEm || ""); });
   }
-  function costItems(tripId) { return tripItems(tripId).concat(tripGastos(tripId)); }
+  function costItems(tripId) {
+    // Compras entram nos custos só depois de compradas, com o valor pago
+    var compras = tripCompras(tripId).filter(function (c) { return c.comprado && num(c.valor); }).map(function (c) { return Object.assign({}, c, { tipo: "compra" }); });
+    return tripItems(tripId).concat(tripGastos(tripId), compras);
+  }
+  function tripCompras(tripId) {
+    return Object.keys(state.compras).map(function (id) { return Object.assign({ id: id }, state.compras[id]); })
+      .filter(function (c) { return c.viagemId === tripId; })
+      .sort(function (a, b) { return (a.comprado ? 1 : 0) - (b.comprado ? 1 : 0) || COMPRA_PRIO.indexOf(a.prioridade) - COMPRA_PRIO.indexOf(b.prioridade) || String(a.item).localeCompare(String(b.item)); });
+  }
   function tripDocs(tripId) {
     return Object.keys(state.documentos).map(function (id) { return Object.assign({ id: id }, state.documentos[id]); })
       .filter(function (d) { return d.viagemId === tripId; })
@@ -969,7 +983,7 @@ a.btn-primary { color: var(--on-wine); }
     var keepScroll = null, board = main.querySelector(".board");
     if (board) keepScroll = board.scrollLeft;
     var v = {
-      geral: viewGeral, roteiro: viewBoard, mapas: viewMapas, orientacoes: viewOrient, ingressos: viewIngressos, gastronomia: viewGastro, custos: viewCustos, caixa: viewCaixa, documentos: viewDocs,
+      geral: viewGeral, roteiro: viewBoard, mapas: viewMapas, orientacoes: viewOrient, ingressos: viewIngressos, gastronomia: viewGastro, custos: viewCustos, caixa: viewCaixa, compras: viewCompras, documentos: viewDocs,
       voo: viewTransporte,
       transporte: viewTransLocal,
       hospedagem: function (t) { return viewList(t, "hospedagem", "Hospedagens", cardHospedagem); }
@@ -1583,6 +1597,7 @@ a.btn-primary { color: var(--on-wine); }
   var GASTO_MAP = { "Alimentação": "Gastronomia", "Transporte": "Trens e transportes", "Compras": "Compras", "Passeios e ingressos": "Passeios e ingressos", "Hospedagem": "Hospedagens", "Outros": "Outros" };
   function costCat(it) {
     if (it.tipo === "gasto") return GASTO_MAP[it.categoria] || "Outros";
+    if (it.tipo === "compra") return "Compras";
     if (it.tipo === "voo") return "Voos";
     if (it.tipo === "hospedagem") return "Hospedagens";
     if (it.tipo === "passagem" || it.tipo === "transporte") return "Trens e transportes";
@@ -1665,6 +1680,61 @@ a.btn-primary { color: var(--on-wine); }
           '<button type="button" class="icon-btn edit" data-edit="' + esc(it.id) + '" aria-label="Editar">' + ic("pen") + "</button></div></div>";
       }).join("") + "</div>";
     });
+    return html;
+  }
+
+  // ---- Compras: lista do que comprar em cada cidade ----
+  var COMPRA_CIDADES = ["Barcelona", "Madri", "Londres", "Paris", "Duty free / aeroporto", "Qualquer cidade"];
+  var COMPRA_PRIO = ["Precisa comprar", "Se achar bom preço", "Só se sobrar"];
+  var COMPRA_SCHEMA = [
+    { k: "item", l: "O que comprar", req: true, full: true, ph: "Ex.: Tênis New Balance 530, perfume, chocolate" },
+    { k: "cidade", l: "Onde comprar", t: "select", opts: COMPRA_CIDADES },
+    { k: "loja", l: "Loja ou bairro", ph: "Ex.: Primark Oxford Street, El Corte Inglés" },
+    { k: "para", l: "Para quem", ph: "Ex.: Kauane, Iuri, mãe, casa" },
+    { k: "prioridade", l: "Prioridade", t: "select", opts: COMPRA_PRIO },
+    { k: "precoEst", l: "Preço estimado", t: "number" },
+    { k: "moeda", l: "Moeda", t: "select", opts: MOEDAS },
+    { k: "comprado", l: "Já comprei", t: "checkbox" },
+    { k: "valor", l: "Valor pago", t: "number" },
+    { k: "obs", l: "Observação", t: "textarea", full: true, ph: "Tamanho, cor, modelo, link de referência" }
+  ];
+  function openCompra(id, cidade) {
+    var trip = currentTrip(); if (!trip) return;
+    var c = id ? state.compras[id] : null;
+    openSheet({
+      title: c ? "Editar compra" : "Nova compra", schema: COMPRA_SCHEMA, data: c || { cidade: cidade || "Barcelona", prioridade: "Precisa comprar", moeda: cidade === "Londres" ? "GBP" : "EUR" }, deleteLabel: "Excluir",
+      onSave: function (vals) { return saveDoc("compras", id || newId(), Object.assign({}, c || {}, vals, { viagemId: trip.id, atualizadoEm: new Date().toISOString() })).then(function () { toast(c ? "Compra atualizada" : "Adicionada à lista"); }); },
+      onDelete: c ? function () { return removeDoc("compras", id).then(function () { toast("Excluída"); }); } : null
+    });
+  }
+  function viewCompras(trip) {
+    var cs = tripCompras(trip.id), fx = trip.cambio || {};
+    var toBRL = function (v, m) { var r = (m || "BRL") === "BRL" ? 1 : num(fx[m]); return r > 0 ? v * r : null; };
+    var head = '<div class="section-head"><div><h2>Compras</h2><p>O que vocês querem comprar em cada cidade. Marque quando comprar e lance o valor pago: ele entra nos custos da viagem.</p></div><button class="btn btn-primary" type="button" data-compra="">+ Item</button></div>';
+    if (!cs.length) return head + '<div class="empty"><h3>Lista vazia</h3><p>Adicione o que querem comprar em Barcelona, Madri, Londres e Paris.</p><button class="btn btn-primary" type="button" data-compra="">Adicionar</button></div>';
+    var feitos = cs.filter(function (c) { return c.comprado; }), est = 0, pago = 0;
+    cs.forEach(function (c) { if (!c.comprado && num(c.precoEst)) est += toBRL(num(c.precoEst), c.moeda) || 0; if (c.comprado && num(c.valor)) pago += toBRL(num(c.valor), c.moeda) || 0; });
+    var usd = num(fx.USD), pagoUSD = usd > 0 ? pago / usd : null;
+    var html = head + '<div class="summary">' +
+      stat("Na lista", cs.length, feitos.length + (feitos.length === 1 ? " já comprado" : " já comprados")) +
+      stat("Falta comprar", money(est, "BRL"), "estimado, em reais") +
+      stat("Já gasto", money(pago, "BRL"), "valor pago, em reais") +
+      stat("Cota da Receita", pagoUSD != null ? "US$ " + Math.round(pagoUSD) : "—", "de US$ 2.000 do casal", pagoUSD != null && pagoUSD > 2000) + "</div>" +
+      '<p class="row-sub" style="margin:-6px 0 14px">Cota de isenção na volta de avião: US$ 1.000 por pessoa em bens trazidos na bagagem (roupas e itens de uso pessoal não entram). Acima disso, declare: o imposto é de 50% sobre o excedente. O free shop de chegada no Brasil tem cota separada.</p>';
+    COMPRA_CIDADES.forEach(function (cid) {
+      var g = cs.filter(function (c) { return (c.cidade || "Qualquer cidade") === cid; }); if (!g.length) return;
+      html += '<div class="group-label">' + esc(cid) + " (" + g.filter(function (c) { return c.comprado; }).length + "/" + g.length + ')</div><div class="list">' + g.map(function (c) {
+        var price = c.comprado && num(c.valor) ? "Pago " + money(num(c.valor), c.moeda) : num(c.precoEst) ? "Estimado " + money(num(c.precoEst), c.moeda) : "";
+        var brl = c.moeda && c.moeda !== "BRL" ? toBRL(num(c.comprado ? c.valor : c.precoEst), c.moeda) : null;
+        return '<div class="row compra-row' + (c.comprado ? " done" : "") + '"><label class="compra-check"><input type="checkbox" data-comprado="' + esc(c.id) + '"' + (c.comprado ? " checked" : "") + ' aria-label="Comprado"></label>' +
+          '<div style="min-width:0"><div class="row-title">' + esc(c.item) + (c.prioridade && c.prioridade !== "Precisa comprar" && !c.comprado ? ' <span class="pill-pend">' + esc(c.prioridade) + "</span>" : "") + "</div>" +
+          '<div class="row-sub">' + esc([c.loja, c.para ? "para " + c.para : ""].filter(Boolean).join(" · ")) + "</div>" +
+          (price ? '<div class="row-sub"><b>' + esc(price) + "</b>" + (brl ? " · " + esc(money(brl, "BRL")) : "") + "</div>" : "") +
+          (c.obs ? '<div class="row-sub">' + esc(c.obs) + "</div>" : "") + "</div>" +
+          '<div class="row-actions"><button type="button" class="icon-btn edit" data-compra="' + esc(c.id) + '" aria-label="Editar">' + ic("pen") + "</button></div></div>";
+      }).join("") + "</div>";
+    });
+    html += '<div style="margin-top:12px"><button class="btn" type="button" data-compra="">+ Adicionar item</button></div>';
     return html;
   }
 
@@ -2194,6 +2264,7 @@ a.btn-primary { color: var(--on-wine); }
     if (t.id === "btn-search") { searchPlace(currentTrip()); return; }
     if (ds.doc) { openDoc(ds.doc); return; }
     if (ds.conta != null) { openConta(ds.conta); return; }
+    if (ds.compra != null) { openCompra(ds.compra, ds.cidade); return; }
     if (ds.linkupload) { $("link-input").click(); return; }
     if (ds.viewdoc) { openDocViewer(ds.viewdoc, ds.back || ""); return; }
     if (ds.backitem) { var bi = state.itens[ds.backitem]; if (bi) openItem(bi.tipo, ds.backitem); else closeSheet(); return; }
@@ -2224,6 +2295,7 @@ a.btn-primary { color: var(--on-wine); }
     var el = e.target;
     if (el.id === "trip-select") { state.tripId = el.value; boardPositioned = false; render(); return; }
     if (el.id === "file-input") { uploadFiles(el.files); el.value = ""; return; }
+    if (el.dataset && el.dataset.comprado) { patchDoc("compras", el.dataset.comprado, { comprado: el.checked }).then(function () { var c = state.compras[el.dataset.comprado]; toast(el.checked ? (c && !num(c.valor) ? "Comprado. Toque no lápis para lançar o valor pago." : "Comprado") : "Desmarcado"); }).catch(function (x) { toast(errMsg(x)); }); return; }
     if (el.dataset && el.dataset.doclink) { var row = el.closest(".doclink"); if (row) { row.classList.toggle("on", el.checked); var ob = row.querySelector("button"); if (ob) ob.classList.toggle("btn-primary", el.checked); } return; }
     if (el.id === "link-input") {
       var fl = Array.prototype.slice.call(el.files || []), tp = currentTrip(), sh = sheet; el.value = "";
