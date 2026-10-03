@@ -198,6 +198,10 @@ body.is-dragging, body.is-dragging * { user-select: none; cursor: grabbing !impo
 .costs { background: var(--gold-soft); color: var(--gold-ink); border-radius: 12px; padding: 12px 14px; margin-bottom: 18px; display: flex; flex-wrap: wrap; gap: 6px 18px; align-items: baseline; font-size: 14px; }
 .costs strong { font-family: var(--f-display); font-size: 18px; font-variant-numeric: tabular-nums; }
 .costs .k { font-size: 11px; letter-spacing: .1em; text-transform: uppercase; font-weight: 700; }
+.cost-total { margin-left: auto; display: grid; justify-items: end; gap: 0; padding-left: 18px; border-left: 1px solid rgba(122, 87, 20, .25); color: var(--ink); }
+.cost-total strong { font-size: 26px; line-height: 1.15; color: var(--wine); }
+.cost-total small { font-size: 11px; color: var(--gold-ink); }
+@media (max-width: 640px) { .cost-total { margin-left: 0; width: 100%; justify-items: start; padding: 10px 0 0; border-left: 0; border-top: 1px solid rgba(122, 87, 20, .25); } }
 
 /* Linha do tempo */
 .day { margin-bottom: 20px; }
@@ -986,7 +990,14 @@ a.btn-primary { color: var(--on-wine); }
       stat("Ingressos a comprar", tick, "veja a aba Ingressos", tick) +
       stat("Atividades", count("roteiro"), all.filter(function (i) { return i.feito; }).length + " feitas") + "</div>";
     var custo = costLine(all);
-    if (custo) html += '<div class="costs"><span class="k">Gasto lançado</span>' + custo + "</div>";
+    if (custo) {
+      // Total convertido em reais com a cotação da aba Custos
+      var fxg = trip.cambio || {}, totBRL = 0, semCot = [];
+      all.forEach(function (it) { var v = num(it.valor); if (!v) return; var c = it.moeda || "BRL", r = c === "BRL" ? 1 : num(fxg[c]); if (r > 0) totBRL += v * r; else if (semCot.indexOf(c) < 0) semCot.push(c); });
+      html += '<div class="costs"><span class="k">Gasto lançado</span>' + custo +
+        '<span class="cost-total"><span class="k">Total gasto até agora</span><strong>' + esc(money(totBRL, "BRL")) + "</strong>" +
+        (semCot.length ? '<small>sem ' + esc(semCot.join(", ")) + ': preencha a cotação em Custos</small>' : '<small>convertido pela cotação da aba Custos</small>') + "</span></div>";
+    }
     if (trip.obs) html += '<div class="obs" style="margin-bottom:18px">' + esc(trip.obs) + "</div>";
     var days = tripDays(trip);
     var dot = { voo: "var(--wine)", hospedagem: "var(--gold)", passagem: "var(--muted)", roteiro: "var(--line)" };
