@@ -598,7 +598,10 @@ a.btn-primary { color: var(--on-wine); }
       { k: "endereco", l: "Endereço" },
       { k: "horaFixa", l: "Horário fixo (não muda ao reorganizar)", t: "checkbox" },
       { k: "precisaIngresso", l: "Precisa de ingresso", t: "checkbox" },
-      { k: "ingresso", l: "Ingresso comprado", t: "checkbox" }
+      { k: "ingresso", l: "Ingresso comprado", t: "checkbox" },
+      { k: "site", l: "Site oficial para comprar", ph: "https://", full: true },
+      { k: "precoRef", l: "Preço oficial por pessoa", t: "number" },
+      { k: "precoNota", l: "Observação do preço", ph: "Ex.: com torres € 36" }
     ]
   };
   var VIAGEM_SCHEMA = [
@@ -1065,8 +1068,9 @@ a.btn-primary { color: var(--on-wine); }
     $("sheet-root").innerHTML = '<div class="sheet-bg" id="sheet-bg"><div class="sheet detail" role="dialog" aria-modal="true" aria-labelledby="sheet-title">' +
       '<div class="sheet-head"><h2 id="sheet-title">' + esc(it.titulo) + '</h2><button type="button" class="x" data-close aria-label="Fechar">×</button></div>' + top +
       '<div class="detail-meta"><span>' + ic("cal") + (dn ? "Dia " + dn + " · " : "") + esc(fmtDay(it.data)) + "</span><span>" + ic("clock") + esc(timeRange(it)) + "</span><span>" + ic("pin") + esc([it.endereco, it.local].filter(Boolean).join(", ") || "Local não informado") + "</span></div>" + tick +
+      (needsTicket(it) ? "<h3>Ingresso</h3><p>" + esc(priceLine(it, +((trip || {}).viajantes) || 2) || "Consulte o site oficial") + (it.precoNota ? " · " + esc(it.precoNota) : "") + "</p>" : "") +
       "<h3>Sobre o lugar</h3>" + hist + (it.obs ? "<h3>Dicas</h3><p style=\"white-space:pre-wrap\">" + esc(it.obs) + "</p>" : "") +
-      '<div class="detail-actions"><a class="btn btn-primary" href="' + esc(mapsUrl(it)) + '" target="_blank" rel="noopener">' + ic("pin") + 'Ver no Google Maps</a><a class="btn" href="' + esc(dirUrl(it)) + '" target="_blank" rel="noopener">' + ic("route") + "Como chegar</a>" +
+      '<div class="detail-actions">' + (it.site ? '<a class="btn btn-primary" href="' + esc(it.site) + '" target="_blank" rel="noopener">' + ic("ticket") + "Site oficial</a>" : "") + '<a class="btn' + (it.site ? "" : " btn-primary") + '" href="' + esc(mapsUrl(it)) + '" target="_blank" rel="noopener">' + ic("pin") + 'Ver no Google Maps</a><a class="btn" href="' + esc(dirUrl(it)) + '" target="_blank" rel="noopener">' + ic("route") + "Como chegar</a>" +
       '<button type="button" class="btn" data-toggle="' + esc(id) + '">' + ic("check") + (it.feito ? "Desmarcar feito" : "Marcar como feito") + "</button>" +
       (!it.historia && sampler ? '<button type="button" class="btn" data-genhist="' + esc(id) + '">Gerar descrição</button>' : "") +
       (assets ? '<button type="button" class="btn" data-addphoto="' + esc(id) + '">' + ic("img") + (it.foto ? "Trocar foto" : "Adicionar foto") + "</button>" : "") +
@@ -1389,12 +1393,32 @@ a.btn-primary { color: var(--on-wine); }
     return '<div class="row"><button type="button" class="act-open thumb ' + catClass(it.categoria) + '" data-detail="' + esc(it.id) + '" aria-label="Ver detalhes">' + (it.foto ? '<img src="' + esc(it.foto) + '" alt="" loading="lazy">' : ic(CAT_ICON[it.categoria] || "tree")) + '</button><div style="min-width:0"><button type="button" class="act-open row-title" data-detail="' + esc(it.id) + '">' + esc(it.titulo) + '</button><div class="row-sub">' +
       esc([fmtDay(it.data) + (it.hora ? " · " + it.hora : ""), it.endereco || it.local, num(it.valor) ? money(it.valor, it.moeda) : ""].filter(Boolean).join(" · ")) + "</div>" + (it.obs ? '<div class="row-sub">' + esc(it.obs) + "</div>" : "") + '</div><div class="row-actions">' + actions + "</div></div>";
   }
+  function priceLine(it, pax) {
+    if (it.precoRef === 0) return "Gratuito, com reserva";
+    if (!num(it.precoRef)) return it.precoNota ? "" : "Preço varia";
+    return money(it.precoRef, it.moeda) + " por pessoa · " + money(it.precoRef * pax, it.moeda) + " para " + pax;
+  }
   function viewIngressos(trip) {
+    var pax = +trip.viajantes || 2;
     var items = tripItems(trip.id, "roteiro").filter(needsTicket);
     var pend = items.filter(function (i) { return !i.ingresso; }), ok = items.filter(function (i) { return i.ingresso; });
-    var head = '<div class="section-head"><div><h2>Ingressos</h2><p>Atrações com hora marcada ou que esgotam. Marque quando comprar e coloque o valor.</p></div></div>';
+    var tot = {};
+    pend.forEach(function (i) { var v = num(i.precoRef); if (v) { var c = i.moeda || "EUR"; tot[c] = (tot[c] || 0) + v * pax; } });
+    var totTxt = Object.keys(tot).map(function (c) { return "<strong>" + esc(money(tot[c], c)) + "</strong>"; }).join(" · ");
+    var head = '<div class="section-head"><div><h2>Ingressos</h2><p>Preço oficial de referência (adulto, compra online) e o link do site oficial de cada atração. Os valores mudam com data e horário: confira na hora de comprar.</p></div></div>' +
+      (totTxt ? '<div class="costs"><span class="k">Falta comprar (' + pax + " pessoas)</span>" + totTxt + "</div>" : "");
     if (!items.length) return head + '<div class="empty"><h3>Nenhum ingresso na lista</h3><p>Ao editar uma atividade, marque "Precisa de ingresso".</p></div>';
-    var row = function (it) { return actRow(it, '<button type="button" class="btn btn-small' + (it.ingresso ? "" : " btn-primary") + '" data-ticket="' + esc(it.id) + '">' + (it.ingresso ? "Desmarcar" : "Comprado") + '</button><button type="button" class="icon-btn edit" data-edit="' + esc(it.id) + '" aria-label="Editar">' + ic("pen") + "</button>"); };
+    var row = function (it) {
+      var pl = priceLine(it, pax);
+      var buy = it.site ? '<a class="btn btn-small' + (it.ingresso ? "" : " btn-primary") + '" href="' + esc(it.site) + '" target="_blank" rel="noopener">' + (it.ingresso ? "Site oficial" : "Comprar no site oficial") + "</a>" : "";
+      return '<div class="row"><button type="button" class="act-open thumb ' + catClass(it.categoria) + '" data-detail="' + esc(it.id) + '" aria-label="Ver detalhes">' + (it.foto ? '<img src="' + esc(it.foto) + '" alt="" loading="lazy">' : ic(CAT_ICON[it.categoria] || "tree")) + "</button>" +
+        '<div style="min-width:0"><button type="button" class="act-open row-title" data-detail="' + esc(it.id) + '">' + esc(it.titulo) + "</button>" +
+        '<div class="row-sub">' + esc(fmtDay(it.data) + (it.hora ? " · " + it.hora : "") + (it.local ? " · " + it.local : "")) + "</div>" +
+        (pl ? '<div class="row-sub" style="color:var(--ink);font-weight:700">' + esc(pl) + "</div>" : "") +
+        (it.precoNota ? '<div class="row-sub">' + esc(it.precoNota) + "</div>" : "") +
+        (it.ingresso && num(it.valor) ? '<div class="row-sub">Pago: ' + esc(money(it.valor, it.moeda)) + "</div>" : "") + "</div>" +
+        '<div class="row-actions">' + buy + '<button type="button" class="btn btn-small" data-ticket="' + esc(it.id) + '">' + (it.ingresso ? "Desmarcar" : "Já comprei") + '</button><button type="button" class="icon-btn edit" data-edit="' + esc(it.id) + '" aria-label="Editar">' + ic("pen") + "</button></div></div>";
+    };
     return head + (pend.length ? '<div class="group-label">A comprar (' + pend.length + ')</div><div class="list">' + pend.map(row).join("") + "</div>" : "") +
       (ok.length ? '<div class="group-label">Comprados (' + ok.length + ')</div><div class="list">' + ok.map(row).join("") + "</div>" : "");
   }
@@ -1580,6 +1604,8 @@ a.btn-primary { color: var(--on-wine); }
   function openItem(tipo, id, preset) {
     var trip = currentTrip(); if (!trip) return;
     var existing = id ? state.itens[id] : null;
+    // Na aba Ingressos, o botão de excluir só tira o item da lista de ingressos; o local fica no roteiro.
+    var fromTickets = !!(existing && state.tab === "ingressos" && needsTicket(existing));
     var schema = SCHEMAS[tipo].concat(COMUNS);
     var data = existing ? existing : Object.assign(defaultsFor(tipo, trip), preset || {});
     var nomes = { voo: ["Novo voo", "Editar voo"], hospedagem: ["Nova hospedagem", "Editar hospedagem"], passagem: ["Nova passagem", "Editar passagem"], roteiro: ["Nova atividade", "Editar atividade"] }[tipo];
@@ -1591,7 +1617,9 @@ a.btn-primary { color: var(--on-wine); }
         var rec = Object.assign({}, existing || {}, vals, extra, { tipo: tipo, viagemId: trip.id, atualizadoEm: new Date().toISOString() });
         return saveDoc("itens", id || newId(), rec).then(function () { toast(existing ? "Alterações salvas" : "Adicionado ao roteiro"); });
       },
-      onDelete: existing ? function () { return removeDoc("itens", id).then(function () { toast("Excluído"); }); } : null
+      deleteLabel: fromTickets ? "Tirar dos ingressos" : "",
+      onDelete: fromTickets ? function () { return patchDoc("itens", id, { precisaIngresso: false, ingresso: false }).then(function () { toast("Saiu dos ingressos. O local continua no roteiro."); }); }
+        : existing ? function () { return removeDoc("itens", id).then(function () { toast("Excluído"); }); } : null
     });
     pendingPlace = null;
     if (tipo === "roteiro") attachSearch(trip);
