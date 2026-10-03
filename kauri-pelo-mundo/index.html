@@ -417,6 +417,10 @@ a.btn-primary { color: var(--on-wine); }
 .no-coords { font-size: 13px; color: var(--muted); }
 @media (max-width: 900px) { .map-layout { grid-template-columns: 1fr; } }
 @media (max-width: 620px) { .pin .ph { width: 44px; height: 44px; } .pin .lb { font-size: 10px; max-width: 86px; } }
+.sheet.viewer { max-width: 900px; height: 92%; max-height: 92%; display: flex; flex-direction: column; }
+.viewer-body { flex: 1; overflow: auto; background: var(--surface-2); border-radius: 12px; padding: 10px; display: grid; gap: 10px; justify-items: center; align-content: start; }
+.viewer-body canvas, .viewer-body img { max-width: 100%; height: auto; background: #fff; box-shadow: var(--shadow); border-radius: 4px; }
+.viewer-msg { color: var(--muted); font-size: 14px; padding: 30px 10px; text-align: center; }
 .err { color: var(--danger); font-size: 13px; margin-top: 8px; }
 .toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(84px + env(safe-area-inset-bottom, 0px)); background: var(--ink); color: var(--bg); padding: 10px 16px; border-radius: 10px; font-size: 14px; font-weight: 600; z-index: 30; max-width: calc(100% - 32px); }
 
@@ -619,7 +623,7 @@ a.btn-primary { color: var(--on-wine); }
   if (!TABS.some(function (t) { return t.id === state.tab; })) state.tab = "geral";
 
   // ---------- Armazenamento ----------
-  var store = null, assets = null, sampler = null;
+  var store = null, assets = null, sampler = null, downloads = null;
   var LS_KEY = "kauri-dados";
   function localLoad() {
     try { var raw = localStorage.getItem(LS_KEY); if (raw) { var d = JSON.parse(raw); COLS.forEach(function (c) { state[c] = d[c] || {}; }); } } catch (e) {}
@@ -664,6 +668,7 @@ a.btn-primary { color: var(--on-wine); }
       });
     }).catch(function () { clearTimeout(fallback); goLocal(); });
     use("assets").then(function (a) { assets = a; if (state.tab === "documentos") render(); }).catch(function () {});
+    use("downloads").then(function (d) { downloads = d; }).catch(function () {});
     use("sample").then(function (s) { sampler = s; var b = $("btn-search"); if (b) b.hidden = !s; }).catch(function () {});
   }
   function goLocal() {
@@ -1450,7 +1455,7 @@ a.btn-primary { color: var(--on-wine); }
         var isImg = /^image\//.test(d.contentType || "");
         var href = d.url || (d.assetId ? "/_blob/" + d.assetId : "");
         return '<div class="row"><div class="thumb ' + (isImg ? "t-Museu" : "t-Restaurante") + '">' + ic(isImg ? "img" : "doc") + '</div><div style="min-width:0"><div class="row-title">' + esc(d.nome) + '</div><div class="row-sub">' + esc(isImg ? "Imagem" : "PDF") + (d.tamanho ? " · " + Math.max(1, Math.round(d.tamanho / 1024)) + " KB" : "") + "</div></div>" +
-          '<div class="row-actions">' + (href ? '<a class="btn btn-small link" href="' + esc(href) + '" target="_blank" rel="noopener">Abrir</a>' : "") + '<button type="button" class="icon-btn edit" data-doc="' + esc(d.id) + '" aria-label="Editar">' + ic("pen") + "</button></div></div>";
+          '<div class="row-actions">' + (href ? '<button type="button" class="btn btn-small btn-primary" data-viewdoc="' + esc(d.id) + '">Abrir</button>' : "") + '<button type="button" class="icon-btn edit" data-doc="' + esc(d.id) + '" aria-label="Editar">' + ic("pen") + "</button></div></div>";
       }).join("") + "</div>";
     }).join("");
   }
@@ -1467,6 +1472,64 @@ a.btn-primary { color: var(--on-wine); }
         }).catch(function (e) { toast("Não foi possível enviar " + f.name + (e && e.code === "quota_exceeded" ? ": espaço esgotado." : ".")); });
       });
     }, Promise.resolve()).then(function () { if (done) toast(done + (done === 1 ? " arquivo enviado" : " arquivos enviados")); });
+  }
+
+  // ---------- Visualizador de documentos ----------
+  var pdfLibP = null;
+  function loadScript(src) { return new Promise(function (ok, fail) { var sc = document.createElement("script"); sc.src = src; sc.onload = ok; sc.onerror = fail; document.head.appendChild(sc); }); }
+  function loadPdfJs() {
+    if (!pdfLibP) {
+      var base = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/";
+      pdfLibP = loadScript(base + "pdf.min.js").then(function () { return loadScript(base + "pdf.worker.min.js"); }).then(function () {
+        var lib = window.pdfjsLib; lib.GlobalWorkerOptions.workerSrc = base + "pdf.worker.min.js"; return lib;
+      });
+      pdfLibP.catch(function () { pdfLibP = null; });
+    }
+    return pdfLibP;
+  }
+  function docUrl(d) { return d.url || (d.assetId ? "/_blob/" + d.assetId : ""); }
+  function docFilename(d) {
+    var ext = /^image\/png/.test(d.contentType || "") ? "png" : /^image\//.test(d.contentType || "") ? "jpg" : "pdf";
+    return (d.nome || "documento").replace(/[\\/:*?"<>|]+/g, "-").slice(0, 120) + "." + ext;
+  }
+  function openDocViewer(id) {
+    var d = state.documentos[id]; if (!d) return;
+    sheet = { viewer: id };
+    var isImg = /^image\//.test(d.contentType || ""), url = docUrl(d);
+    $("sheet-root").innerHTML = '<div class="sheet-bg" id="sheet-bg"><div class="sheet viewer" role="dialog" aria-modal="true" aria-labelledby="sheet-title">' +
+      '<div class="sheet-head"><h2 id="sheet-title">' + esc(d.nome) + '</h2><div style="display:flex;gap:8px;align-items:center">' +
+      (downloads ? '<button type="button" class="btn btn-small" data-dldoc="' + esc(id) + '">Baixar</button>' : "") +
+      '<button type="button" class="x" data-close aria-label="Fechar">×</button></div></div>' +
+      '<div class="viewer-body" id="viewer-body">' + (isImg ? '<img src="' + esc(url) + '" alt="' + esc(d.nome) + '">' : '<div class="viewer-msg">Abrindo o documento...</div>') + "</div></div></div>";
+    if (isImg) return;
+    Promise.all([loadPdfJs(), fetch(url).then(function (r) { if (!r.ok) throw new Error("http " + r.status); return r.arrayBuffer(); })]).then(function (res) {
+      return res[0].getDocument({ data: new Uint8Array(res[1]) }).promise;
+    }).then(function (pdf) {
+      var body = $("viewer-body"); if (!body || !sheet || sheet.viewer !== id) return;
+      body.innerHTML = "";
+      var w = Math.min(body.clientWidth - 20, 860), chain = Promise.resolve();
+      for (var i = 1; i <= pdf.numPages; i++) (function (n) {
+        chain = chain.then(function () { return pdf.getPage(n); }).then(function (page) {
+          if (!sheet || sheet.viewer !== id) return;
+          var v1 = page.getViewport({ scale: 1 }), ratio = window.devicePixelRatio || 1, sc = w / v1.width;
+          var vp = page.getViewport({ scale: sc * ratio }), cv = document.createElement("canvas");
+          cv.width = vp.width; cv.height = vp.height; cv.style.width = Math.round(vp.width / ratio) + "px";
+          body.appendChild(cv);
+          return page.render({ canvasContext: cv.getContext("2d"), viewport: vp }).promise;
+        });
+      })(i);
+      return chain;
+    }).catch(function () {
+      var body = $("viewer-body");
+      if (body) body.innerHTML = '<div class="viewer-msg">Não foi possível mostrar o PDF aqui.' + (downloads ? " Use o botão Baixar para abrir no seu aparelho." : "") + "</div>";
+    });
+  }
+  function downloadDoc(id, btn) {
+    var d = state.documentos[id]; if (!d || !downloads) return;
+    btn.disabled = true;
+    fetch(docUrl(d)).then(function (r) { return r.blob(); }).then(function (b) { return downloads.save({ filename: docFilename(d), data: b }); })
+      .catch(function (e) { if (!e || e.code !== "declined") toast("Não foi possível baixar o arquivo."); })
+      .then(function () { btn.disabled = false; });
   }
 
   // ---------- Formulários ----------
@@ -1692,6 +1755,8 @@ a.btn-primary { color: var(--on-wine); }
     if (ds.desloc) { openDesloc(ds.desloc); return; }
     if (t.id === "btn-search") { searchPlace(currentTrip()); return; }
     if (ds.doc) { openDoc(ds.doc); return; }
+    if (ds.viewdoc) { openDocViewer(ds.viewdoc); return; }
+    if (ds.dldoc) { downloadDoc(ds.dldoc, t); return; }
     if (ds.jump != null) { var b = $("board"), c = b && b.querySelector('[data-col="' + ds.jump + '"]'); if (c) b.scrollTo({ left: c.offsetLeft - 16, behavior: "smooth" }); return; }
     if (ds.toggle) { var a = state.itens[ds.toggle]; if (a) patchDoc("itens", ds.toggle, { feito: !a.feito }).then(function () { if (sheet && sheet.detail === ds.toggle) openDetail(ds.toggle); }).catch(function (x) { toast(errMsg(x)); }); return; }
     if (ds.ticket) { var tk = state.itens[ds.ticket]; if (tk) patchDoc("itens", ds.ticket, { ingresso: !tk.ingresso }).then(function () { toast(tk.ingresso ? "Ingresso desmarcado" : "Ingresso marcado como comprado"); }).catch(function (x) { toast(errMsg(x)); }); return; }
