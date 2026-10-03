@@ -1092,15 +1092,7 @@ a.btn-primary { color: var(--on-wine); }
       stat("Noites sem hotel", missing.length, missing.length ? "noite de " + missing.join(", ") : "todas cobertas", missing.length) +
       stat("Ingressos a comprar", tick, "veja a aba Ingressos", tick) +
       stat("Atividades", count("roteiro"), all.filter(function (i) { return i.feito; }).length + " feitas") + "</div>";
-    var allc = costItems(trip.id), custo = costLine(allc);
-    if (custo) {
-      // Total convertido em reais com a cotação da aba Custos
-      var fxg = trip.cambio || {}, totBRL = 0, semCot = [];
-      allc.forEach(function (it) { var v = num(it.valor); if (!v) return; var c = it.moeda || "BRL", r = c === "BRL" ? 1 : num(fxg[c]); if (r > 0) totBRL += v * r; else if (semCot.indexOf(c) < 0) semCot.push(c); });
-      html += '<div class="costs"><span class="k">Gasto lançado</span>' + custo +
-        '<span class="cost-total"><span class="k">Total gasto até agora</span><strong>' + esc(money(totBRL, "BRL")) + "</strong>" +
-        (semCot.length ? '<small>sem ' + esc(semCot.join(", ")) + ': preencha a cotação em Custos</small>' : '<small>convertido pela cotação da aba Custos</small>') + "</span></div>";
-    }
+    html += costBox(trip, costItems(trip.id), "Gasto lançado", "Total gasto até agora");
     if (trip.obs) html += '<div class="obs" style="margin-bottom:18px">' + esc(trip.obs) + "</div>";
     var days = tripDays(trip);
     var dot = { voo: "var(--wine)", hospedagem: "var(--gold)", passagem: "var(--muted)", roteiro: "var(--line)" };
@@ -1116,19 +1108,28 @@ a.btn-primary { color: var(--on-wine); }
     return html;
   }
 
+  // Faixa de valores por moeda + total convertido em reais pela cotação da aba Custos
+  function costBox(trip, items, label, totalLabel) {
+    var custo = costLine(items); if (!custo) return "";
+    var fx = trip.cambio || {}, tot = 0, semCot = [];
+    items.forEach(function (it) { var v = num(it.valor); if (!v) return; var c = it.moeda || "BRL", r = c === "BRL" ? 1 : num(fx[c]); if (r > 0) tot += v * r; else if (semCot.indexOf(c) < 0) semCot.push(c); });
+    return '<div class="costs"><span class="k">' + esc(label) + "</span>" + custo +
+      '<span class="cost-total"><span class="k">' + esc(totalLabel) + "</span><strong>" + esc(money(tot, "BRL")) + "</strong>" +
+      (semCot.length ? "<small>sem " + esc(semCot.join(", ")) + ": preencha a cotação em Custos</small>" : "<small>convertido pela cotação da aba Custos</small>") + "</span></div>";
+  }
   // ---- Voos, hospedagens, passagens ----
   function viewList(trip, tipo, titulo, cardFn) {
     var items = tripItems(trip.id, tipo), custo = costLine(items);
     var head = '<div class="section-head"><h2>' + titulo + '</h2><button class="btn btn-primary" type="button" data-add="' + tipo + '">+ ' + TIPO_NOME[tipo] + "</button></div>";
     if (!items.length) return head + '<div class="empty"><h3>Nada cadastrado</h3><button class="btn btn-primary" type="button" data-add="' + tipo + '">Adicionar</button></div>';
-    return head + (custo ? '<div class="costs"><span class="k">Total</span>' + custo + "</div>" : "") + '<div class="cards">' + items.map(cardFn).join("") + "</div>";
+    return head + costBox(trip, items, "Valores", "Total em reais") + '<div class="cards">' + items.map(cardFn).join("") + "</div>";
   }
   function viewTransporte(trip) {
     var items = tripItems(trip.id).filter(function (i) { return i.tipo === "voo" || i.tipo === "passagem"; });
     var custo = costLine(items);
     var head = '<div class="section-head"><h2>Voos e trens</h2><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-primary" type="button" data-add="voo">+ Voo</button><button class="btn" type="button" data-add="passagem">+ Trem / ônibus</button></div></div>';
     if (!items.length) return head + '<div class="empty"><h3>Nada cadastrado</h3></div>';
-    return head + (custo ? '<div class="costs"><span class="k">Total</span>' + custo + "</div>" : "") + '<div class="cards">' + items.map(function (i) { return i.tipo === "voo" ? cardVoo(i) : cardTrem(i); }).join("") + "</div>";
+    return head + costBox(trip, items, "Valores", "Total em reais") + '<div class="cards">' + items.map(function (i) { return i.tipo === "voo" ? cardVoo(i) : cardTrem(i); }).join("") + "</div>";
   }
   function cardTrem(it) {
     var dur = "";
