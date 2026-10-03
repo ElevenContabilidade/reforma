@@ -1538,7 +1538,9 @@ a.btn-primary { color: var(--on-wine); }
         '<div class="row-actions">' + buy + '<button type="button" class="btn btn-small" data-ticket="' + esc(it.id) + '">' + (it.ingresso ? "Desmarcar" : "Já comprei") + '</button><button type="button" class="icon-btn edit" data-edit="' + esc(it.id) + '" aria-label="Editar">' + ic("pen") + "</button></div></div>";
     };
     return head + (pend.length ? '<div class="group-label">A comprar (' + pend.length + ')</div><div class="list">' + pend.map(row).join("") + "</div>" : "") +
-      (ok.length ? '<div class="group-label">Comprados (' + ok.length + ')</div><div class="list">' + ok.map(row).join("") + "</div>" : "");
+      (ok.length ? '<div class="group-label">Comprados (' + ok.length + ')</div>' + costBox(trip, ok, "Pago em ingressos", "Total pago em reais") +
+        (ok.some(function (i) { return !num(i.valor); }) ? '<p class="row-sub" style="margin:-10px 0 12px">Sem valor pago lançado: ' + esc(ok.filter(function (i) { return !num(i.valor); }).map(function (i) { return i.titulo; }).join(", ")) + ". Lance no lápis de cada um para entrar no total.</p>" : "") +
+        '<div class="list">' + ok.map(row).join("") + "</div>" : "");
   }
 
   // ---- Gastronomia ----
