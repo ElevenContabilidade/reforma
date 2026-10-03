@@ -254,6 +254,7 @@ body.is-dragging, body.is-dragging * { user-select: none; cursor: grabbing !impo
 .pass-meta { display: flex; flex-wrap: wrap; gap: 6px 18px; margin-top: 12px; font-size: 12px; color: var(--muted); }
 .pass-meta b { display: block; color: var(--ink); font-family: var(--f-mono); font-size: 13px; }
 .pass-stub { border-left: 2px dashed var(--line); position: relative; padding: 14px 16px; background: var(--surface-2); display: flex; flex-direction: column; justify-content: space-between; gap: 8px; }
+.pass-stub .pay { font-size: 12px; color: var(--ink); max-width: 170px; }
 .pass-stub::before, .pass-stub::after { content: ""; position: absolute; left: -11px; width: 20px; height: 20px; border-radius: 50%; background: var(--bg); border: 1px solid var(--line); }
 .pass-stub::before { top: -11px; }
 .pass-stub::after { bottom: -11px; }
@@ -592,6 +593,21 @@ a.btn-primary { color: var(--on-wine); }
     { k: "moeda", l: "Moeda", t: "select", opts: MOEDAS },
     { k: "obs", l: "Observações", t: "textarea", full: true }
   ];
+  // Pagamento: só em voos, trens e hospedagens
+  var PARCELAS = [""].concat(["À vista"], [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(function (n) { return n + "x"; }));
+  var PAGAMENTO = [
+    { k: "formaPag", l: "Forma de pagamento", t: "select", ph: "Não informado", opts: ["", "Cartão de crédito", "Cartão de débito", "Pix", "Dinheiro", "Boleto", "Milhas/pontos", "Milhas + dinheiro", "A pagar no local"] },
+    { k: "parcelas", l: "Parcelamento", t: "select", ph: "Não informado", opts: PARCELAS },
+    { k: "cartao", l: "Cartão usado", ph: "Ex.: Nubank final 1234", full: true }
+  ];
+  function payLine(it) {
+    var n = parseInt(it.parcelas, 10), parts = [];
+    if (it.formaPag) parts.push(it.formaPag);
+    if (it.cartao) parts.push(it.cartao);
+    if (n > 1) parts.push(n + "x" + (num(it.valor) ? " de " + money(num(it.valor) / n, it.moeda) : ""));
+    else if (it.parcelas === "À vista") parts.push("à vista");
+    return parts.join(" · ");
+  }
   var SCHEMAS = {
     voo: [
       { k: "cia", l: "Companhia aérea", ph: "Iberia" },
@@ -1091,7 +1107,7 @@ a.btn-primary { color: var(--on-wine); }
       '<div class="end"><div class="code station">' + esc(it.destino || "") + '</div><div class="when">' + esc(hhmm(it.chegada) || "--:--") + "</div></div></div>" +
       (meta ? '<div class="pass-meta">' + meta + "</div>" : "") + (it.obs ? '<div class="obs" style="margin-top:10px">' + esc(it.obs) + "</div>" : "") + "</div>" +
       '<div class="pass-stub"><div><div class="k">Reserva</div><div class="loc">' + esc(it.codigo || "—") + "</div></div>" +
-      (num(it.valor) ? '<div><div class="k">Valor</div><div class="price">' + esc(money(it.valor, it.moeda)) + "</div></div>" : "") + "</div></button>";
+      (num(it.valor) ? '<div><div class="k">Valor</div><div class="price">' + esc(money(it.valor, it.moeda)) + "</div></div>" : "") + (payLine(it) ? '<div class="pay"><div class="k">Pagamento</div><div>' + esc(payLine(it)) + "</div></div>" : "") + "</div></button>";
   }
   function cardVoo(it) {
     var dur = "";
@@ -1104,11 +1120,11 @@ a.btn-primary { color: var(--on-wine); }
       '<div class="end"><div class="code">' + esc(it.destino || "---") + '</div><div class="city">' + esc(it.destinoCidade || "") + '</div><div class="when">' + esc(hhmm(it.chegada) || "--:--") + plus + "</div></div></div>" +
       (meta ? '<div class="pass-meta">' + meta + "</div>" : "") + (it.obs ? '<div class="obs" style="margin-top:10px">' + esc(it.obs) + "</div>" : "") + "</div>" +
       '<div class="pass-stub"><div><div class="k">Localizador</div><div class="loc">' + esc(it.localizador || "—") + "</div></div>" +
-      (num(it.valor) ? '<div><div class="k">Valor</div><div class="price">' + esc(money(it.valor, it.moeda)) + "</div></div>" : "") + "</div></button>";
+      (num(it.valor) ? '<div><div class="k">Valor</div><div class="price">' + esc(money(it.valor, it.moeda)) + "</div></div>" : "") + (payLine(it) ? '<div class="pay"><div class="k">Pagamento</div><div>' + esc(payLine(it)) + "</div></div>" : "") + "</div></button>";
   }
   function cardHospedagem(it) {
     var n = daysBetween(it.checkin, it.checkout);
-    var kv = [["Reserva", it.reserva, true], ["Reservado por", it.plataforma], ["Contato", it.contato], ["Valor", num(it.valor) ? money(it.valor, it.moeda) : ""], ["A pagar no local", num(it.pendente) ? money(it.pendente, it.moeda) : ""]]
+    var kv = [["Reserva", it.reserva, true], ["Reservado por", it.plataforma], ["Contato", it.contato], ["Valor", num(it.valor) ? money(it.valor, it.moeda) : ""], ["A pagar no local", num(it.pendente) ? money(it.pendente, it.moeda) : ""], ["Pagamento", payLine(it)]]
       .filter(function (m) { return m[1]; }).map(function (m) { return "<span>" + m[0] + ": <b" + (m[2] ? ' class="mono"' : "") + ">" + esc(m[1]) + "</b></span>"; }).join("");
     return '<button type="button" class="card" data-edit="' + esc(it.id) + '"><div class="card-top"><div style="min-width:0"><div class="card-title">' + esc(it.nome) + '</div><div class="card-sub">' + esc([it.cidade, it.endereco].filter(Boolean).join(" · ")) + "</div></div>" +
       (it.pago ? '<span class="pill-ok">Pago</span>' : '<span class="pill-pend">A pagar</span>') + "</div>" +
@@ -1536,6 +1552,17 @@ a.btn-primary { color: var(--on-wine); }
     var extra = "";
     if (pend.length) extra += '<div class="group-label">A pagar nas hospedagens</div><div class="list">' + pend.map(function (h) { return '<div class="row"><div class="thumb t-hospedagem">' + ic("bed") + '</div><div style="min-width:0"><div class="row-title">' + esc(h.nome) + '</div><div class="row-sub">' + esc(h.cidade || "") + " · check-in " + esc(fmtDay(h.checkin)) + '</div></div><div class="row-actions"><strong class="mono">' + esc(money(h.pendente, h.moeda)) + "</strong></div></div>"; }).join("") + "</div>";
     if (semValor.length) extra += '<div class="group-label">Sem valor lançado</div><div class="list">' + semValor.map(function (v) { return '<div class="row"><div class="thumb ' + (v.tipo === "voo" ? "t-voo" : "t-passagem") + '">' + ic(v.tipo === "voo" ? "plane" : "train") + '</div><div style="min-width:0"><div class="row-title">' + esc(v.tipo === "voo" ? (v.numero || "Voo") + " · " + v.origem + " → " + v.destino : (v.meio || "") + " · " + v.origem) + '</div><div class="row-sub">' + esc(fmtDay(v.partida)) + '</div></div><div class="row-actions"><button type="button" class="btn btn-small" data-edit="' + esc(v.id) + '">Lançar valor</button></div></div>'; }).join("") + "</div>";
+    var porCartao = {};
+    all.forEach(function (it) {
+      var v = num(it.valor); if (!v || it.tipo === "gasto" || !(it.cartao || it.formaPag)) return;
+      var key = it.cartao || it.formaPag, c = it.moeda || "BRL", g = porCartao[key] = porCartao[key] || { tot: {}, itens: [] };
+      g.tot[c] = (g.tot[c] || 0) + v; g.itens.push((it.cia ? it.cia + " " : "") + (it.nome || it.titulo || ((it.origem || "") + "→" + (it.destino || ""))) + (parseInt(it.parcelas, 10) > 1 ? " (" + parseInt(it.parcelas, 10) + "x)" : ""));
+    });
+    var pk = Object.keys(porCartao).sort();
+    if (pk.length) extra = '<div class="group-label">Pago por cartão / forma de pagamento</div><div class="list">' + pk.map(function (k) {
+      var g = porCartao[k];
+      return '<div class="row"><div class="thumb t-voo">' + ic("doc") + '</div><div style="min-width:0"><div class="row-title">' + esc(k) + '</div><div class="row-sub">' + esc(g.itens.join(" · ")) + '</div></div><div class="row-actions"><b>' + Object.keys(g.tot).map(function (c) { return esc(money(g.tot[c], c)); }).join(" · ") + "</b></div></div>";
+    }).join("") + "</div>" + extra;
     var gs = tripGastos(trip.id);
     if (gs.length) extra = '<div class="group-label">Gastos do dia a dia (' + gs.length + ')</div><div class="list">' + gs.map(function (g) {
       return '<div class="row"><div class="thumb t-Restaurante">' + ic("doc") + '</div><div style="min-width:0"><div class="row-title">' + esc(money(num(g.valor), g.moeda || "BRL")) + " · " + esc(g.categoria || "Outros") + '</div><div class="row-sub">' + esc(fmtDay(g.data) + (g.descricao ? " · " + g.descricao : "")) + "</div></div>" +
@@ -1788,7 +1815,7 @@ a.btn-primary { color: var(--on-wine); }
     var existing = id ? state.itens[id] : null;
     // Na aba Ingressos, o botão de excluir só tira o item da lista de ingressos; o local fica no roteiro.
     var fromTickets = !!(existing && state.tab === "ingressos" && needsTicket(existing));
-    var schema = SCHEMAS[tipo].concat(COMUNS);
+    var schema = SCHEMAS[tipo].concat(tipo === "roteiro" ? COMUNS : COMUNS.slice(0, 2).concat(PAGAMENTO, COMUNS.slice(2)));
     var data = existing ? existing : Object.assign(defaultsFor(tipo, trip), preset || {});
     var nomes = { voo: ["Novo voo", "Editar voo"], hospedagem: ["Nova hospedagem", "Editar hospedagem"], passagem: ["Nova passagem", "Editar passagem"], roteiro: ["Nova atividade", "Editar atividade"] }[tipo];
     openSheet({
