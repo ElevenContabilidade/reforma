@@ -171,7 +171,10 @@ main { padding-block: 18px 120px; }
 .desloc.set { color: var(--ink); }
 .desloc .pen { width: 22px; height: 22px; border-radius: 6px; background: var(--wine); color: var(--on-wine); display: grid; place-items: center; }
 .desloc .pen svg { width: 12px; height: 12px; }
-.act[draggable="true"] { cursor: grab; }
+.act[data-drag] { cursor: grab; }
+.icon-btn.mv { touch-action: none; cursor: grab; }
+.drag-ghost { position: fixed; z-index: 40; pointer-events: none; box-shadow: 0 12px 30px rgba(41, 6, 8, .3); transform: rotate(2deg); opacity: .95; }
+body.is-dragging, body.is-dragging * { user-select: none; cursor: grabbing !important; }
 .act.dragging { opacity: .35; }
 .act.drop-before { box-shadow: 0 -3px 0 var(--gold); }
 .col-body.drop-end { outline: 2px dashed var(--gold); outline-offset: -4px; }
@@ -859,7 +862,7 @@ a.btn-primary { color: var(--on-wine); }
     var title = e.act ? '<button type="button" class="act-open act-title" data-detail="' + esc(it.id) + '">' + esc(e.title) + badge + "</button>" : '<div class="act-title">' + esc(e.title) + "</div>";
     if (e.act) e = Object.assign({}, e, { time: timeRange(it) });
     var mv = e.act ? '<button type="button" class="icon-btn mv" data-move="' + esc(it.id) + '" aria-label="Mover">' + ic("move") + "</button>" : "";
-    return '<div class="act' + (it.feito ? " done" : "") + '"' + (e.act ? ' draggable="true" data-drag="' + esc(it.id) + '"' : "") + ">" + thumb + '<div class="act-main"><div class="act-top">' + title +
+    return '<div class="act' + (it.feito ? " done" : "") + '"' + (e.act ? ' data-drag="' + esc(it.id) + '"' : "") + ">" + thumb + '<div class="act-main"><div class="act-top">' + title +
       '<button type="button" class="icon-btn edit" data-edit="' + esc(it.id) + '" aria-label="Editar">' + ic("pen") + "</button></div>" +
       '<span class="act-time">' + ic("clock") + esc(e.time || "--:--") + "</span>" +
       (e.act ? '<div class="act-row"><span class="act-tools">' + check + mv + "</span>" + right + "</div>" : "") +
@@ -1719,29 +1722,57 @@ a.btn-primary { color: var(--on-wine); }
     }
   });
   document.addEventListener("keydown", function (e) { if (e.key === "Escape" && mapFull && !sheet) { mapFull = false; mz.day = null; document.body.style.overflow = ""; render(); return; } if (e.key === "Escape") { if (sheet) closeSheet(); $("add-menu").hidden = true; } });
-  var dragId = null;
+  // Arrastar cartões do roteiro (mouse: o cartão inteiro; toque: pelo botão ↕)
+  var drag = null, dropAt = null, suppressClick = false;
   function clearDrop() { document.querySelectorAll(".drop-before,.drop-end").forEach(function (n) { n.classList.remove("drop-before", "drop-end"); }); }
-  document.addEventListener("dragstart", function (e) {
-    var c = e.target.closest && e.target.closest("[data-drag]"); if (!c) return;
-    dragId = c.dataset.drag; c.classList.add("dragging");
-    try { e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", dragId); } catch (x) {}
+  document.addEventListener("pointerdown", function (e) {
+    if (state.tab !== "roteiro" || sheet || e.button > 0) return;
+    var card = e.target.closest && e.target.closest("[data-drag]"); if (!card) return;
+    var onHandle = !!e.target.closest(".icon-btn.mv");
+    if (e.target.closest("button") && !onHandle) return;
+    if (e.pointerType !== "mouse" && !onHandle) return;
+    drag = { id: card.dataset.drag, x: e.clientX, y: e.clientY, active: false, card: card };
   });
-  document.addEventListener("dragend", function () { dragId = null; clearDrop(); document.querySelectorAll(".dragging").forEach(function (n) { n.classList.remove("dragging"); }); });
-  document.addEventListener("dragover", function (e) {
-    if (!dragId) return;
-    var body = e.target.closest && e.target.closest("[data-dropday]"); if (!body) return;
-    e.preventDefault(); clearDrop();
-    var c = e.target.closest("[data-drag]");
-    if (c && c.dataset.drag !== dragId) c.classList.add("drop-before"); else if (!c) body.classList.add("drop-end");
-  });
-  document.addEventListener("drop", function (e) {
-    if (!dragId) return;
-    var body = e.target.closest && e.target.closest("[data-dropday]"); if (!body) return;
+  function findDrop(x, y) {
+    var el = document.elementFromPoint(x, y); if (!el) return null;
+    var body = el.closest("[data-dropday]"); if (!body) return null;
+    var cards = Array.prototype.slice.call(body.querySelectorAll("[data-drag]")).filter(function (c) { return c.dataset.drag !== drag.id; });
+    var before = null;
+    for (var i = 0; i < cards.length; i++) { var r = cards[i].getBoundingClientRect(); if (y < r.top + r.height / 2) { before = cards[i]; break; } }
+    return { day: body.dataset.dropday, before: before, body: body };
+  }
+  document.addEventListener("pointermove", function (e) {
+    if (!drag) return;
+    if (!drag.active) {
+      if (Math.abs(e.clientX - drag.x) + Math.abs(e.clientY - drag.y) < 7) return;
+      drag.active = true;
+      var r = drag.card.getBoundingClientRect();
+      drag.dx = e.clientX - r.left; drag.dy = e.clientY - r.top;
+      var g = drag.card.cloneNode(true); g.className += " drag-ghost"; g.style.width = r.width + "px"; document.body.appendChild(g); drag.ghost = g;
+      drag.card.classList.add("dragging"); document.body.classList.add("is-dragging");
+    }
     e.preventDefault();
-    var c = e.target.closest("[data-drag]"), id = dragId;
-    dragId = null; clearDrop();
-    moveItem(id, body.dataset.dropday, c && c.dataset.drag !== id ? c.dataset.drag : null, true);
-  });
+    drag.ghost.style.left = (e.clientX - drag.dx) + "px"; drag.ghost.style.top = (e.clientY - drag.dy) + "px";
+    clearDrop();
+    dropAt = findDrop(e.clientX, e.clientY);
+    if (dropAt) { if (dropAt.before) dropAt.before.classList.add("drop-before"); else dropAt.body.classList.add("drop-end"); }
+    var bd = $("board");
+    if (bd) { var br = bd.getBoundingClientRect(); if (e.clientX < br.left + 50) bd.scrollLeft -= 18; else if (e.clientX > br.right - 50) bd.scrollLeft += 18; }
+    if (e.clientY < 70) window.scrollBy(0, -16); else if (e.clientY > window.innerHeight - 70) window.scrollBy(0, 16);
+  }, { passive: false });
+  function endDrag() {
+    if (!drag) return;
+    var d = drag; drag = null;
+    if (!d.active) return;
+    if (d.ghost) d.ghost.remove();
+    d.card.classList.remove("dragging"); document.body.classList.remove("is-dragging"); clearDrop();
+    suppressClick = true; setTimeout(function () { suppressClick = false; }, 300);
+    if (dropAt) moveItem(d.id, dropAt.day, dropAt.before ? dropAt.before.dataset.drag : null, true);
+    dropAt = null;
+  }
+  document.addEventListener("pointerup", endDrag);
+  document.addEventListener("pointercancel", endDrag);
+  document.addEventListener("click", function (e) { if (suppressClick) { e.stopPropagation(); e.preventDefault(); } }, true);
   var rz; window.addEventListener("resize", function () { clearTimeout(rz); rz = setTimeout(function () { if (state.tab === "mapas" && !sheet) { mz.day = null; render(); } }, 250); });
   setInterval(function () { var c = $("countdown"), trip = currentTrip(); if (c && trip) c.innerHTML = countdownHTML(trip); }, 30000);
 
