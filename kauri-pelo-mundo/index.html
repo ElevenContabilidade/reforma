@@ -161,6 +161,20 @@ main { padding-block: 18px 120px; }
 .desloc.set { color: var(--ink); }
 .desloc .pen { width: 22px; height: 22px; border-radius: 6px; background: var(--wine); color: var(--on-wine); display: grid; place-items: center; }
 .desloc .pen svg { width: 12px; height: 12px; }
+.act[draggable="true"] { cursor: grab; }
+.act.dragging { opacity: .35; }
+.act.drop-before { box-shadow: 0 -3px 0 var(--gold); }
+.col-body.drop-end { outline: 2px dashed var(--gold); outline-offset: -4px; }
+.act-tools { display: flex; gap: 6px; }
+.icon-btn.mv { background: var(--surface-2); color: var(--ink); border: 1.5px solid var(--line); }
+.desloc .dtxt { display: grid; gap: 1px; }
+.desloc .dsub { font-size: 12px; font-weight: 500; color: var(--muted); }
+.col-tools { display: flex; gap: 8px; margin-top: 10px; }
+.col-tools .col-add { margin-top: 0; flex: 1; }
+.mv-list { display: grid; gap: 6px; margin: 6px 0 4px; }
+.mv-row { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; font-size: 14px; }
+.mv-row.me { border-color: var(--wine); background: var(--wine-soft); font-weight: 700; }
+.mv-row .h { font-family: var(--f-mono); font-size: 12px; color: var(--muted); min-width: 44px; }
 .col-add { margin-top: 10px; border: 1.5px dashed var(--line); background: transparent; border-radius: 12px; padding: 10px; font-weight: 600; color: var(--muted); }
 .col-add:hover { border-color: var(--wine); color: var(--wine); }
 .col-empty { color: var(--muted); font-size: 14px; padding: 6px 2px; }
@@ -439,7 +453,12 @@ a.btn-primary { color: var(--on-wine); }
     doc: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/>',
     img: '<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21"/>',
     ticket: '<path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2z"/><path d="M13 5v2M13 17v2M13 11v2"/>',
-    tree: '<path d="M12 22v-7M8 15h8l-4-13-4 13zM6 22h12"/>'
+    tree: '<path d="M12 22v-7M8 15h8l-4-13-4 13zM6 22h12"/>',
+    move: '<path d="M12 2v20M12 2l-4 4M12 2l4 4M12 22l-4-4M12 22l4-4"/>',
+    walk: '<circle cx="13" cy="4" r="2"/><path d="M7 22l3-7 3 3v6M9 13l1-5 4 2 3 3M10 8 7 11"/>',
+    bus: '<rect x="4" y="3" width="16" height="15" rx="2"/><path d="M4 11h16M8 18v3M16 18v3M8 15h.01M16 15h.01"/>',
+    car: '<path d="M5 17h14v-5l-2-5H7l-2 5zM5 17v3M19 17v3M7 13h.01M17 13h.01"/>',
+    boat: '<path d="M2 20c2 1 4 1 6 0s4-1 6 0 4 1 6 0M4 16l2-6h12l2 6M12 4v6"/>'
   };
   function ic(name, cls) { return '<svg class="' + (cls || "i") + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + P[name] + "</svg>"; }
   var CAT_ICON = { "Passeio": "tree", "Museu": "museum", "Restaurante": "food", "Compras": "bag", "Show / evento": "star", "Descanso": "moon", "Outro": "pin" };
@@ -511,6 +530,7 @@ a.btn-primary { color: var(--on-wine); }
       { k: "categoria", l: "Tipo", t: "select", opts: ["Passeio", "Museu", "Restaurante", "Compras", "Show / evento", "Descanso", "Outro"] },
       { k: "local", l: "Cidade" },
       { k: "endereco", l: "Endereço" },
+      { k: "horaFixa", l: "Horário fixo (não muda ao reorganizar)", t: "checkbox" },
       { k: "precisaIngresso", l: "Precisa de ingresso", t: "checkbox" },
       { k: "ingresso", l: "Ingresso comprado", t: "checkbox" }
     ]
@@ -768,7 +788,7 @@ a.btn-primary { color: var(--on-wine); }
       var ev = dayEvents(all, day);
       var body = ev.length ? ev.map(function (e, j) { return (j ? deslocRow(trip, day, e) : "") + actCard(e); }).join("") : '<div class="col-empty">Nada planejado ainda.</div>';
       return '<div class="col" data-col="' + i + '"><div class="col-head' + (day === hoje ? " today" : "") + '">' + ic("cal") + '<div><div class="d">Dia ' + (i + 1) + '</div><div class="c">' + esc(dayCity(all, day)) + '</div></div><div class="date">' + esc(fmtShortWd(day)) + "</div></div>" +
-        '<div class="col-body">' + body + '<button type="button" class="col-add" data-add="roteiro" data-day="' + day + '">+ Adicionar atividade</button></div></div>';
+        '<div class="col-body" data-dropday="' + day + '">' + body + '<div class="col-tools"><button type="button" class="col-add" data-add="roteiro" data-day="' + day + '">+ Adicionar atividade</button><button type="button" class="col-add" data-recalc="' + day + '" title="Refaz os horários na ordem atual, somando duração e deslocamento">Recalcular horários</button></div></div></div>';
     }).join("");
     return '<div class="section-head"><div><h2>Roteiro</h2><p>Arraste para o lado para ver os outros dias. Use − e + para ajustar a duração.</p></div></div>' + chips + '<div class="board" id="board">' + cols + "</div>";
   }
@@ -782,16 +802,91 @@ a.btn-primary { color: var(--on-wine); }
     if (e.act) thumb = '<button type="button" class="act-open" data-detail="' + esc(it.id) + '" aria-label="Ver detalhes">' + thumb + "</button>";
     var title = e.act ? '<button type="button" class="act-open act-title" data-detail="' + esc(it.id) + '">' + esc(e.title) + badge + "</button>" : '<div class="act-title">' + esc(e.title) + "</div>";
     if (e.act) e = Object.assign({}, e, { time: timeRange(it) });
-    return '<div class="act' + (it.feito ? " done" : "") + '">' + thumb + '<div class="act-main"><div class="act-top">' + title + check +
+    var mv = e.act ? '<button type="button" class="icon-btn mv" data-move="' + esc(it.id) + '" aria-label="Mover">' + ic("move") + "</button>" : "";
+    return '<div class="act' + (it.feito ? " done" : "") + '"' + (e.act ? ' draggable="true" data-drag="' + esc(it.id) + '"' : "") + ">" + thumb + '<div class="act-main"><div class="act-top">' + title +
       '<button type="button" class="icon-btn edit" data-edit="' + esc(it.id) + '" aria-label="Editar">' + ic("pen") + "</button></div>" +
-      '<div class="act-row"><span class="act-time">' + ic("clock") + esc(e.time || "--:--") + "</span>" + right + "</div>" +
+      '<span class="act-time">' + ic("clock") + esc(e.time || "--:--") + "</span>" +
+      (e.act ? '<div class="act-row"><span class="act-tools">' + check + mv + "</span>" + right + "</div>" : "") +
       (!e.act && e.sub ? '<div class="act-sub">' + esc(e.sub) + "</div>" : "") + "</div></div>";
   }
   function deslocKey(trip, day, e) { return (trip.id + "_" + day + "_" + e.key).replace(/[^A-Za-z0-9_\-]/g, "").slice(0, 180); }
   function deslocRow(trip, day, e) {
     var k = deslocKey(trip, day, e), d = state.deslocs[k];
-    var txt = d ? [d.modo, d.min ? d.min + " min" : "", d.obs].filter(Boolean).join(" · ") : "Definir deslocamento";
-    return '<button type="button" class="desloc' + (d ? " set" : "") + '" data-desloc="' + esc(k) + '">' + ic("route") + '<span class="grow">' + esc(txt) + '</span><span class="pen">' + ic("pen") + "</span></button>";
+    if (!d) return '<button type="button" class="desloc" data-desloc="' + esc(k) + '">' + ic("route") + '<span class="grow">Definir deslocamento</span><span class="pen">' + ic("pen") + "</span></button>";
+    var icn = { "A pé": "walk", "Metrô": "train", "Trem": "train", "Ônibus": "bus", "Táxi / Uber": "car", "Carro": "car", "Barco": "boat" }[d.modo] || "route";
+    var head = (d.min ? d.min + " min " : "") + (d.modo === "A pé" ? "a pé" : (d.modo ? "de " + d.modo.toLowerCase() : ""));
+    return '<button type="button" class="desloc set" data-desloc="' + esc(k) + '" style="color:' + (MODE_COLOR[d.modo] || "var(--ink)") + '">' + ic(icn) + '<span class="grow dtxt"><span>' + esc(head) + "</span>" + (d.obs ? '<span class="dsub">' + esc(d.obs) + "</span>" : "") + '</span><span class="pen">' + ic("pen") + "</span></button>";
+  }
+
+  // ---- Mover e reorganizar ----
+  function dayActs(trip, day, exclude) {
+    return tripItems(trip.id, "roteiro").filter(function (i) { return i.data === day && i.id !== exclude; })
+      .sort(function (a, b) { return (a.hora || "99:99").localeCompare(b.hora || "99:99"); });
+  }
+  function toMin(h) { var p = (h || "0:0").split(":"); return +p[0] * 60 + +p[1]; }
+  function retime(trip, day, order, startHora) {
+    var t = toMin(startHora || (order[0] && order[0].hora) || "09:00"), changes = {};
+    order.forEach(function (it, i) {
+      if (i > 0) { var d = state.deslocs[deslocKey(trip, day, { key: it.id })]; t += +(d && d.min) || 0; }
+      if (it.horaFixa && it.hora) t = toMin(it.hora);
+      var h = durFmt(t % 1440);
+      if (h !== it.hora || it.data !== day) changes[it.id] = { hora: h, data: day };
+      t += +it.duracao || 60;
+    });
+    return changes;
+  }
+  function applyChanges(changes, staleKeys) {
+    var ids = Object.keys(changes);
+    ids.forEach(function (id) { Object.assign(state.itens[id], changes[id]); });
+    render();
+    var p = Promise.resolve();
+    (staleKeys || []).forEach(function (k) { if (state.deslocs[k]) p = p.then(function () { return removeDoc("deslocs", k); }); });
+    ids.forEach(function (id) { p = p.then(function () { return patchDoc("itens", id, changes[id]); }); });
+    return p.then(function () { toast(ids.length ? "Roteiro reorganizado" : "Nada para mudar"); }).catch(function (e) { toast(errMsg(e)); });
+  }
+  function moveItem(id, toDay, beforeId, recalc) {
+    var trip = currentTrip(), it = state.itens[id]; if (!trip || !it) return;
+    if (beforeId === id) return;
+    var fromDay = it.data, me = Object.assign({ id: id }, it);
+    var oldOrder = dayActs(trip, fromDay), oldIdx = oldOrder.findIndex(function (x) { return x.id === id; });
+    var target = dayActs(trip, toDay, id);
+    var at = beforeId ? target.findIndex(function (x) { return x.id === beforeId; }) : -1;
+    if (at < 0) at = target.length;
+    var stale = [deslocKey(trip, fromDay, { key: id })];
+    if (oldOrder[oldIdx + 1]) stale.push(deslocKey(trip, fromDay, { key: oldOrder[oldIdx + 1].id }));
+    if (target[at]) stale.push(deslocKey(trip, toDay, { key: target[at].id }));
+    var start = target.length ? target[0].hora : (it.hora || "09:00");
+    if (fromDay === toDay) start = oldOrder[0].hora || start;
+    target.splice(at, 0, me);
+    var changes;
+    if (recalc) {
+      stale.forEach(function (k) { delete state.deslocs[k]; });
+      changes = retime(trip, toDay, target, start);
+      if (fromDay !== toDay) { var rest = dayActs(trip, fromDay, id); if (rest.length) Object.assign(changes, retime(trip, fromDay, rest, oldOrder[0].hora)); }
+    } else {
+      changes = {}; changes[id] = { data: toDay, hora: at > 0 ? addMin(target[at - 1].hora, target[at - 1].duracao || 60) : (target[1] ? target[1].hora : it.hora) };
+    }
+    if (!changes[id]) changes[id] = { data: toDay, hora: it.hora };
+    applyChanges(changes, stale);
+  }
+  function recalcDay(day) {
+    var trip = currentTrip(); if (!trip) return;
+    var order = dayActs(trip, day); if (!order.length) return;
+    applyChanges(retime(trip, day, order, order[0].hora), []);
+  }
+  function openMove(id) {
+    var trip = currentTrip(), it = state.itens[id]; if (!trip || !it) return;
+    sheet = { move: id };
+    var order = dayActs(trip, it.data), idx = order.findIndex(function (x) { return x.id === id; });
+    var days = tripDays(trip), all = tripItems(trip.id);
+    $("sheet-root").innerHTML = '<div class="sheet-bg" id="sheet-bg"><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-title">' +
+      '<div class="sheet-head"><h2 id="sheet-title">Mover: ' + esc(it.titulo) + '</h2><button type="button" class="x" data-close aria-label="Fechar">×</button></div>' +
+      '<div class="mv-list">' + order.map(function (o) { return '<div class="mv-row' + (o.id === id ? " me" : "") + '"><span class="h">' + esc(o.hora || "--:--") + "</span>" + esc(o.titulo) + "</div>"; }).join("") + "</div>" +
+      '<div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 16px"><button type="button" class="btn" data-mvstep="-1"' + (idx <= 0 ? " disabled" : "") + '>↑ Subir</button><button type="button" class="btn" data-mvstep="1"' + (idx >= order.length - 1 ? " disabled" : "") + ">↓ Descer</button></div>" +
+      '<div class="form-grid"><div class="field"><label for="mv-day">Mover para o dia</label><select id="mv-day">' + days.map(function (d, i) { return '<option value="' + d + '"' + (d === it.data ? " selected" : "") + ">Dia " + (i + 1) + " · " + esc(fmtDay(d)) + " · " + esc(dayCity(all, d)) + "</option>"; }).join("") + '</select></div>' +
+      '<div class="field check-field" style="align-self:end"><input type="checkbox" id="mv-recalc" checked><label for="mv-recalc" style="font-size:14px;color:var(--ink)">Recalcular horários do dia</label></div></div>' +
+      '<p class="row-sub" style="margin-top:8px">Com o recálculo, os horários seguem a ordem, somando a duração de cada atividade e o tempo de deslocamento. Atividades com horário fixo (ingresso com hora marcada) não mudam.</p>' +
+      '<div class="sheet-actions"><button type="button" class="btn" data-close>Fechar</button><button type="button" class="btn btn-primary" data-mvday="' + esc(id) + '">Mover para o dia escolhido</button></div></div></div>';
   }
 
   // ---- Geral ----
@@ -1323,6 +1418,17 @@ a.btn-primary { color: var(--on-wine); }
     if (ds.edit) { var it = state.itens[ds.edit]; if (it) { closeSheet(); openItem(it.tipo, ds.edit); } return; }
     if (ds.dur) { stepDur(ds.dur, +ds.step); return; }
     if (ds.detail) { openDetail(ds.detail); return; }
+    if (ds.move) { openMove(ds.move); return; }
+    if (ds.recalc) { recalcDay(ds.recalc); return; }
+    if (ds.mvstep && sheet && sheet.move) {
+      var mid = sheet.move, mit = state.itens[mid], tr = currentTrip(), ord = dayActs(tr, mit.data), ix = ord.findIndex(function (x) { return x.id === mid; });
+      var rc = $("mv-recalc") ? $("mv-recalc").checked : true;
+      if (+ds.mvstep < 0 && ix > 0) moveItem(mid, mit.data, ord[ix - 1].id, rc);
+      if (+ds.mvstep > 0 && ix < ord.length - 1) moveItem(mid, mit.data, ord[ix + 2] ? ord[ix + 2].id : null, rc);
+      setTimeout(function () { if (sheet && sheet.move === mid) openMove(mid); }, 0);
+      return;
+    }
+    if (ds.mvday) { var dd = $("mv-day").value, rc2 = $("mv-recalc").checked, mid2 = ds.mvday; closeSheet(); if (dd !== state.itens[mid2].data) moveItem(mid2, dd, null, rc2); return; }
     if (ds.mapday) { mapDay = ds.mapday; render(); return; }
     if (ds.genhist) { genHistoria(ds.genhist, t); return; }
     if (ds.addphoto) { photoFor = ds.addphoto; $("photo-input").click(); return; }
@@ -1363,6 +1469,29 @@ a.btn-primary { color: var(--on-wine); }
     }
   });
   document.addEventListener("keydown", function (e) { if (e.key === "Escape") { if (sheet) closeSheet(); $("add-menu").hidden = true; } });
+  var dragId = null;
+  function clearDrop() { document.querySelectorAll(".drop-before,.drop-end").forEach(function (n) { n.classList.remove("drop-before", "drop-end"); }); }
+  document.addEventListener("dragstart", function (e) {
+    var c = e.target.closest && e.target.closest("[data-drag]"); if (!c) return;
+    dragId = c.dataset.drag; c.classList.add("dragging");
+    try { e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", dragId); } catch (x) {}
+  });
+  document.addEventListener("dragend", function () { dragId = null; clearDrop(); document.querySelectorAll(".dragging").forEach(function (n) { n.classList.remove("dragging"); }); });
+  document.addEventListener("dragover", function (e) {
+    if (!dragId) return;
+    var body = e.target.closest && e.target.closest("[data-dropday]"); if (!body) return;
+    e.preventDefault(); clearDrop();
+    var c = e.target.closest("[data-drag]");
+    if (c && c.dataset.drag !== dragId) c.classList.add("drop-before"); else if (!c) body.classList.add("drop-end");
+  });
+  document.addEventListener("drop", function (e) {
+    if (!dragId) return;
+    var body = e.target.closest && e.target.closest("[data-dropday]"); if (!body) return;
+    e.preventDefault();
+    var c = e.target.closest("[data-drag]"), id = dragId;
+    dragId = null; clearDrop();
+    moveItem(id, body.dataset.dropday, c && c.dataset.drag !== id ? c.dataset.drag : null, true);
+  });
   var rz; window.addEventListener("resize", function () { clearTimeout(rz); rz = setTimeout(function () { if (state.tab === "mapas" && !sheet) render(); }, 250); });
   setInterval(function () { var c = $("countdown"), trip = currentTrip(); if (c && trip) c.innerHTML = countdownHTML(trip); }, 30000);
 
