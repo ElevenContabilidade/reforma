@@ -1,0 +1,560 @@
+<title>Kauri Looks</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Manrope:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: faixa bordô com seletor de pessoa; abas Looks / Guarda-roupa / Mala; cada dia é uma etiqueta de roupa com clima e o look em grade de fotos. Tema claro fixo (pedido da usuária). */
+:root {
+  --bg: #ffffff;
+  --surface: #ffffff;
+  --surface-2: #faf5f3;
+  --ink: #2a1214;
+  --muted: #7b6466;
+  --line: #eee2de;
+  --wine: #8c2426;
+  --wine-soft: #fbeeee;
+  --gold: #c9922b;
+  --gold-soft: #fbf3dd;
+  --gold-ink: #7a5714;
+  --band: #6b1013;
+  --on-band: #fbf1d7;
+  --ok: #2f7a4f;
+  --ok-soft: #e5f3ea;
+  --cold: #2f6f9f;
+  --cold-soft: #e7f1f8;
+  --danger: #b3261e;
+  --shadow: 0 1px 2px rgba(41, 6, 8, .05), 0 6px 18px rgba(41, 6, 8, .06);
+  --f-display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --f-body: "Manrope", "Segoe UI", system-ui, sans-serif;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 15px; line-height: 1.5; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+h1, h2, h3 { font-family: var(--f-display); text-wrap: balance; margin: 0; }
+
+.band { background: linear-gradient(135deg, var(--band), var(--wine)); color: var(--on-band); padding: 18px 16px 20px; }
+.band-in { max-width: 960px; margin: 0 auto; display: flex; flex-wrap: wrap; gap: 14px; align-items: center; justify-content: space-between; }
+.brand h1 { font-size: 26px; font-weight: 800; letter-spacing: -.01em; }
+.brand h1 span { color: var(--gold); }
+.brand p { margin: 2px 0 0; font-size: 12px; letter-spacing: .12em; text-transform: uppercase; opacity: .85; }
+.who { display: flex; background: rgba(255,255,255,.12); border-radius: 999px; padding: 4px; gap: 4px; }
+.who button { border: 0; background: transparent; color: var(--on-band); padding: 7px 16px; border-radius: 999px; font-weight: 700; }
+.who button[aria-pressed="true"] { background: var(--on-band); color: var(--band); }
+
+.tabs { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--bg); border-bottom: 1px solid var(--line); }
+.tabs-in { max-width: 960px; margin: 0 auto; display: flex; gap: 4px; padding: 0 8px; overflow-x: auto; }
+.tab { border: 0; background: none; padding: 14px 12px 12px; font-weight: 700; color: var(--muted); border-bottom: 3px solid transparent; white-space: nowrap; }
+.tab[aria-selected="true"] { color: var(--wine); border-bottom-color: var(--wine); }
+.tab .count { display: inline-block; margin-left: 6px; background: var(--surface-2); color: var(--muted); border-radius: 999px; padding: 0 8px; font-size: 12px; }
+
+main { max-width: 960px; margin: 0 auto; padding: 20px 16px 120px; display: grid; gap: 18px; }
+.section-head { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; justify-content: space-between; }
+.section-head h2 { font-size: 24px; }
+.section-head p { margin: 4px 0 0; color: var(--muted); max-width: 62ch; }
+
+.btn { border: 1px solid var(--line); background: var(--surface); padding: 10px 16px; border-radius: 12px; font-weight: 700; display: inline-flex; align-items: center; gap: 8px; text-decoration: none; color: var(--ink); }
+.btn:hover { border-color: var(--wine); }
+.btn-primary { background: var(--wine); border-color: var(--wine); color: #fff; }
+.btn-primary:hover { background: var(--band); }
+.btn-small { padding: 6px 12px; font-size: 13px; border-radius: 10px; }
+.btn-danger { color: var(--danger); border-color: #f1c9c6; }
+.btn:disabled { opacity: .55; cursor: default; }
+
+.note { border-radius: 14px; padding: 12px 14px; background: var(--gold-soft); color: var(--gold-ink); font-size: 14px; }
+.note b { color: var(--ink); }
+.panel { border: 1px solid var(--line); border-radius: 18px; padding: 16px; background: var(--surface); box-shadow: var(--shadow); display: grid; gap: 10px; }
+.stats { display: flex; flex-wrap: wrap; gap: 8px 18px; color: var(--muted); font-size: 14px; }
+.stats b { color: var(--ink); font-size: 18px; font-family: var(--f-display); margin-right: 4px; }
+.progress { font-size: 14px; color: var(--wine); font-weight: 700; }
+.missing { margin: 0; padding-left: 18px; color: var(--ink); }
+
+/* Dia como etiqueta de roupa */
+.day { border: 1px solid var(--line); border-radius: 18px; background: var(--surface); box-shadow: var(--shadow); overflow: hidden; }
+.day-head { display: grid; grid-template-columns: auto 1fr; gap: 14px; padding: 14px 16px; background: var(--surface-2); border-bottom: 1px dashed var(--line); align-items: start; }
+.tag { position: relative; width: 62px; text-align: center; border: 1.5px solid var(--wine); border-radius: 10px 10px 14px 14px; padding: 12px 4px 6px; background: var(--surface); color: var(--wine); font-family: var(--f-display); }
+.tag::before { content: ""; position: absolute; top: 4px; left: 50%; width: 6px; height: 6px; margin-left: -3px; border-radius: 50%; border: 1.5px solid var(--wine); }
+.tag .wd { font-size: 11px; letter-spacing: .1em; text-transform: uppercase; font-family: var(--f-body); font-weight: 700; }
+.tag .dd { font-size: 22px; font-weight: 800; line-height: 1.1; }
+.day-info { min-width: 0; display: grid; gap: 6px; }
+.day-info h3 { font-size: 18px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { font-size: 12px; font-weight: 700; padding: 3px 9px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line); color: var(--muted); }
+.chip.temp { background: var(--cold-soft); border-color: transparent; color: var(--cold); }
+.chip.rain { background: var(--cold); border-color: transparent; color: #fff; }
+.day-sum { color: var(--muted); font-size: 13px; margin: 0; }
+.day-care { font-size: 13px; margin: 0; color: var(--gold-ink); }
+.day-body { padding: 14px 16px 16px; display: grid; gap: 16px; }
+.look { display: grid; gap: 8px; }
+.look-top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.look-top h4 { margin: 0; font-size: 13px; letter-spacing: .1em; text-transform: uppercase; color: var(--wine); }
+.look-why { margin: 0; font-size: 14px; }
+.pieces { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 8px; }
+.piece { border: 1px solid var(--line); background: var(--surface); border-radius: 12px; padding: 0; overflow: hidden; text-align: left; display: grid; }
+.piece:hover { border-color: var(--wine); }
+.piece .ph { aspect-ratio: 3 / 4; background: var(--surface-2); display: grid; place-items: center; color: var(--muted); font-size: 12px; }
+.piece img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.piece span { font-size: 12px; padding: 5px 7px 6px; line-height: 1.25; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.piece.add { border-style: dashed; place-items: center; color: var(--wine); font-weight: 700; font-size: 13px; min-height: 120px; }
+.day-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.empty-day { color: var(--muted); font-size: 14px; margin: 0; }
+
+/* Guarda-roupa */
+.drop { border: 2px dashed var(--line); border-radius: 18px; padding: 22px 16px; text-align: center; display: grid; gap: 10px; justify-items: center; background: var(--surface-2); }
+.drop.over { border-color: var(--wine); background: var(--wine-soft); }
+.drop p { margin: 0; color: var(--muted); font-size: 14px; max-width: 52ch; }
+.queue { display: grid; gap: 6px; }
+.qrow { display: flex; gap: 10px; align-items: center; font-size: 14px; }
+.qrow img { width: 40px; height: 40px; object-fit: cover; border-radius: 8px; }
+.qrow .st { color: var(--muted); }
+.qrow .st.ok { color: var(--ok); font-weight: 700; }
+.qrow .st.err { color: var(--danger); }
+.filters { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; }
+.filters button { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 6px 12px; font-size: 13px; font-weight: 700; white-space: nowrap; color: var(--muted); }
+.filters button[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: #fff; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+.card { border: 1px solid var(--line); border-radius: 14px; overflow: hidden; background: var(--surface); padding: 0; text-align: left; display: grid; }
+.card:hover { border-color: var(--wine); }
+.card .ph { aspect-ratio: 3 / 4; background: var(--surface-2); }
+.card img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.card .tx { padding: 8px 10px 10px; display: grid; gap: 2px; min-width: 0; }
+.card b { font-size: 14px; line-height: 1.3; }
+.card small { color: var(--muted); font-size: 12px; }
+.warm { display: inline-flex; gap: 3px; vertical-align: middle; }
+.warm i { width: 7px; height: 7px; border-radius: 50%; background: var(--line); display: inline-block; }
+.warm i.on { background: var(--gold); }
+.empty { text-align: center; padding: 30px 16px; color: var(--muted); border: 1px dashed var(--line); border-radius: 18px; }
+.empty h3 { color: var(--ink); font-size: 18px; margin-bottom: 4px; }
+
+/* Mala */
+.pack-group { display: grid; gap: 6px; }
+.pack-group h3 { font-size: 13px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); font-family: var(--f-body); }
+.pack { display: grid; grid-template-columns: auto 52px 1fr; gap: 12px; align-items: center; border: 1px solid var(--line); border-radius: 14px; padding: 8px 12px; background: var(--surface); cursor: pointer; }
+.pack input { width: 20px; height: 20px; accent-color: var(--wine); }
+.pack img, .pack .ph { width: 52px; height: 52px; object-fit: cover; border-radius: 10px; background: var(--surface-2); }
+.pack .tx { min-width: 0; }
+.pack b { display: block; font-size: 14px; }
+.pack small { color: var(--muted); font-size: 12px; }
+.pack.done b { text-decoration: line-through; color: var(--muted); }
+.bar { height: 8px; border-radius: 999px; background: var(--surface-2); overflow: hidden; }
+.bar i { display: block; height: 100%; background: var(--ok); border-radius: 999px; }
+
+/* Folha (formulários e escolhas) */
+.scrim { position: fixed; inset: 0; background: rgba(42, 18, 20, .45); z-index: 20; display: grid; align-items: end; justify-items: center; }
+.sheet { background: var(--surface); width: 100%; max-width: 620px; max-height: 92vh; overflow-y: auto; border-radius: 22px 22px 0 0; padding: 18px 16px calc(22px + env(safe-area-inset-bottom, 0px)); display: grid; gap: 14px; }
+@media (min-width: 700px) { .scrim { align-items: center; } .sheet { border-radius: 22px; } }
+.sheet-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.sheet-head h2 { font-size: 20px; }
+.x { border: 0; background: var(--surface-2); width: 36px; height: 36px; border-radius: 50%; font-size: 20px; line-height: 1; }
+.field { display: grid; gap: 4px; }
+.field label { font-size: 13px; font-weight: 700; color: var(--muted); }
+.field input, .field select, .field textarea { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; background: var(--surface); width: 100%; }
+.field textarea { min-height: 80px; resize: vertical; }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.sheet-photo { max-height: 260px; border-radius: 14px; object-fit: contain; background: var(--surface-2); width: 100%; }
+.sheet-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between; }
+.pick-group h3 { font-size: 13px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); font-family: var(--f-body); margin: 4px 0 6px; }
+.piece.cur { border-color: var(--wine); box-shadow: 0 0 0 2px var(--wine); }
+
+.toast { position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--ink); color: #fff; padding: 10px 16px; border-radius: 12px; font-size: 14px; z-index: 30; max-width: calc(100% - 32px); }
+@media (max-width: 480px) { .row2 { grid-template-columns: 1fr; } .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (prefers-reduced-motion: no-preference) { .btn, .piece, .card { transition: border-color .15s, background .15s; } }
+</style>
+
+<header class="band">
+  <div class="band-in">
+    <div class="brand"><h1>Kauri Looks<span>.</span></h1><p>O que vestir em cada dia da viagem</p></div>
+    <div class="who" role="group" aria-label="De quem são os looks" id="who"></div>
+  </div>
+</header>
+<nav class="tabs"><div class="tabs-in" role="tablist" id="tabs"></div></nav>
+<main id="main"></main>
+<input type="file" id="file" accept="image/*" multiple hidden>
+<div id="sheet-root"></div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+(function () {
+  "use strict";
+  var PESSOAS = ["Kauane", "Iuri"];
+  var TIPOS = ["Blusa/camisa", "Malha/suéter", "Calça/saia", "Vestido/macacão", "Casaco", "Calçado", "Acessório", "Bolsa"];
+  var AQUECE = { 1: "Leve", 2: "Médio", 3: "Quente" };
+  var COLS = ["pecas", "dias", "looks", "meta"];
+  var state = { pecas: {}, dias: {}, looks: {}, meta: {}, loaded: {}, mode: "connecting", tab: "looks", pessoa: "Kauane", filtro: "", gen: "", queue: [] };
+  var store = null, assets = null, sampler = null, sheet = null;
+
+  try { state.pessoa = localStorage.getItem("looks-pessoa") || "Kauane"; state.tab = localStorage.getItem("looks-tab") || "looks"; } catch (e) {}
+  if (PESSOAS.indexOf(state.pessoa) < 0) state.pessoa = "Kauane";
+
+  function $(id) { return document.getElementById(id); }
+  function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
+  function newId() { return (window.crypto && crypto.randomUUID) ? crypto.randomUUID().replace(/-/g, "").slice(0, 20) : Date.now().toString(36) + Math.random().toString(36).slice(2, 10); }
+  var toastT;
+  function toast(msg) { var t = $("toast"); t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(function () { t.hidden = true; }, 3200); }
+  function errMsg(e) {
+    var c = e && e.code;
+    if (c === "not_granted") return "Permissão negada. Libere o acesso nas permissões do app.";
+    if (c === "rate_limited") return "Muitos pedidos seguidos. Espere um minuto e tente de novo.";
+    if (c === "image_rejected") return "Não consegui ler essa foto. Tente outra em JPG ou PNG.";
+    return (e && e.message) || "Algo deu errado. Tente de novo.";
+  }
+
+  // ---------- Datas ----------
+  var SEM = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+  function pd(s) { var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(s || ""); return m ? new Date(+m[1], +m[2] - 1, +m[3]) : null; }
+
+  // ---------- Dados ----------
+  function localKey() { return "looks-dados"; }
+  function localSave() { try { localStorage.setItem(localKey(), JSON.stringify({ pecas: state.pecas, looks: state.looks, meta: state.meta })); } catch (e) {} }
+  function localLoad() { try { var d = JSON.parse(localStorage.getItem(localKey()) || "{}"); state.pecas = d.pecas || {}; state.dias = d.dias || {}; state.looks = d.looks || {}; state.meta = d.meta || {}; } catch (e) {} }
+  function setDoc(col, id, data) {
+    if (store) return store.collection(col).doc(id).set(data);
+    state[col][id] = data; localSave(); render(); return Promise.resolve();
+  }
+  function patchDoc(col, id, data) {
+    if (store) return store.collection(col).doc(id).update(data);
+    state[col][id] = Object.assign({}, state[col][id], data); localSave(); render(); return Promise.resolve();
+  }
+  function delDoc(col, id) {
+    if (store) return store.collection(col).doc(id).delete();
+    delete state[col][id]; localSave(); render(); return Promise.resolve();
+  }
+  function connect() {
+    var use = (window.claude && window.claude.use) ? window.claude.use.bind(window.claude) : function () { return Promise.resolve(null); };
+    var fallback = setTimeout(function () { if (state.mode === "connecting") goLocal(); }, 11000);
+    use("db").then(function (db) {
+      clearTimeout(fallback);
+      if (!db) { goLocal(); return; }
+      store = db; state.mode = "cloud";
+      COLS.forEach(function (col) {
+        db.collection(col).onSnapshot(function (snap) {
+          var next = {}; snap.docs.forEach(function (d) { next[d.id] = d.data() || {}; });
+          state[col] = next; state.loaded[col] = true; render();
+        }, function () { state.loaded[col] = true; render(); toast("Não foi possível carregar os dados. Recarregue a página."); });
+      });
+    }).catch(function () { clearTimeout(fallback); goLocal(); });
+    use("assets").then(function (a) { assets = a; render(); }).catch(function () {});
+    use("sample").then(function (s) {
+      if (!s) return;
+      sampler = s;
+      s.limits().then(function (l) { sampler.canSee = !!(l && l.images); render(); }).catch(function () { render(); });
+    }).catch(function () {});
+  }
+  function goLocal() { if (state.mode === "cloud") return; state.mode = "local"; localLoad(); COLS.forEach(function (c) { state.loaded[c] = true; }); render(); }
+
+  // ---------- Consultas ----------
+  function minhasPecas() {
+    return Object.keys(state.pecas).map(function (id) { return Object.assign({ id: id }, state.pecas[id]); })
+      .filter(function (p) { return (p.pessoa || "Kauane") === state.pessoa; })
+      .sort(function (a, b) { var ta = TIPOS.indexOf(a.tipo), tb = TIPOS.indexOf(b.tipo); return ta - tb || String(a.nome).localeCompare(String(b.nome)); });
+  }
+  function dias() { return Object.keys(state.dias).sort().map(function (k) { return Object.assign({ data: k }, state.dias[k]); }); }
+  function lookDe(data) { return state.looks[state.pessoa + "_" + data]; }
+  function fotoUrl(p) { return p.foto || (p.fotoId ? "/_blob/" + p.fotoId : ""); }
+  function pieceImg(p) { var u = fotoUrl(p); return u ? '<img src="' + esc(u) + '" alt="" loading="lazy">' : esc(p.tipo || "Peça"); }
+  function warm(n) { n = +n || 0; return '<span class="warm" title="Aquece: ' + esc(AQUECE[n] || "?") + '"><i class="' + (n >= 1 ? "on" : "") + '"></i><i class="' + (n >= 2 ? "on" : "") + '"></i><i class="' + (n >= 3 ? "on" : "") + '"></i></span>'; }
+  function usoPorPeca() {
+    var uso = {};
+    dias().forEach(function (d) { var l = lookDe(d.data); if (!l) return; (l.looks || []).forEach(function (lk) { (lk.pecas || []).forEach(function (id) { uso[id] = uso[id] || {}; uso[id][d.data] = 1; }); }); });
+    return uso;
+  }
+
+  // ---------- Render ----------
+  var TABS = [{ id: "looks", label: "Looks" }, { id: "roupas", label: "Guarda-roupa" }, { id: "mala", label: "Mala" }];
+  function render() {
+    $("who").innerHTML = PESSOAS.map(function (p) { return '<button type="button" data-who="' + p + '" aria-pressed="' + (state.pessoa === p) + '">' + p + "</button>"; }).join("");
+    var nP = minhasPecas().length;
+    $("tabs").innerHTML = TABS.map(function (t) {
+      var n = t.id === "roupas" ? nP : 0;
+      return '<button class="tab" role="tab" type="button" data-tab="' + t.id + '" aria-selected="' + (state.tab === t.id) + '">' + t.label + (n ? '<span class="count">' + n + "</span>" : "") + "</button>";
+    }).join("");
+    var loaded = COLS.every(function (c) { return state.loaded[c]; });
+    var html = "";
+    if (state.mode === "local") html += '<div class="note"><b>Modo offline:</b> os dados ficam só neste navegador. Abra pelo app do Claude, conectada à sua conta, para salvar e sincronizar com o Iuri.</div>';
+    if (!loaded && state.mode !== "local") html += '<div class="note">Carregando o guarda-roupa...</div>';
+    else html += ({ looks: viewLooks, roupas: viewRoupas, mala: viewMala }[state.tab] || viewLooks)();
+    $("main").innerHTML = html;
+  }
+
+  function viewLooks() {
+    var ps = minhasPecas(), ds = dias();
+    var feitos = ds.filter(function (d) { return lookDe(d.data); }).length;
+    var meta = state.meta[state.pessoa] || {};
+    var podeGerar = ps.length >= 4 && sampler && ds.length;
+    var head = '<div class="section-head"><div><h2>Looks de ' + esc(state.pessoa) + "</h2><p>Montados com as suas peças, o roteiro de cada dia e o clima típico do fim de novembro. Toque numa peça para trocar.</p></div></div>" +
+      '<div class="panel"><div class="stats"><span><b>' + ps.length + "</b>peças no guarda-roupa</span><span><b>" + feitos + "/" + ds.length + "</b>dias com look</span></div>" +
+      (state.gen ? '<div class="progress">' + esc(state.gen) + "</div>" :
+        '<div class="day-actions"><button type="button" class="btn btn-primary" data-gen="all"' + (podeGerar ? "" : " disabled") + ">" + (feitos ? "Refazer todos os looks" : "Montar looks da viagem") + "</button>" +
+        (ps.length < 4 ? '<button type="button" class="btn" data-tab="roupas">Adicionar fotos das roupas</button>' : "") + "</div>") +
+      (ps.length < 4 ? '<p class="day-sum">Cadastre pelo menos 4 peças (ideal: 15 a 30, com casaco e calçados) para montar os looks.</p>' : "") +
+      (!sampler ? '<p class="day-sum">A montagem automática funciona quando o app é aberto pelo Claude.</p>' : "") +
+      (meta.faltando && meta.faltando.length ? '<div class="note"><b>Pode faltar na mala:</b><ul class="missing">' + meta.faltando.map(function (f) { return "<li>" + esc(f) + "</li>"; }).join("") + "</ul></div>" : "") +
+      "</div>";
+    if (!ds.length) return head + '<div class="empty"><h3>Roteiro não carregado</h3><p>Os dias da viagem aparecem aqui assim que o banco responde.</p></div>';
+    return head + ds.map(dayCard).join("");
+  }
+  function dayCard(d) {
+    var dt = pd(d.data), l = lookDe(d.data);
+    var chips = '<span class="chip temp">' + esc(d.min) + "–" + esc(d.max) + " °C</span>" + (d.chuva ? '<span class="chip rain">Chuva provável</span>' : "") + (d.caminhada ? '<span class="chip">Caminhada ' + esc(d.caminhada) + "</span>" : "");
+    var body;
+    if (l && l.looks && l.looks.length) {
+      body = l.looks.map(function (lk, i) {
+        var pcs = (lk.pecas || []).map(function (id) { var p = state.pecas[id]; if (!p) return ""; p = Object.assign({ id: id }, p); return '<button type="button" class="piece" data-swap="' + esc(d.data) + "|" + i + "|" + esc(id) + '" aria-label="Trocar ' + esc(p.nome) + '"><div class="ph">' + pieceImg(p) + "</div><span>" + esc(p.nome || p.tipo) + "</span></button>"; }).join("");
+        return '<div class="look"><div class="look-top"><h4>' + esc(lk.momento || "Dia todo") + "</h4></div>" +
+          '<div class="pieces">' + pcs + '<button type="button" class="piece add" data-addpiece="' + esc(d.data) + "|" + i + '">+ Peça</button></div>' +
+          (lk.porque ? '<p class="look-why">' + esc(lk.porque) + "</p>" : "") + "</div>";
+      }).join("") + (l.dica ? '<p class="day-care"><b>Dica:</b> ' + esc(l.dica) + "</p>" : "");
+    } else body = '<p class="empty-day">Ainda sem look para este dia.</p>';
+    return '<article class="day" id="d-' + esc(d.data) + '"><div class="day-head"><div class="tag" aria-hidden="true"><div class="wd">' + (dt ? SEM[dt.getDay()] : "") + '</div><div class="dd">' + (dt ? dt.getDate() : "") + "</div></div>" +
+      '<div class="day-info"><h3>' + esc(d.cidade) + "</h3><div class=\"chips\">" + chips + "</div>" +
+      '<p class="day-sum">' + esc(d.resumo) + "</p>" + (d.cuidados ? '<p class="day-care">' + esc(d.cuidados) + "</p>" : "") + "</div></div>" +
+      '<div class="day-body">' + body + '<div class="day-actions">' + (sampler && minhasPecas().length >= 4 && !state.gen ? '<button type="button" class="btn btn-small" data-redo="' + esc(d.data) + '">' + (l ? "Refazer este dia" : "Montar este dia") + "</button>" : "") + "</div></div></article>";
+  }
+
+  function viewRoupas() {
+    var ps = minhasPecas();
+    var podeSubir = !!(assets || state.mode === "local");
+    var head = '<div class="section-head"><div><h2>Guarda-roupa de ' + esc(state.pessoa) + "</h2><p>Mande as fotos das roupas que podem ir na mala. O Claude identifica cada peça (tipo, cor e quanto aquece); confira e ajuste tocando na peça.</p></div></div>";
+    var drop = '<div class="drop" id="drop"><button type="button" class="btn btn-primary" data-upload="1"' + (podeSubir ? "" : " disabled") + ">Adicionar fotos das roupas</button>" +
+      "<p>Dica: uma peça por foto, aberta em cima da cama ou no cabide, com boa luz. Inclua casacos, calçados, cachecol, gorro e luvas.</p>" +
+      (!podeSubir ? "<p>Para enviar fotos, abra o app pelo Claude com permissão de edição.</p>" : "") +
+      (sampler && !sampler.canSee ? "<p>A leitura automática das fotos não está disponível aqui: você preenche o nome e o tipo de cada peça.</p>" : "") + "</div>";
+    var q = state.queue.length ? '<div class="queue">' + state.queue.map(function (it) { return '<div class="qrow"><img src="' + esc(it.preview) + '" alt=""><span>' + esc(it.nome) + '</span><span class="st ' + (it.cls || "") + '">' + esc(it.status) + "</span></div>"; }).join("") + "</div>" : "";
+    var tiposUsados = TIPOS.filter(function (t) { return ps.some(function (p) { return p.tipo === t; }); });
+    var filt = ps.length ? '<div class="filters"><button type="button" data-filtro="" aria-pressed="' + (!state.filtro) + '">Todas (' + ps.length + ")</button>" + tiposUsados.map(function (t) { var n = ps.filter(function (p) { return p.tipo === t; }).length; return '<button type="button" data-filtro="' + esc(t) + '" aria-pressed="' + (state.filtro === t) + '">' + esc(t) + " (" + n + ")</button>"; }).join("") + "</div>" : "";
+    var lista = ps.filter(function (p) { return !state.filtro || p.tipo === state.filtro; });
+    var grid = ps.length ? '<div class="grid">' + lista.map(function (p) {
+      return '<button type="button" class="card" data-edit="' + esc(p.id) + '"><div class="ph">' + (fotoUrl(p) ? '<img src="' + esc(fotoUrl(p)) + '" alt="" loading="lazy">' : "") + '</div><div class="tx"><b>' + esc(p.nome || "Peça sem nome") + "</b><small>" + esc([p.tipo, p.cor].filter(Boolean).join(" · ")) + " " + warm(p.aquece) + "</small></div></button>";
+    }).join("") + "</div>" : '<div class="empty"><h3>Nenhuma peça ainda</h3><p>Comece pelas peças que você já sabe que vão: casaco, calças, tênis confortável.</p></div>';
+    return head + drop + q + filt + grid;
+  }
+
+  function viewMala() {
+    var ps = minhasPecas(), uso = usoPorPeca();
+    var usadas = ps.filter(function (p) { return uso[p.id]; }), fora = ps.filter(function (p) { return !uso[p.id]; });
+    var naMala = usadas.filter(function (p) { return p.naMala; }).length;
+    var head = '<div class="section-head"><div><h2>Mala de ' + esc(state.pessoa) + "</h2><p>Só as peças que aparecem nos looks. Marque conforme for colocando na mala; o Iuri vê na hora.</p></div></div>";
+    if (!usadas.length) return head + '<div class="empty"><h3>A lista sai dos looks</h3><p>Monte os looks na aba Looks e a mala aparece aqui.</p></div>';
+    var pct = Math.round(naMala / usadas.length * 100);
+    var resumo = '<div class="panel"><div class="stats"><span><b>' + naMala + "/" + usadas.length + "</b>peças na mala</span></div><div class=\"bar\"><i style=\"width:" + pct + '%"></i></div></div>';
+    var grupos = TIPOS.map(function (t) {
+      var g = usadas.filter(function (p) { return p.tipo === t; });
+      if (!g.length) return "";
+      return '<div class="pack-group"><h3>' + esc(t) + "</h3>" + g.map(function (p) {
+        var n = Object.keys(uso[p.id]).length;
+        return '<label class="pack' + (p.naMala ? " done" : "") + '"><input type="checkbox" data-pack="' + esc(p.id) + '"' + (p.naMala ? " checked" : "") + ">" + (fotoUrl(p) ? '<img src="' + esc(fotoUrl(p)) + '" alt="">' : '<span class="ph"></span>') + '<span class="tx"><b>' + esc(p.nome) + "</b><small>Usada em " + n + (n === 1 ? " dia" : " dias") + "</small></span></label>";
+      }).join("") + "</div>";
+    }).join("");
+    var extra = fora.length ? '<div class="note"><b>Não entraram em nenhum look (' + fora.length + "):</b> " + esc(fora.map(function (p) { return p.nome; }).join(", ")) + ". Podem ficar em casa e liberar espaço para as compras.</div>" : "";
+    return head + resumo + grupos + extra;
+  }
+
+  // ---------- Folhas ----------
+  function openSheet(html, onBind) {
+    $("sheet-root").innerHTML = '<div class="scrim" id="scrim"><div class="sheet" role="dialog" aria-modal="true">' + html + "</div></div>";
+    document.body.style.overflow = "hidden";
+    sheet = true; if (onBind) onBind();
+  }
+  function closeSheet() { $("sheet-root").innerHTML = ""; document.body.style.overflow = ""; sheet = null; }
+
+  function openEdit(id) {
+    var p = state.pecas[id]; if (!p) return;
+    var opt = function (list, cur) { return list.map(function (v) { return '<option value="' + esc(v) + '"' + (v === cur ? " selected" : "") + ">" + esc(v) + "</option>"; }).join(""); };
+    openSheet('<div class="sheet-head"><h2>Editar peça</h2><button type="button" class="x" data-close="1" aria-label="Fechar">×</button></div>' +
+      (fotoUrl(p) ? '<img class="sheet-photo" src="' + esc(fotoUrl(p)) + '" alt="">' : "") +
+      '<div class="field"><label for="f-nome">Nome</label><input id="f-nome" value="' + esc(p.nome) + '"></div>' +
+      '<div class="row2"><div class="field"><label for="f-tipo">Tipo</label><select id="f-tipo">' + opt(TIPOS, p.tipo) + '</select></div>' +
+      '<div class="field"><label for="f-cor">Cor</label><input id="f-cor" value="' + esc(p.cor) + '"></div></div>' +
+      '<div class="row2"><div class="field"><label for="f-aquece">Quanto aquece</label><select id="f-aquece">' + [1, 2, 3].map(function (n) { return '<option value="' + n + '"' + (+p.aquece === n ? " selected" : "") + ">" + AQUECE[n] + "</option>"; }).join("") + '</select></div>' +
+      '<div class="field"><label for="f-pessoa">De quem</label><select id="f-pessoa">' + opt(PESSOAS, p.pessoa || "Kauane") + "</select></div></div>" +
+      '<div class="field"><label for="f-obs">Observação</label><input id="f-obs" value="' + esc(p.obs) + '" placeholder="Ex.: amassa fácil, só para a noite"></div>' +
+      '<div class="sheet-actions"><button type="button" class="btn btn-danger" id="del-piece" data-del="' + esc(id) + '">Excluir peça</button><button type="button" class="btn btn-primary" data-save="' + esc(id) + '">Salvar</button></div>');
+  }
+  function saveEdit(id) {
+    var data = { nome: $("f-nome").value.trim() || "Peça", tipo: $("f-tipo").value, cor: $("f-cor").value.trim(), aquece: +$("f-aquece").value, pessoa: $("f-pessoa").value, obs: $("f-obs").value.trim() };
+    patchDoc("pecas", id, data).then(function () { closeSheet(); toast("Peça salva"); }).catch(function (e) { toast(errMsg(e)); });
+  }
+  function deletePiece(id) {
+    var p = state.pecas[id]; if (!p) return;
+    var shared = Object.keys(state.pecas).some(function (k) { return k !== id && state.pecas[k].fotoId === p.fotoId; });
+    delDoc("pecas", id).then(function () {
+      if (assets && p.fotoId && !shared) assets.delete(p.fotoId).catch(function () {});
+      closeSheet(); toast("Peça excluída");
+    }).catch(function (e) { toast(errMsg(e)); });
+  }
+
+  // Escolher peça para trocar ou adicionar em um look
+  function openPicker(data, idx, atual) {
+    var ps = minhasPecas();
+    var grupos = TIPOS.map(function (t) {
+      var g = ps.filter(function (p) { return p.tipo === t; }); if (!g.length) return "";
+      return '<div class="pick-group"><h3>' + esc(t) + '</h3><div class="pieces">' + g.map(function (p) { return '<button type="button" class="piece' + (p.id === atual ? " cur" : "") + '" data-pick="' + esc(p.id) + '"><div class="ph">' + pieceImg(p) + "</div><span>" + esc(p.nome) + "</span></button>"; }).join("") + "</div></div>";
+    }).join("");
+    openSheet('<div class="sheet-head"><h2>' + (atual ? "Trocar peça" : "Adicionar peça") + '</h2><button type="button" class="x" data-close="1" aria-label="Fechar">×</button></div>' +
+      (atual ? '<button type="button" class="btn btn-danger" data-pickremove="1">Tirar esta peça do look</button>' : "") + grupos);
+    sheet = { data: data, idx: idx, atual: atual };
+  }
+  function applyPick(newId, remove) {
+    var s = sheet, key = state.pessoa + "_" + s.data, l = state.looks[key]; if (!l) return;
+    var looks = JSON.parse(JSON.stringify(l.looks || []));
+    var arr = looks[s.idx].pecas || [];
+    if (s.atual) { var i = arr.indexOf(s.atual); if (remove) arr.splice(i, 1); else if (arr.indexOf(newId) < 0) arr[i] = newId; else arr.splice(i, 1); }
+    else if (arr.indexOf(newId) < 0) arr.push(newId);
+    looks[s.idx].pecas = arr;
+    patchDoc("looks", key, { looks: looks }).then(function () { closeSheet(); toast(remove ? "Peça tirada do look" : "Look atualizado"); }).catch(function (e) { toast(errMsg(e)); });
+  }
+
+  function openRedo(data) {
+    var d = state.dias[data] || {};
+    openSheet('<div class="sheet-head"><h2>' + esc(d.cidade || data) + '</h2><button type="button" class="x" data-close="1" aria-label="Fechar">×</button></div>' +
+      '<div class="field"><label for="f-pedido">Algum pedido para este dia? (opcional)</label><textarea id="f-pedido" placeholder="Ex.: quero usar o vestido preto à noite; look mais confortável; combinar com o Iuri"></textarea></div>' +
+      '<div class="sheet-actions"><span></span><button type="button" class="btn btn-primary" data-redogo="' + esc(data) + '">Montar look</button></div>');
+  }
+
+  // ---------- Fotos ----------
+  function shrink(file) {
+    return new Promise(function (resolve) {
+      var url = URL.createObjectURL(file), img = new Image();
+      img.onload = function () {
+        var max = 1400, w = img.naturalWidth, h = img.naturalHeight, k = Math.min(1, max / Math.max(w, h));
+        var c = document.createElement("canvas"); c.width = Math.round(w * k); c.height = Math.round(h * k);
+        c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+        c.toBlob(function (b) { URL.revokeObjectURL(url); resolve(b || file); }, "image/jpeg", 0.85);
+      };
+      img.onerror = function () { URL.revokeObjectURL(url); resolve(file); };
+      img.src = url;
+    });
+  }
+  var CLASSIFY = "A foto mostra roupa(s) ou acessório(s) que podem ir na mala de uma viagem para Barcelona, Madri, Londres e Paris no fim de novembro (frio de 4 a 16 °C, chuva em Londres). " +
+    "Identifique cada peça que aparece inteira e vale cadastrar separadamente (se a foto for de uma peça só, devolva uma). Ignore cabide, cama e fundo. " +
+    "Responda somente JSON: {\"pecas\":[{\"tipo\":\"um de: " + TIPOS.join(", ") + "\",\"nome\":\"nome curto em português com cor, ex.: Suéter de tricô bege\",\"cor\":\"cor principal\",\"aquece\":1 para leve, 2 para médio ou 3 para quente,\"obs\":\"detalhe útil para montar looks, ex.: tecido, estampa, se é impermeável\"}]}. " +
+    "Se não houver roupa na foto, responda {\"pecas\":[]}.";
+  function handleFiles(files) {
+    files = Array.prototype.filter.call(files || [], function (f) { return /^image\//.test(f.type) || /\.(heic|jpe?g|png|webp)$/i.test(f.name); });
+    if (!files.length) return;
+    var items = files.map(function (f) { return { file: f, nome: f.name, preview: URL.createObjectURL(f), status: "Na fila" }; });
+    state.queue = state.queue.concat(items); render();
+    var chain = Promise.resolve();
+    items.forEach(function (it) { chain = chain.then(function () { return processOne(it); }); });
+    chain.then(function () { setTimeout(function () { state.queue = state.queue.filter(function (q) { return q.cls === "err"; }); render(); }, 4000); });
+  }
+  function upd(it, status, cls) { it.status = status; it.cls = cls || ""; if (state.tab === "roupas") render(); }
+  function processOne(it) {
+    upd(it, "Preparando foto...");
+    var pessoa = state.pessoa, up;
+    return shrink(it.file).then(function (blob) {
+      it.blob = blob;
+      if (!assets) return { id: "", url: it.preview };
+      upd(it, "Enviando...");
+      return assets.upload(blob);
+    }).then(function (r) {
+      up = r;
+      if (!(sampler && sampler.canSee)) return { pecas: [] };
+      upd(it, "Identificando a peça...");
+      return sampler.json(CLASSIFY, { images: it.blob, modelTier: "default" }).catch(function () { return { pecas: [] }; });
+    }).then(function (res) {
+      var list = (res && Array.isArray(res.pecas)) ? res.pecas : [];
+      var manual = !list.length;
+      if (manual) list = [{ tipo: "Blusa/camisa", nome: "Peça nova", aquece: 2 }];
+      var ids = [];
+      return Promise.all(list.slice(0, 6).map(function (p) {
+        var id = newId(); ids.push(id);
+        return setDoc("pecas", id, { pessoa: pessoa, fotoId: up.id || "", foto: up.url || "", tipo: TIPOS.indexOf(p.tipo) >= 0 ? p.tipo : "Acessório", nome: String(p.nome || "Peça").slice(0, 80), cor: String(p.cor || "").slice(0, 40), aquece: [1, 2, 3].indexOf(+p.aquece) >= 0 ? +p.aquece : 2, obs: String(p.obs || "").slice(0, 160), naMala: false, criadoEm: new Date().toISOString() });
+      })).then(function () {
+        upd(it, manual ? "Salva: toque na peça para dar nome e tipo" : (list.length > 1 ? list.length + " peças cadastradas" : "Cadastrada: " + list[0].nome), "ok");
+        if (manual && ids[0] && !state.queue.some(function (q) { return q.status === "Na fila"; })) openEdit(ids[0]);
+      });
+    }).catch(function (e) { upd(it, errMsg(e), "err"); });
+  }
+
+  // ---------- Montagem dos looks ----------
+  function pecasTxt(ps) { return ps.map(function (p) { return p.id + " | " + p.tipo + " | " + p.nome + " | cor: " + (p.cor || "-") + " | aquece: " + (AQUECE[p.aquece] || "Médio") + (p.obs ? " | " + p.obs : ""); }).join("\n"); }
+  function diaTxt(d) { return d.data + " (" + SEM[pd(d.data).getDay()] + ") | " + d.cidade + " | " + d.min + "–" + d.max + " °C" + (d.chuva ? " | chuva provável" : "") + " | caminhada " + (d.caminhada || "média") + "\n   Programa: " + d.resumo + (d.cuidados ? "\n   Atenção: " + d.cuidados : "") + (d.noite ? "\n   Noite: " + d.noite : ""); }
+  var REGRAS = "Regras: use somente os ids da lista de peças. Cada look precisa de parte de cima (ou vestido), parte de baixo (se não for vestido), calçado e, quando fizer menos de 15 °C, casaco. " +
+    "Pense em camadas (frio na rua, calor em museu e metrô). Calçado confortável em dias de muita caminhada. Em Londres, prefira casaco que aguente chuva. " +
+    "Repita peças com inteligência (casaco, calça e calçado podem se repetir; varie a parte de cima e os acessórios para as fotos ficarem diferentes). " +
+    "Respeite os cuidados de cada dia (igrejas, estádios, voos). Crie um segundo look \"Noite\" só quando o dia tiver programa noturno que peça troca; senão, um look \"Dia todo\". " +
+    "O \"porque\" tem 1 ou 2 frases simples, falando com a pessoa. A dica do dia é curta e prática.";
+  function generateAll() {
+    var ps = minhasPecas(), ds = dias(), pessoa = state.pessoa;
+    if (!sampler || ps.length < 4) return;
+    state.gen = "Montando os looks dos " + ds.length + " dias... pode levar até 1 minuto."; render();
+    var prompt = "Você é consultora de estilo de viagem. Monte os looks de " + pessoa + " para cada dia de uma viagem pela Europa, usando só as peças do guarda-roupa dela" + (pessoa === "Iuri" ? "/dele" : "") + ".\n\n" +
+      "PEÇAS (id | tipo | nome | cor | aquece | obs):\n" + pecasTxt(ps) + "\n\nDIAS:\n" + ds.map(diaTxt).join("\n") + "\n\n" + REGRAS + "\n\n" +
+      "Responda somente JSON: {\"dias\":[{\"data\":\"AAAA-MM-DD\",\"looks\":[{\"momento\":\"Dia todo\" ou \"Dia\" ou \"Noite\" ou \"Voo\",\"pecas\":[\"id\",...],\"porque\":\"...\"}],\"dica\":\"...\"}],\"faltando\":[\"até 5 peças que fariam falta, ex.: luvas, guarda-chuva compacto\"]}";
+    sampler.json(prompt, { modelTier: "complex" }).then(function (r) {
+      return saveGenerated(pessoa, r && r.dias, ps).then(function (n) {
+        return setDoc("meta", pessoa, { faltando: (r && Array.isArray(r.faltando) ? r.faltando : []).slice(0, 6).map(String), geradoEm: new Date().toISOString() }).then(function () { return n; });
+      });
+    }).then(function (n) { state.gen = ""; render(); toast(n ? "Looks prontos para " + n + " dias" : "Não consegui montar. Tente de novo."); })
+      .catch(function (e) { state.gen = ""; render(); toast(errMsg(e)); });
+  }
+  function saveGenerated(pessoa, list, ps) {
+    var valid = {}; ps.forEach(function (p) { valid[p.id] = 1; });
+    var writes = (Array.isArray(list) ? list : []).filter(function (d) { return d && state.dias[d.data]; }).map(function (d) {
+      var looks = (Array.isArray(d.looks) ? d.looks : []).map(function (lk) {
+        var seen = {}, pecas = (lk.pecas || []).filter(function (id) { if (!valid[id] || seen[id]) return false; seen[id] = 1; return true; });
+        return { momento: String(lk.momento || "Dia todo").slice(0, 20), pecas: pecas, porque: String(lk.porque || "").slice(0, 400) };
+      }).filter(function (lk) { return lk.pecas.length; }).slice(0, 3);
+      if (!looks.length) return null;
+      return setDoc("looks", pessoa + "_" + d.data, { pessoa: pessoa, data: d.data, looks: looks, dica: String(d.dica || "").slice(0, 300), geradoEm: new Date().toISOString() });
+    }).filter(Boolean);
+    return Promise.all(writes).then(function () { return writes.length; });
+  }
+  function generateDay(data, pedido) {
+    var ps = minhasPecas(), pessoa = state.pessoa, d = Object.assign({ data: data }, state.dias[data]);
+    if (!sampler) return;
+    state.gen = "Montando o look de " + d.cidade + " (" + data.slice(8) + "/" + data.slice(5, 7) + ")..."; render();
+    var outros = dias().filter(function (x) { return x.data !== data && lookDe(x.data); }).map(function (x) {
+      return x.data + ": " + lookDe(x.data).looks.map(function (lk) { return lk.momento + " = " + lk.pecas.map(function (id) { return (state.pecas[id] || {}).nome || id; }).join(", "); }).join(" / ");
+    }).join("\n");
+    var prompt = "Você é consultora de estilo de viagem. Monte o look de " + pessoa + " para um dia da viagem, usando só as peças do guarda-roupa.\n\nPEÇAS (id | tipo | nome | cor | aquece | obs):\n" + pecasTxt(ps) +
+      "\n\nDIA:\n" + diaTxt(d) + (outros ? "\n\nLOOKS JÁ DEFINIDOS NOS OUTROS DIAS (evite repetir a mesma parte de cima do dia anterior e do seguinte):\n" + outros : "") +
+      (pedido ? "\n\nPEDIDO DA PESSOA PARA ESTE DIA: " + pedido : "") + "\n\n" + REGRAS + "\n\n" +
+      "Responda somente JSON: {\"dias\":[{\"data\":\"" + data + "\",\"looks\":[{\"momento\":\"...\",\"pecas\":[\"id\"],\"porque\":\"...\"}],\"dica\":\"...\"}]}";
+    sampler.json(prompt, { modelTier: "default" }).then(function (r) { return saveGenerated(pessoa, r && r.dias, ps); })
+      .then(function (n) { state.gen = ""; render(); toast(n ? "Look atualizado" : "Não consegui montar. Tente de novo."); })
+      .catch(function (e) { state.gen = ""; render(); toast(errMsg(e)); });
+  }
+
+  // ---------- Eventos ----------
+  document.addEventListener("click", function (e) {
+    var t = e.target.closest("button, [data-close], #scrim"); if (!t) return;
+    if (t.id === "scrim" && e.target === t) { closeSheet(); return; }
+    var ds = t.dataset || {};
+    if (ds.close) { closeSheet(); return; }
+    if (ds.who) { state.pessoa = ds.who; state.filtro = ""; try { localStorage.setItem("looks-pessoa", ds.who); } catch (x) {} render(); return; }
+    if (ds.tab) { state.tab = ds.tab; try { localStorage.setItem("looks-tab", ds.tab); } catch (x) {} render(); window.scrollTo(0, 0); return; }
+    if (ds.filtro != null && t.closest(".filters")) { state.filtro = ds.filtro; render(); return; }
+    if (ds.upload) { $("file").click(); return; }
+    if (ds.edit) { openEdit(ds.edit); return; }
+    if (ds.save) { saveEdit(ds.save); return; }
+    if (ds.del) {
+      if (!t.classList.contains("armed")) { t.classList.add("armed"); t.textContent = "Toque de novo para excluir"; return; }
+      deletePiece(ds.del); return;
+    }
+    if (ds.gen) { generateAll(); return; }
+    if (ds.redo) { openRedo(ds.redo); return; }
+    if (ds.redogo) { var pedido = ($("f-pedido") || {}).value || ""; closeSheet(); generateDay(ds.redogo, pedido.trim()); return; }
+    if (ds.swap) { var a = ds.swap.split("|"); openPicker(a[0], +a[1], a[2]); return; }
+    if (ds.addpiece) { var b = ds.addpiece.split("|"); openPicker(b[0], +b[1], ""); return; }
+    if (ds.pick && sheet && sheet.data) { applyPick(ds.pick, false); return; }
+    if (ds.pickremove && sheet && sheet.data) { applyPick("", true); return; }
+  });
+  document.addEventListener("change", function (e) {
+    var t = e.target;
+    if (t.id === "file") { handleFiles(t.files); t.value = ""; return; }
+    if (t.dataset && t.dataset.pack) { patchDoc("pecas", t.dataset.pack, { naMala: t.checked }).catch(function (x) { toast(errMsg(x)); }); }
+  });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape" && sheet) closeSheet(); });
+  document.addEventListener("dragover", function (e) { var d = e.target.closest && e.target.closest("#drop"); if (d) { e.preventDefault(); d.classList.add("over"); } });
+  document.addEventListener("dragleave", function (e) { var d = e.target.closest && e.target.closest("#drop"); if (d) d.classList.remove("over"); });
+  document.addEventListener("drop", function (e) { var d = e.target.closest && e.target.closest("#drop"); if (d) { e.preventDefault(); d.classList.remove("over"); handleFiles(e.dataTransfer.files); } });
+
+  render();
+  connect();
+})();
+</script>
