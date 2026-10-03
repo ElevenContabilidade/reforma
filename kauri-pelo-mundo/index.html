@@ -380,6 +380,11 @@ tr.total td { font-weight: 800; border-bottom: 0; }
 .field .doclink label span { overflow-wrap: anywhere; }
 .field .doclink input[type="checkbox"] { width: 18px; height: 18px; padding: 0; margin: 0; accent-color: var(--wine); flex: none; }
 .field .doclink .btn { flex: none; }
+.field .doclink .ftype { font-style: normal; font-size: 11px; font-weight: 700; color: var(--muted); background: var(--surface-2); border-radius: 999px; padding: 1px 7px; flex: none; }
+.doc-more { display: grid; gap: 6px; }
+.doc-more summary { cursor: pointer; font-size: 13px; font-weight: 700; color: var(--wine); padding: 4px 0; }
+.doc-more .doclink { margin-top: 6px; }
+.doclinks > .btn { justify-self: start; }
 .field label { font-size: 12px; font-weight: 700; color: var(--muted); }
 .field input, .field select, .field textarea { width: 100%; border: 1px solid var(--line); background: var(--bg); border-radius: 9px; padding: 9px 11px; min-width: 0; }
 .field textarea { min-height: 76px; resize: vertical; }
@@ -538,6 +543,7 @@ a.btn-primary { color: var(--on-wine); }
   <button type="button" data-action="upload">Documento (PDF ou foto)</button>
 </div>
 <input type="file" id="cover-input" accept="image/*" hidden>
+<input type="file" id="link-input" accept="application/pdf,image/*" multiple hidden>
 <input type="file" id="file-input" accept="application/pdf,image/*" multiple hidden>
 <input type="file" id="photo-input" accept="image/*" hidden>
 <div id="sheet-root"></div>
@@ -609,16 +615,23 @@ a.btn-primary { color: var(--on-wine); }
   ];
   var DOC_LINK_CATS = { voo: ["Voo"], passagem: ["Passagem"], hospedagem: ["Hospedagem"] };
   // Documentos vinculados a um voo, trem ou hospedagem: marcar e abrir dentro do formulário
+  // Arquivos (PDF ou imagem) vinculados a um voo, trem ou hospedagem: marcar, anexar e abrir dentro do formulário
+  function docLinkRow(dc, on, backId) {
+    var isImg = /^image\//.test(dc.contentType || "");
+    return '<div class="doclink' + (on ? " on" : "") + '"><label><input type="checkbox" data-doclink="1" value="' + esc(dc.id) + '"' + (on ? " checked" : "") + '> <span>' + esc(dc.nome) + '</span><em class="ftype">' + (isImg ? "Imagem" : "PDF") + "</em></label>" +
+      '<button type="button" class="btn btn-small' + (on ? " btn-primary" : "") + '" data-viewdoc="' + esc(dc.id) + '" data-back="' + esc(backId || "") + '">Abrir</button></div>';
+  }
   function docLinksHTML(item, linked, cats) {
     var trip = currentTrip(); if (!trip) return "";
-    var docs = tripDocs(trip.id).filter(function (dc) { return linked.indexOf(dc.id) >= 0 || !cats || cats.indexOf(dc.categoria) >= 0 || dc.categoria === "Outro"; });
-    docs.sort(function (a, b) { return (linked.indexOf(b.id) >= 0) - (linked.indexOf(a.id) >= 0); });
-    if (!docs.length) return '<div class="doclinks" id="f-docIds"><p class="row-sub">Nenhum PDF deste tipo ainda. Envie na aba Documentos e volte aqui para vincular.</p></div>';
-    return '<div class="doclinks" id="f-docIds"><p class="row-sub">Marque o PDF desta reserva. Os marcados aparecem com o botão Abrir.</p>' + docs.map(function (dc) {
-      var on = linked.indexOf(dc.id) >= 0;
-      return '<div class="doclink' + (on ? " on" : "") + '"><label><input type="checkbox" data-doclink="1" value="' + esc(dc.id) + '"' + (on ? " checked" : "") + "> <span>" + esc(dc.nome) + "</span></label>" +
-        '<button type="button" class="btn btn-small' + (on ? " btn-primary" : "") + '" data-viewdoc="' + esc(dc.id) + '" data-back="' + esc(item && item.id ? item.id : "") + '">Abrir</button></div>';
-    }).join("") + "</div>";
+    var backId = item && item.id ? item.id : "";
+    var all = tripDocs(trip.id);
+    var main = all.filter(function (dc) { return linked.indexOf(dc.id) >= 0 || !cats || cats.indexOf(dc.categoria) >= 0; });
+    var rest = all.filter(function (dc) { return main.indexOf(dc) < 0; });
+    main.sort(function (a, b) { return (linked.indexOf(b.id) >= 0) - (linked.indexOf(a.id) >= 0); });
+    return '<div class="doclinks" id="f-docIds"><p class="row-sub">Marque o arquivo desta reserva (PDF ou imagem). Os marcados ficam com o botão Abrir.</p>' +
+      '<div id="doclinks-main" class="doclinks">' + (main.length ? main.map(function (dc) { return docLinkRow(dc, linked.indexOf(dc.id) >= 0, backId); }).join("") : '<p class="row-sub">Nenhum arquivo deste tipo ainda.</p>') + "</div>" +
+      (rest.length ? '<details class="doc-more"><summary>Outros documentos da viagem (' + rest.length + ")</summary>" + rest.map(function (dc) { return docLinkRow(dc, false, backId); }).join("") + "</details>" : "") +
+      (assets ? '<button type="button" class="btn btn-small" data-linkupload="1">+ Anexar PDF ou imagem aqui</button>' : "") + "</div>";
   }
   function payLine(it) {
     var n = parseInt(it.parcelas, 10), parts = [];
@@ -1838,7 +1851,7 @@ a.btn-primary { color: var(--on-wine); }
     var existing = id ? state.itens[id] : null;
     // Na aba Ingressos, o botão de excluir só tira o item da lista de ingressos; o local fica no roteiro.
     var fromTickets = !!(existing && state.tab === "ingressos" && needsTicket(existing));
-    var schema = SCHEMAS[tipo].concat(tipo === "roteiro" ? COMUNS : COMUNS.slice(0, 2).concat(PAGAMENTO, COMUNS.slice(2), [{ k: "docIds", l: "PDF da reserva", t: "docs", full: true, cats: DOC_LINK_CATS[tipo] }]));
+    var schema = SCHEMAS[tipo].concat(tipo === "roteiro" ? COMUNS : COMUNS.slice(0, 2).concat(PAGAMENTO, COMUNS.slice(2), [{ k: "docIds", l: "Arquivos da reserva (PDF ou imagem)", t: "docs", full: true, cats: DOC_LINK_CATS[tipo] }]));
     var data = existing ? Object.assign({ id: id }, existing) : Object.assign(defaultsFor(tipo, trip), preset || {});
     var nomes = { voo: ["Novo voo", "Editar voo"], hospedagem: ["Nova hospedagem", "Editar hospedagem"], passagem: ["Nova passagem", "Editar passagem"], roteiro: ["Nova atividade", "Editar atividade"] }[tipo];
     openSheet({
@@ -1854,6 +1867,7 @@ a.btn-primary { color: var(--on-wine); }
         : existing ? function () { return removeDoc("itens", id).then(function () { toast("Excluído"); }); } : null
     });
     pendingPlace = null;
+    if (sheet) { sheet.itemId = id || ""; sheet.tipo = tipo; }
     if (tipo === "roteiro") attachSearch(trip);
   }
 
@@ -2023,6 +2037,7 @@ a.btn-primary { color: var(--on-wine); }
     if (ds.desloc) { openDesloc(ds.desloc); return; }
     if (t.id === "btn-search") { searchPlace(currentTrip()); return; }
     if (ds.doc) { openDoc(ds.doc); return; }
+    if (ds.linkupload) { $("link-input").click(); return; }
     if (ds.viewdoc) { openDocViewer(ds.viewdoc, ds.back || ""); return; }
     if (ds.backitem) { var bi = state.itens[ds.backitem]; if (bi) openItem(bi.tipo, ds.backitem); else closeSheet(); return; }
     if (ds.dldoc) { downloadDoc(ds.dldoc, t); return; }
@@ -2053,6 +2068,25 @@ a.btn-primary { color: var(--on-wine); }
     if (el.id === "trip-select") { state.tripId = el.value; boardPositioned = false; render(); return; }
     if (el.id === "file-input") { uploadFiles(el.files); el.value = ""; return; }
     if (el.dataset && el.dataset.doclink) { var row = el.closest(".doclink"); if (row) { row.classList.toggle("on", el.checked); var ob = row.querySelector("button"); if (ob) ob.classList.toggle("btn-primary", el.checked); } return; }
+    if (el.id === "link-input") {
+      var fl = Array.prototype.slice.call(el.files || []), tp = currentTrip(), sh = sheet; el.value = "";
+      if (!fl.length || !tp || !assets || !sh) return;
+      var itemId = sh.itemId, tipoIt = sh.tipo, cat = (DOC_LINK_CATS[tipoIt] || ["Outro"])[0];
+      toast("Enviando " + (fl.length === 1 ? "o arquivo..." : fl.length + " arquivos..."));
+      fl.reduce(function (pr, f) {
+        return pr.then(function () {
+          return assets.upload(f).then(function (r) {
+            var did = newId(), doc = { viagemId: tp.id, nome: f.name.replace(/\.[^.]+$/, "").replace(/[_]+/g, " "), categoria: cat, assetId: r.id, url: r.url, contentType: r.contentType || f.type, tamanho: r.sizeBytes || f.size, criadoEm: new Date().toISOString() };
+            return saveDoc("documentos", did, doc).then(function () {
+              var box = $("doclinks-main");
+              if (box && sheet === sh) { var ph = box.querySelector("p.row-sub"); if (ph) ph.remove(); box.insertAdjacentHTML("afterbegin", docLinkRow(Object.assign({ id: did }, doc), true, itemId)); }
+              if (itemId && state.itens[itemId]) { var cur = (state.itens[itemId].docIds || []).slice(); if (cur.indexOf(did) < 0) cur.push(did); return patchDoc("itens", itemId, { docIds: cur }); }
+            });
+          });
+        });
+      }, Promise.resolve()).then(function () { toast("Anexado e vinculado"); }).catch(function (x) { toast(errMsg(x)); });
+      return;
+    }
     if (el.id === "cover-input") {
       var f = el.files[0], tr = currentTrip(); el.value = "";
       if (!f || !tr || !assets) return;
