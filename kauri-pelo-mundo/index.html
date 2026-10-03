@@ -549,6 +549,7 @@ a.btn-primary { color: var(--on-wine); }
   <button type="button" data-add="voo">Voo</button>
   <button type="button" data-add="hospedagem">Hospedagem</button>
   <button type="button" data-add="passagem">Passagem (trem, ônibus, barco)</button>
+  <button type="button" data-add="transporte">Bilhete ou passe de metrô/ônibus</button>
   <button type="button" data-action="upload">Documento (PDF ou foto)</button>
 </div>
 <input type="file" id="cover-input" accept="image/*" hidden>
@@ -601,6 +602,7 @@ a.btn-primary { color: var(--on-wine); }
     { id: "roteiro", label: "Roteiro" },
     { id: "mapas", label: "Mapas" },
     { id: "voo", label: "Voos e trens", tipo: "voo" },
+    { id: "transporte", label: "Transporte local" },
     { id: "hospedagem", label: "Hospedagens", tipo: "hospedagem" },
     { id: "ingressos", label: "Ingressos" },
     { id: "gastronomia", label: "Gastronomia" },
@@ -609,7 +611,7 @@ a.btn-primary { color: var(--on-wine); }
     { id: "orientacoes", label: "Orientações" },
     { id: "documentos", label: "Documentos" }
   ];
-  var TIPO_NOME = { voo: "Voo", hospedagem: "Hospedagem", passagem: "Passagem", roteiro: "Atividade" };
+  var TIPO_NOME = { voo: "Voo", hospedagem: "Hospedagem", passagem: "Passagem", roteiro: "Atividade", transporte: "Bilhete ou passe" };
   var MOEDAS = ["BRL", "EUR", "GBP", "USD", "ARS", "CLP", "UYU", "CHF", "JPY"];
   var COMUNS = [
     { k: "valor", l: "Valor", t: "number" },
@@ -623,7 +625,7 @@ a.btn-primary { color: var(--on-wine); }
     { k: "parcelas", l: "Parcelamento", t: "select", ph: "Não informado", opts: PARCELAS },
     { k: "cartao", l: "Cartão usado", ph: "Ex.: Nubank final 1234", full: true }
   ];
-  var DOC_LINK_CATS = { voo: ["Voo"], passagem: ["Passagem"], hospedagem: ["Hospedagem"] };
+  var DOC_LINK_CATS = { voo: ["Voo"], passagem: ["Passagem"], hospedagem: ["Hospedagem"], transporte: ["Transporte local"] };
   // Documentos vinculados a um voo, trem ou hospedagem: marcar e abrir dentro do formulário
   // Arquivos (PDF ou imagem) vinculados a um voo, trem ou hospedagem: marcar, anexar e abrir dentro do formulário
   function docLinkRow(dc, on, backId) {
@@ -690,6 +692,17 @@ a.btn-primary { color: var(--on-wine); }
       { k: "codigo", l: "Código / bilhete", up: true },
       { k: "assento", l: "Assento / vagão" }
     ],
+    transporte: [
+      { k: "titulo", l: "Nome do bilhete ou passe", req: true, full: true, ph: "Ex.: Hola Barcelona 48h" },
+      { k: "cidade", l: "Cidade", t: "select", opts: ["Barcelona", "Madri", "Londres", "Paris", "Outra"] },
+      { k: "modalidade", l: "Tipo", t: "select", opts: ["Passe ilimitado", "Bilhete avulso", "Cartão recarregável", "Transfer / aeroporto", "Ônibus turístico", "Outro"] },
+      { k: "quantidade", l: "Quantidade (cartões ou bilhetes)", t: "number" },
+      { k: "status", l: "Situação", t: "select", opts: ["Comprado: trocar na máquina", "Pronto para usar", "Em uso", "Usado"] },
+      { k: "usoInicio", l: "Começar a usar em", t: "datetime-local" },
+      { k: "validade", l: "Validade", ph: "Ex.: 48h seguidas a partir da 1ª validação" },
+      { k: "pedido", l: "Nº do pedido / código" },
+      { k: "comoUsar", l: "Como usar", t: "textarea", full: true }
+    ],
     roteiro: [
       { k: "titulo", l: "O que fazer", req: true, full: true },
       { k: "data", l: "Dia", t: "date", req: true },
@@ -719,7 +732,7 @@ a.btn-primary { color: var(--on-wine); }
     { k: "min", l: "Tempo (minutos)", t: "int" },
     { k: "obs", l: "Detalhe", ph: "Linha 3, descer em Liceu", full: true }
   ];
-  var DOC_CATS = ["Voo", "Hospedagem", "Passagem", "Ingresso", "Seguro", "Documento pessoal", "Outro"];
+  var DOC_CATS = ["Voo", "Hospedagem", "Passagem", "Transporte local", "Ingresso", "Seguro", "Documento pessoal", "Outro"];
   var DOC_SCHEMA = [
     { k: "nome", l: "Nome", req: true, full: true },
     { k: "categoria", l: "Grupo", t: "select", opts: DOC_CATS }
@@ -858,6 +871,8 @@ a.btn-primary { color: var(--on-wine); }
         if (it.chegada && it.chegada.slice(0, 10) === day && (it.partida || "").slice(0, 10) !== day) ev.push({ key: it.id + "-arr", it: it, time: hhmm(it.chegada), sortT: hhmm(it.chegada), icon: "plane", tcls: "t-voo", title: "Chegada em " + (it.destinoCidade || it.destino || ""), sub: (it.numero || "") + " · " + (it.destino || "") });
       } else if (it.tipo === "passagem") {
         if ((it.partida || "").slice(0, 10) === day) ev.push({ key: it.id, it: it, time: hhmm(it.partida), sortT: hhmm(it.partida), icon: "train", tcls: "t-passagem", title: (it.meio || "Passagem") + ": " + (it.origem || "") + (it.destino ? " → " + it.destino : ""), sub: [it.empresa, it.chegada ? "chega " + hhmm(it.chegada) : "", it.codigo].filter(Boolean).join(" · ") });
+      } else if (it.tipo === "transporte") {
+        if ((it.usoInicio || "").slice(0, 10) === day) ev.push({ key: it.id, it: it, time: hhmm(it.usoInicio), sortT: hhmm(it.usoInicio), icon: "train", tcls: "t-passagem", title: "Ativar: " + (it.titulo || "passe de transporte"), sub: [it.validade, it.quantidade ? it.quantidade + (+it.quantidade === 1 ? " cartão" : " cartões") : ""].filter(Boolean).join(" · ") });
       } else if (it.tipo === "hospedagem") {
         if (it.checkout === day) ev.push({ key: it.id + "-out", it: it, time: it.horaCheckout || "", sortT: it.horaCheckout || "06:00", icon: "bed", tcls: "t-hospedagem", title: "Check-out: " + (it.nome || ""), sub: it.cidade || "" });
         if (it.checkin === day) ev.push({ key: it.id + "-in", it: it, time: it.horaCheckin || "", sortT: it.horaCheckin || "14:00", icon: "bed", tcls: "t-hospedagem", title: "Check-in: " + (it.nome || ""), sub: [it.cidade, it.reserva ? "Reserva " + it.reserva : ""].filter(Boolean).join(" · ") });
@@ -955,6 +970,7 @@ a.btn-primary { color: var(--on-wine); }
     var v = {
       geral: viewGeral, roteiro: viewBoard, mapas: viewMapas, orientacoes: viewOrient, ingressos: viewIngressos, gastronomia: viewGastro, custos: viewCustos, caixa: viewCaixa, documentos: viewDocs,
       voo: viewTransporte,
+      transporte: viewTransLocal,
       hospedagem: function (t) { return viewList(t, "hospedagem", "Hospedagens", cardHospedagem); }
     }[state.tab];
     var oldC = $("map-canvas"); if (oldC && oldC._cleanup) oldC._cleanup();
@@ -1568,7 +1584,7 @@ a.btn-primary { color: var(--on-wine); }
     if (it.tipo === "gasto") return GASTO_MAP[it.categoria] || "Outros";
     if (it.tipo === "voo") return "Voos";
     if (it.tipo === "hospedagem") return "Hospedagens";
-    if (it.tipo === "passagem") return "Trens e transportes";
+    if (it.tipo === "passagem" || it.tipo === "transporte") return "Trens e transportes";
     if (it.categoria === "Restaurante") return "Gastronomia";
     if (it.categoria === "Compras") return "Compras";
     return "Passeios e ingressos";
@@ -1615,6 +1631,40 @@ a.btn-primary { color: var(--on-wine); }
         '<div class="row-actions"><button type="button" class="btn btn-small btn-danger" data-delgasto="' + esc(g.id) + '">Excluir</button></div></div>';
     }).join("") + "</div>" + extra;
     return head + table + (fxHtml ? '<div class="fx">' + fxHtml + "</div>" + (allRates ? "" : '<p class="row-sub">Preencha a cotação para ver o total convertido em reais.</p>') : "") + extra;
+  }
+
+  // ---- Transporte local: passes e bilhetes de metrô/ônibus por cidade ----
+  var CIDADE_TRANSP = {
+    "Barcelona": "Metrô, ônibus e trem urbano com um cartão só. Os passes Hola Barcelona valem também no metrô do aeroporto (linha L9 Sud) e contam horas seguidas a partir da 1ª validação. O Aerobús não está incluído.",
+    "Madri": "Cada pessoa precisa da sua Tarjeta Multi (compra na máquina do metrô) para carregar viagens. Saindo ou chegando no aeroporto pelo metrô, há um suplemento por pessoa.",
+    "Londres": "Não precisa de Oyster: passe o cartão de crédito ou débito por aproximação (ou o celular) na catraca, cada pessoa com o seu cartão. Há teto diário automático. Use o mesmo cartão na entrada e na saída.",
+    "Paris": "Desde 2025, o bilhete de metrô/RER vale para toda a região, inclusive Disney e Versalhes. Os aeroportos têm bilhete próprio, mais caro. Carregue no cartão Navigo Easy ou no app oficial Bonjour RATP."
+  };
+  function viewTransLocal(trip) {
+    var items = tripItems(trip.id, "transporte");
+    var head = '<div class="section-head"><div><h2>Transporte local</h2><p>Passes e bilhetes de metrô e ônibus dentro de cada cidade, com o PDF, a situação e como usar.</p></div><button class="btn btn-primary" type="button" data-add="transporte">+ Bilhete ou passe</button></div>';
+    var html = head + costBox(trip, items, "Valores", "Total em reais");
+    ["Barcelona", "Madri", "Londres", "Paris", "Outra"].forEach(function (cid) {
+      var g = items.filter(function (i) { return (i.cidade || "Outra") === cid; });
+      if (!g.length && !CIDADE_TRANSP[cid]) return;
+      html += '<div class="group-label">' + esc(cid === "Outra" ? "Outras cidades" : cid) + "</div>";
+      if (CIDADE_TRANSP[cid]) html += '<p class="row-sub" style="margin:-4px 0 10px">' + esc(CIDADE_TRANSP[cid]) + "</p>";
+      if (!g.length) { html += '<div class="list"><div class="row"><div class="thumb t-passagem">' + ic("train") + '</div><div class="row-sub">Nenhum bilhete ou passe salvo para ' + esc(cid) + '.</div><div class="row-actions"><button type="button" class="btn btn-small" data-add="transporte" data-cidade="' + esc(cid) + '">Adicionar</button></div></div></div>'; return; }
+      html += '<div class="list">' + g.map(function (it) {
+        var docs = (it.docIds || []).filter(function (d) { return state.documentos[d]; });
+        var st = it.status || "";
+        var pill = st ? '<span class="' + (/Usado/.test(st) ? "pill-ok" : /trocar/.test(st) ? "pill-pend" : "pill-ok") + '">' + esc(st) + "</span>" : "";
+        var info = [it.modalidade, it.quantidade ? it.quantidade + (+it.quantidade === 1 ? " cartão" : " cartões") : "", it.validade].filter(Boolean).join(" · ");
+        return '<div class="row"><div class="thumb t-passagem">' + ic("train") + '</div><div style="min-width:0"><div class="row-title">' + esc(it.titulo) + " " + pill + "</div>" +
+          '<div class="row-sub">' + esc(info) + "</div>" +
+          (it.usoInicio ? '<div class="row-sub"><b>Começar a usar:</b> ' + esc(fmtDay(it.usoInicio) + " às " + hhmm(it.usoInicio)) + "</div>" : "") +
+          (num(it.valor) ? '<div class="row-sub">' + esc(money(it.valor, it.moeda) + (payLine(it) ? " · " + payLine(it) : "")) + "</div>" : "") +
+          (it.comoUsar ? '<div class="obs" style="margin-top:6px">' + esc(it.comoUsar) + "</div>" : "") + "</div>" +
+          '<div class="row-actions">' + docs.map(function (d, k) { return '<button type="button" class="btn btn-small btn-primary" data-viewdoc="' + esc(d) + '">' + (docs.length > 1 ? "Abrir " + (k + 1) : "Abrir") + "</button>"; }).join("") +
+          '<button type="button" class="icon-btn edit" data-edit="' + esc(it.id) + '" aria-label="Editar">' + ic("pen") + "</button></div></div>";
+      }).join("") + "</div>";
+    });
+    return html;
   }
 
   // ---- Caixa: dinheiro em espécie, contas digitais e cartões ----
@@ -1957,7 +2007,7 @@ a.btn-primary { color: var(--on-wine); }
     var fromTickets = !!(existing && state.tab === "ingressos" && needsTicket(existing));
     var schema = SCHEMAS[tipo].concat(tipo === "roteiro" ? COMUNS : COMUNS.slice(0, 2).concat(PAGAMENTO, COMUNS.slice(2), [{ k: "docIds", l: "Arquivos da reserva (PDF ou imagem)", t: "docs", full: true, cats: DOC_LINK_CATS[tipo] }]));
     var data = existing ? Object.assign({ id: id }, existing) : Object.assign(defaultsFor(tipo, trip), preset || {});
-    var nomes = { voo: ["Novo voo", "Editar voo"], hospedagem: ["Nova hospedagem", "Editar hospedagem"], passagem: ["Nova passagem", "Editar passagem"], roteiro: ["Nova atividade", "Editar atividade"] }[tipo];
+    var nomes = { voo: ["Novo voo", "Editar voo"], hospedagem: ["Nova hospedagem", "Editar hospedagem"], passagem: ["Nova passagem", "Editar passagem"], transporte: ["Novo bilhete ou passe", "Editar bilhete ou passe"], roteiro: ["Nova atividade", "Editar atividade"] }[tipo];
     openSheet({
       title: nomes[existing ? 1 : 0], schema: schema, data: data,
       onSave: function (vals) {
@@ -2039,6 +2089,7 @@ a.btn-primary { color: var(--on-wine); }
     if (tipo === "roteiro") { d.data = trip.inicio; d.categoria = "Passeio"; d.duracao = 60; d.moeda = "EUR"; }
     if (tipo === "hospedagem") { d.checkin = trip.inicio; d.checkout = trip.fim; }
     if (tipo === "voo" || tipo === "passagem") d.partida = trip.inicio ? trip.inicio + "T08:00" : "";
+    if (tipo === "transporte") { d.moeda = "EUR"; d.cidade = "Barcelona"; d.modalidade = "Passe ilimitado"; d.status = "Pronto para usar"; d.quantidade = 2; }
     return d;
   }
   function openTrip(existing) {
@@ -2117,7 +2168,7 @@ a.btn-primary { color: var(--on-wine); }
     if (t.id === "fab" || ds.action === "menu") { var m = $("add-menu"); m.hidden = !m.hidden; e.stopPropagation(); return; }
     if (ds.action === "cover") { if (!assets) { toast("Para trocar a foto, abra pelo app do Claude."); return; } $("cover-input").click(); return; }
     if (ds.action === "upload") { $("add-menu").hidden = true; openUpload(); return; }
-    if (ds.add) { $("add-menu").hidden = true; var pre = {}; if (ds.day) pre.data = ds.day; if (ds.cat) pre.categoria = ds.cat; openItem(ds.add, null, pre); return; }
+    if (ds.add) { $("add-menu").hidden = true; var pre = {}; if (ds.day) pre.data = ds.day; if (ds.cat) pre.categoria = ds.cat; if (ds.cidade) pre.cidade = ds.cidade; openItem(ds.add, null, pre); return; }
     if (ds.edit) { var it = state.itens[ds.edit]; if (it) { closeSheet(); openItem(it.tipo, ds.edit); } return; }
     if (ds.dur) { stepDur(ds.dur, +ds.step); return; }
     if (ds.detail) { openDetail(ds.detail); return; }
