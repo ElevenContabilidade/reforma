@@ -642,7 +642,7 @@ a.btn-primary { color: var(--on-wine); }
     { k: "parcelas", l: "Parcelamento", t: "select", ph: "Não informado", opts: PARCELAS },
     { k: "cartao", l: "Cartão usado", ph: "Ex.: Nubank final 1234", full: true }
   ];
-  var DOC_LINK_CATS = { voo: ["Voo"], passagem: ["Passagem"], hospedagem: ["Hospedagem"], transporte: ["Transporte local"] };
+  var DOC_LINK_CATS = { voo: ["Voo"], passagem: ["Passagem"], hospedagem: ["Hospedagem"], transporte: ["Transporte local"], roteiro: ["Ingresso"] };
   // Documentos vinculados a um voo, trem ou hospedagem: marcar e abrir dentro do formulário
   // Arquivos (PDF ou imagem) vinculados a um voo, trem ou hospedagem: marcar, anexar e abrir dentro do formulário
   function docLinkRow(dc, on, backId) {
@@ -1588,8 +1588,8 @@ a.btn-primary { color: var(--on-wine); }
         '<div class="row-sub">' + esc(fmtDay(it.data) + (it.hora ? " · " + it.hora : "") + (it.local ? " · " + it.local : "")) + "</div>" +
         (pl ? '<div class="row-sub" style="color:var(--ink);font-weight:700">' + esc(pl) + "</div>" : "") +
         (it.precoNota ? '<div class="row-sub">' + esc(it.precoNota) + "</div>" : "") +
-        (it.ingresso && num(it.valor) ? '<div class="row-sub">Pago: ' + esc(money(it.valor, it.moeda)) + "</div>" : "") + "</div>" +
-        '<div class="row-actions">' + buy + '<button type="button" class="btn btn-small" data-ticket="' + esc(it.id) + '">' + (it.ingresso ? "Desmarcar" : "Já comprei") + '</button><button type="button" class="icon-btn edit" data-edit="' + esc(it.id) + '" aria-label="Editar">' + ic("pen") + "</button></div></div>";
+        (it.ingresso && num(it.valor) ? '<div class="row-sub">Pago: ' + esc(money(it.valor, it.moeda) + (payLine(it) ? " · " + payLine(it) : "")) + "</div>" : "") + "</div>" +
+        '<div class="row-actions">' + (it.docIds || []).filter(function (d) { return state.documentos[d]; }).map(function (d, k, arr) { return '<button type="button" class="btn btn-small btn-primary" data-viewdoc="' + esc(d) + '">' + (arr.length > 1 ? "Abrir " + (k + 1) : "Abrir") + "</button>"; }).join("") + buy + '<button type="button" class="btn btn-small" data-ticket="' + esc(it.id) + '">' + (it.ingresso ? "Desmarcar" : "Já comprei") + '</button><button type="button" class="icon-btn edit" data-edit="' + esc(it.id) + '" aria-label="Editar">' + ic("pen") + "</button></div></div>";
     };
     return head + (pend.length ? '<div class="group-label">A comprar (' + pend.length + ')</div><div class="list">' + pend.map(row).join("") + "</div>" : "") +
       (ok.length ? '<div class="group-label">Comprados (' + ok.length + ')</div>' + costBox(trip, ok, "Pago em ingressos", "Total pago em reais") +
@@ -2275,7 +2275,7 @@ a.btn-primary { color: var(--on-wine); }
     var existing = id ? state.itens[id] : null;
     // Na aba Ingressos, o botão de excluir só tira o item da lista de ingressos; o local fica no roteiro.
     var fromTickets = !!(existing && state.tab === "ingressos" && needsTicket(existing));
-    var schema = SCHEMAS[tipo].concat(tipo === "roteiro" ? COMUNS : COMUNS.slice(0, 2).concat(PAGAMENTO, COMUNS.slice(2), [{ k: "docIds", l: "Arquivos da reserva (PDF ou imagem)", t: "docs", full: true, cats: DOC_LINK_CATS[tipo] }]));
+    var schema = SCHEMAS[tipo].concat(COMUNS.slice(0, 2).concat(PAGAMENTO, COMUNS.slice(2), [{ k: "docIds", l: tipo === "roteiro" ? "Ingresso ou reserva (PDF ou imagem)" : "Arquivos da reserva (PDF ou imagem)", t: "docs", full: true, cats: DOC_LINK_CATS[tipo] }]));
     var data = existing ? Object.assign({ id: id }, existing) : Object.assign(defaultsFor(tipo, trip), preset || {});
     var nomes = { voo: ["Novo voo", "Editar voo"], hospedagem: ["Nova hospedagem", "Editar hospedagem"], passagem: ["Nova passagem", "Editar passagem"], transporte: ["Novo bilhete ou passe", "Editar bilhete ou passe"], roteiro: ["Nova atividade", "Editar atividade"] }[tipo];
     openSheet({
