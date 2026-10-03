@@ -173,6 +173,9 @@ main { padding-block: 18px 120px; }
 .desloc .pen svg { width: 12px; height: 12px; }
 .act[data-drag] { cursor: grab; }
 .icon-btn.mv { touch-action: none; cursor: grab; }
+body.is-dragging .board { scroll-snap-type: none; }
+.chip.drop-chip { background: var(--gold); border-color: var(--gold); color: #2a1214; }
+body.is-dragging .day-chips { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 50px); z-index: 6; background: var(--bg); padding-block: 6px; flex-wrap: wrap; }
 .drag-ghost { position: fixed; z-index: 40; pointer-events: none; box-shadow: 0 12px 30px rgba(41, 6, 8, .3); transform: rotate(2deg); opacity: .95; }
 body.is-dragging, body.is-dragging * { user-select: none; cursor: grabbing !important; }
 .act.dragging { opacity: .35; }
@@ -842,7 +845,7 @@ a.btn-primary { color: var(--on-wine); }
   function tripDays(trip) { var out = [], n = daysBetween(trip.inicio, trip.fim); for (var i = 0; i <= (n || 0); i++) out.push(addDays(trip.inicio, i)); return out; }
   function viewBoard(trip) {
     var all = tripItems(trip.id), days = tripDays(trip), hoje = today();
-    var chips = '<div class="day-chips">' + days.map(function (d, i) { return '<button type="button" class="chip' + (d === hoje ? " today" : "") + '" data-jump="' + i + '">Dia ' + (i + 1) + " · " + ddmm(d) + "</button>"; }).join("") + "</div>";
+    var chips = '<div class="day-chips">' + days.map(function (d, i) { return '<button type="button" class="chip' + (d === hoje ? " today" : "") + '" data-jump="' + i + '" data-chipday="' + d + '">Dia ' + (i + 1) + " · " + ddmm(d) + "</button>"; }).join("") + "</div>";
     var cols = days.map(function (day, i) {
       var ev = dayEvents(all, day);
       var body = ev.length ? ev.map(function (e, j) { return (j ? deslocRow(trip, day, e) : "") + actCard(e); }).join("") : '<div class="col-empty">Nada planejado ainda.</div>';
@@ -909,14 +912,15 @@ a.btn-primary { color: var(--on-wine); }
     var fromDay = it.data, me = Object.assign({ id: id }, it);
     var oldOrder = dayActs(trip, fromDay), oldIdx = oldOrder.findIndex(function (x) { return x.id === id; });
     var target = dayActs(trip, toDay, id);
-    var at = beforeId ? target.findIndex(function (x) { return x.id === beforeId; }) : -1;
+    var at;
+    if (beforeId === "@time") { at = target.findIndex(function (x) { return (x.hora || "99:99") > (it.hora || "99:99"); }); beforeId = null; }
+    else at = beforeId ? target.findIndex(function (x) { return x.id === beforeId; }) : -1;
     if (at < 0) at = target.length;
     var stale = [deslocKey(trip, fromDay, { key: id })];
     if (oldOrder[oldIdx + 1]) stale.push(deslocKey(trip, fromDay, { key: oldOrder[oldIdx + 1].id }));
     if (target[at]) stale.push(deslocKey(trip, toDay, { key: target[at].id }));
-    var start = target.length ? target[0].hora : (it.hora || "09:00");
-    if (fromDay === toDay) start = oldOrder[0].hora || start;
     target.splice(at, 0, me);
+    var start = fromDay === toDay ? (oldOrder[0].hora || "09:00") : (target[0].hora || it.hora || "09:00");
     var changes;
     if (recalc) {
       stale.forEach(function (k) { delete state.deslocs[k]; });
@@ -1678,7 +1682,7 @@ a.btn-primary { color: var(--on-wine); }
       setTimeout(function () { if (sheet && sheet.move === mid) openMove(mid); }, 0);
       return;
     }
-    if (ds.mvday) { var dd = $("mv-day").value, rc2 = $("mv-recalc").checked, mid2 = ds.mvday; closeSheet(); if (dd !== state.itens[mid2].data) moveItem(mid2, dd, null, rc2); return; }
+    if (ds.mvday) { var dd = $("mv-day").value, rc2 = $("mv-recalc").checked, mid2 = ds.mvday; closeSheet(); if (dd !== state.itens[mid2].data) moveItem(mid2, dd, "@time", rc2); return; }
     if (ds.ck) { var trc = currentTrip(); if (!trc) return; var ckId = trc.id + "_" + ds.ck, cur = state.checklist[ckId]; saveDoc("checklist", ckId, { viagemId: trc.id, feito: !(cur && cur.feito) }).catch(function (x) { toast(errMsg(x)); }); return; }
     if (ds.mapday) { mapDay = ds.mapday; render(); return; }
     if (ds.mapfull) { mapFull = !mapFull; mz.day = null; document.body.style.overflow = mapFull ? "hidden" : ""; render(); return; }
@@ -1724,7 +1728,7 @@ a.btn-primary { color: var(--on-wine); }
   document.addEventListener("keydown", function (e) { if (e.key === "Escape" && mapFull && !sheet) { mapFull = false; mz.day = null; document.body.style.overflow = ""; render(); return; } if (e.key === "Escape") { if (sheet) closeSheet(); $("add-menu").hidden = true; } });
   // Arrastar cartões do roteiro (mouse: o cartão inteiro; toque: pelo botão ↕)
   var drag = null, dropAt = null, suppressClick = false;
-  function clearDrop() { document.querySelectorAll(".drop-before,.drop-end").forEach(function (n) { n.classList.remove("drop-before", "drop-end"); }); }
+  function clearDrop() { document.querySelectorAll(".drop-before,.drop-end,.drop-chip").forEach(function (n) { n.classList.remove("drop-before", "drop-end", "drop-chip"); }); }
   document.addEventListener("pointerdown", function (e) {
     if (state.tab !== "roteiro" || sheet || e.button > 0) return;
     var card = e.target.closest && e.target.closest("[data-drag]"); if (!card) return;
@@ -1735,6 +1739,8 @@ a.btn-primary { color: var(--on-wine); }
   });
   function findDrop(x, y) {
     var el = document.elementFromPoint(x, y); if (!el) return null;
+    var chip = el.closest("[data-chipday]");
+    if (chip) return { day: chip.dataset.chipday, before: null, chip: chip, byTime: true };
     var body = el.closest("[data-dropday]"); if (!body) return null;
     var cards = Array.prototype.slice.call(body.querySelectorAll("[data-drag]")).filter(function (c) { return c.dataset.drag !== drag.id; });
     var before = null;
@@ -1755,19 +1761,37 @@ a.btn-primary { color: var(--on-wine); }
     drag.ghost.style.left = (e.clientX - drag.dx) + "px"; drag.ghost.style.top = (e.clientY - drag.dy) + "px";
     clearDrop();
     dropAt = findDrop(e.clientX, e.clientY);
-    if (dropAt) { if (dropAt.before) dropAt.before.classList.add("drop-before"); else dropAt.body.classList.add("drop-end"); }
-    var bd = $("board");
-    if (bd) { var br = bd.getBoundingClientRect(); if (e.clientX < br.left + 50) bd.scrollLeft -= 18; else if (e.clientX > br.right - 50) bd.scrollLeft += 18; }
-    if (e.clientY < 70) window.scrollBy(0, -16); else if (e.clientY > window.innerHeight - 70) window.scrollBy(0, 16);
+    if (dropAt) { if (dropAt.chip) dropAt.chip.classList.add("drop-chip"); else if (dropAt.before) dropAt.before.classList.add("drop-before"); else dropAt.body.classList.add("drop-end"); }
+    drag.px = e.clientX; drag.py = e.clientY;
+    if (Math.abs(e.clientX - drag.x) > 40 || Math.abs(e.clientY - drag.y) > 40) drag.armed = true;
+    if (!drag.raf) drag.raf = requestAnimationFrame(autoScroll);
   }, { passive: false });
+  function autoScroll() {
+    if (!drag || !drag.active) return;
+    drag.raf = null;
+    var bd = $("board"), moved = false;
+    if (drag.armed && bd) {
+      var br = bd.getBoundingClientRect(), zone = 60;
+      if (drag.px < br.left + zone) { bd.scrollLeft -= 14; moved = true; }
+      else if (drag.px > br.right - zone) { bd.scrollLeft += 14; moved = true; }
+    }
+    if (drag.armed && drag.py < 90) { window.scrollBy(0, -12); moved = true; }
+    else if (drag.armed && drag.py > window.innerHeight - 70) { window.scrollBy(0, 12); moved = true; }
+    if (moved) {
+      clearDrop(); dropAt = findDrop(drag.px, drag.py);
+      if (dropAt) { if (dropAt.chip) dropAt.chip.classList.add("drop-chip"); else if (dropAt.before) dropAt.before.classList.add("drop-before"); else dropAt.body.classList.add("drop-end"); }
+    }
+    drag.raf = requestAnimationFrame(autoScroll);
+  }
   function endDrag() {
     if (!drag) return;
     var d = drag; drag = null;
     if (!d.active) return;
+    if (d.raf) cancelAnimationFrame(d.raf);
     if (d.ghost) d.ghost.remove();
     d.card.classList.remove("dragging"); document.body.classList.remove("is-dragging"); clearDrop();
     suppressClick = true; setTimeout(function () { suppressClick = false; }, 300);
-    if (dropAt) moveItem(d.id, dropAt.day, dropAt.before ? dropAt.before.dataset.drag : null, true);
+    if (dropAt) moveItem(d.id, dropAt.day, dropAt.before ? dropAt.before.dataset.drag : (dropAt.byTime ? "@time" : null), true);
     dropAt = null;
   }
   document.addEventListener("pointerup", endDrag);
