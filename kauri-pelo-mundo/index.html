@@ -697,7 +697,8 @@ a.btn-primary { color: var(--on-wine); }
       { k: "cidade", l: "Cidade", t: "select", opts: ["Barcelona", "Madri", "Londres", "Paris", "Outra"] },
       { k: "modalidade", l: "Tipo", t: "select", opts: ["Passe ilimitado", "Bilhete avulso", "Cartão recarregável", "Transfer / aeroporto", "Ônibus turístico", "Outro"] },
       { k: "quantidade", l: "Quantidade (cartões ou bilhetes)", t: "number" },
-      { k: "status", l: "Situação", t: "select", opts: ["Comprado: trocar na máquina", "Pronto para usar", "Em uso", "Usado"] },
+      { k: "status", l: "Situação", t: "select", opts: ["A comprar no local", "Comprado: trocar na máquina", "Pronto para usar", "Em uso", "Usado"] },
+      { k: "previsto", l: "Custo previsto (não entra nos gastos)", t: "number" },
       { k: "usoInicio", l: "Começar a usar em", t: "datetime-local" },
       { k: "validade", l: "Validade", ph: "Ex.: 48h seguidas a partir da 1ª validação" },
       { k: "pedido", l: "Nº do pedido / código" },
@@ -1636,7 +1637,7 @@ a.btn-primary { color: var(--on-wine); }
   // ---- Transporte local: passes e bilhetes de metrô/ônibus por cidade ----
   var CIDADE_TRANSP = {
     "Barcelona": "Metrô, ônibus e trem urbano com um cartão só. Os passes Hola Barcelona valem também no metrô do aeroporto (linha L9 Sud) e contam horas seguidas a partir da 1ª validação. O Aerobús não está incluído.",
-    "Madri": "Cada pessoa precisa da sua Tarjeta Multi (compra na máquina do metrô) para carregar viagens. Saindo ou chegando no aeroporto pelo metrô, há um suplemento por pessoa.",
+    "Madri": "Do aeroporto T4, o trem Cercanías não cobra suplemento (o metrô cobra). Na cidade, uma Tarjeta Multi com MetroBus de 10 viagens serve para os dois: passem o cartão uma vez para cada pessoa. O hotel fica na Puerta del Sol, então boa parte dá para fazer a pé.",
     "Londres": "Não precisa de Oyster: passe o cartão de crédito ou débito por aproximação (ou o celular) na catraca, cada pessoa com o seu cartão. Há teto diário automático. Use o mesmo cartão na entrada e na saída.",
     "Paris": "Desde 2025, o bilhete de metrô/RER vale para toda a região, inclusive Disney e Versalhes. Os aeroportos têm bilhete próprio, mais caro. Carregue no cartão Navigo Easy ou no app oficial Bonjour RATP."
   };
@@ -1653,12 +1654,12 @@ a.btn-primary { color: var(--on-wine); }
       html += '<div class="list">' + g.map(function (it) {
         var docs = (it.docIds || []).filter(function (d) { return state.documentos[d]; });
         var st = it.status || "";
-        var pill = st ? '<span class="' + (/Usado/.test(st) ? "pill-ok" : /trocar/.test(st) ? "pill-pend" : "pill-ok") + '">' + esc(st) + "</span>" : "";
+        var pill = st ? '<span class="' + (/trocar|comprar/.test(st) ? "pill-pend" : "pill-ok") + '">' + esc(st) + "</span>" : "";
         var info = [it.modalidade, it.quantidade ? it.quantidade + (+it.quantidade === 1 ? " cartão" : " cartões") : "", it.validade].filter(Boolean).join(" · ");
         return '<div class="row"><div class="thumb t-passagem">' + ic("train") + '</div><div style="min-width:0"><div class="row-title">' + esc(it.titulo) + " " + pill + "</div>" +
           '<div class="row-sub">' + esc(info) + "</div>" +
           (it.usoInicio ? '<div class="row-sub"><b>Começar a usar:</b> ' + esc(fmtDay(it.usoInicio) + " às " + hhmm(it.usoInicio)) + "</div>" : "") +
-          (num(it.valor) ? '<div class="row-sub">' + esc(money(it.valor, it.moeda) + (payLine(it) ? " · " + payLine(it) : "")) + "</div>" : "") +
+          (num(it.valor) ? '<div class="row-sub"><b>Pago:</b> ' + esc(money(it.valor, it.moeda) + (payLine(it) ? " · " + payLine(it) : "")) + "</div>" : (num(it.previsto) ? '<div class="row-sub"><b>Previsto:</b> ' + esc(money(it.previsto, it.moeda)) + "</div>" : "")) +
           (it.comoUsar ? '<div class="obs" style="margin-top:6px">' + esc(it.comoUsar) + "</div>" : "") + "</div>" +
           '<div class="row-actions">' + docs.map(function (d, k) { return '<button type="button" class="btn btn-small btn-primary" data-viewdoc="' + esc(d) + '">' + (docs.length > 1 ? "Abrir " + (k + 1) : "Abrir") + "</button>"; }).join("") +
           '<button type="button" class="icon-btn edit" data-edit="' + esc(it.id) + '" aria-label="Editar">' + ic("pen") + "</button></div></div>";
