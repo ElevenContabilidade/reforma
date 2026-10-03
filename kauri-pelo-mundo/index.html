@@ -331,6 +331,8 @@ tr.total td { font-weight: 800; border-bottom: 0; }
 .field label { font-size: 12px; font-weight: 700; color: var(--muted); }
 .field input, .field select, .field textarea { width: 100%; border: 1px solid var(--line); background: var(--bg); border-radius: 9px; padding: 9px 11px; min-width: 0; }
 .field textarea { min-height: 76px; resize: vertical; }
+.field .file-field { padding: 8px; background: var(--surface); }
+.field .hint { font-size: 12px; color: var(--muted); }
 .field input:focus, .field select:focus, .field textarea:focus { border-color: var(--wine); outline: none; }
 .field.check-field { display: flex; align-items: center; gap: 8px; }
 .field.check-field input { width: 18px; height: 18px; }
@@ -608,9 +610,15 @@ a.btn-primary { color: var(--on-wine); }
     { k: "min", l: "Tempo (minutos)", t: "int" },
     { k: "obs", l: "Detalhe", ph: "Linha 3, descer em Liceu", full: true }
   ];
+  var DOC_CATS = ["Voo", "Hospedagem", "Passagem", "Ingresso", "Seguro", "Documento pessoal", "Outro"];
   var DOC_SCHEMA = [
     { k: "nome", l: "Nome", req: true, full: true },
-    { k: "categoria", l: "Tipo", t: "select", opts: ["Voo", "Hospedagem", "Passagem", "Ingresso", "Seguro", "Documento pessoal", "Outro"] }
+    { k: "categoria", l: "Grupo", t: "select", opts: DOC_CATS }
+  ];
+  var UPLOAD_SCHEMA = [
+    { k: "arquivos", l: "Arquivo (PDF ou foto)", t: "file", accept: "application/pdf,image/*", multiple: true, req: true, full: true, ph: "Pode escolher mais de um arquivo do mesmo grupo." },
+    { k: "categoria", l: "Grupo", t: "select", opts: [""].concat(DOC_CATS), ph: "Escolha o grupo", req: true },
+    { k: "nome", l: "Nome (opcional)", ph: "Ex.: Ingressos Louvre - 25/11", full: true }
   ];
   var COLS = ["viagens", "itens", "deslocs", "documentos", "checklist"];
 
@@ -1480,19 +1488,27 @@ a.btn-primary { color: var(--on-wine); }
       }).join("") + "</div>";
     }).join("");
   }
-  function uploadFiles(files) {
-    var trip = currentTrip(); if (!trip || !files.length) return;
+  function openUpload() {
     if (!assets) { toast("Envio de arquivos indisponível aqui. Abra pelo app do Claude."); return; }
+    openSheet({ title: "Anexar documento", schema: UPLOAD_SCHEMA, data: {},
+      onSave: function (vals) {
+        return uploadFiles(vals.arquivos, vals.categoria, vals.nome).then(function (n) { if (!n) throw new Error("Nenhum arquivo foi enviado. Tente de novo."); });
+      } });
+    var sv = document.querySelector('#sheet-form button[type="submit"]'); if (sv) sv.textContent = "Enviar";
+  }
+  function uploadFiles(files, categoria, nomeBase) {
+    var trip = currentTrip(); if (!trip || !files.length) return Promise.resolve(0);
+    if (!assets) { toast("Envio de arquivos indisponível aqui. Abra pelo app do Claude."); return Promise.resolve(0); }
     var list = Array.prototype.slice.call(files), done = 0;
     toast("Enviando " + list.length + (list.length === 1 ? " arquivo..." : " arquivos..."));
-    list.reduce(function (p, f) {
+    return list.reduce(function (p, f) {
       return p.then(function () {
         return assets.upload(f).then(function (r) {
           done++;
-          return saveDoc("documentos", newId(), { viagemId: trip.id, nome: f.name.replace(/\.[^.]+$/, "").replace(/[_]+/g, " "), categoria: "Outro", assetId: r.id, url: r.url, contentType: r.contentType || f.type, tamanho: r.sizeBytes || f.size, criadoEm: new Date().toISOString() });
+          return saveDoc("documentos", newId(), { viagemId: trip.id, nome: nomeBase ? (list.length > 1 ? nomeBase + " (" + (done) + ")" : nomeBase) : f.name.replace(/\.[^.]+$/, "").replace(/[_]+/g, " "), categoria: categoria || "Outro", assetId: r.id, url: r.url, contentType: r.contentType || f.type, tamanho: r.sizeBytes || f.size, criadoEm: new Date().toISOString() });
         }).catch(function (e) { toast("Não foi possível enviar " + f.name + (e && e.code === "quota_exceeded" ? ": espaço esgotado." : ".")); });
       });
-    }, Promise.resolve()).then(function () { if (done) toast(done + (done === 1 ? " arquivo enviado" : " arquivos enviados")); });
+    }, Promise.resolve()).then(function () { if (done) toast(done + (done === 1 ? " arquivo enviado" : " arquivos enviados") + (categoria ? " em " + categoria : "")); return done; });
   }
 
   // ---------- Visualizador de documentos ----------
@@ -1562,7 +1578,8 @@ a.btn-primary { color: var(--on-wine); }
       var id = "f-" + f.k, v = d[f.k] == null ? "" : d[f.k], cls = "field" + (f.full || f.t === "textarea" ? " full" : "");
       if (f.t === "checkbox") return '<div class="' + cls + ' check-field"><input type="checkbox" id="' + id + '"' + (v ? " checked" : "") + '><label for="' + id + '" style="font-size:14px;color:var(--ink)">' + f.l + "</label></div>";
       var lab = '<label for="' + id + '">' + f.l + (f.req ? " *" : "") + "</label>";
-      if (f.t === "select") return '<div class="' + cls + '">' + lab + '<select id="' + id + '">' + f.opts.map(function (o) { return '<option value="' + esc(o) + '"' + (o === v ? " selected" : "") + ">" + esc(o || "Não informado") + "</option>"; }).join("") + "</select></div>";
+      if (f.t === "select") return '<div class="' + cls + '">' + lab + '<select id="' + id + '">' + f.opts.map(function (o) { return '<option value="' + esc(o) + '"' + (o === v ? " selected" : "") + ">" + esc(o || f.ph || "Não informado") + "</option>"; }).join("") + "</select></div>";
+      if (f.t === "file") return '<div class="' + cls + '">' + lab + '<input type="file" id="' + id + '" accept="' + esc(f.accept || "") + '"' + (f.multiple ? " multiple" : "") + ' class="file-field"><span class="hint">' + esc(f.ph || "") + "</span></div>";
       if (f.t === "textarea") return '<div class="' + cls + '">' + lab + '<textarea id="' + id + '" placeholder="' + esc(f.ph || "") + '">' + esc(v) + "</textarea></div>";
       var type = f.t === "int" ? "number" : (f.t || "text");
       var extra = f.t === "number" ? ' step="0.01" min="0" inputmode="decimal"' : (f.t === "int" ? ' step="5" min="0" inputmode="numeric"' : "");
@@ -1582,6 +1599,7 @@ a.btn-primary { color: var(--on-wine); }
     schema.forEach(function (f) {
       var el = $("f-" + f.k);
       if (f.t === "checkbox") out[f.k] = el.checked;
+      else if (f.t === "file") out[f.k] = Array.prototype.slice.call(el.files || []);
       else if (f.t === "number") out[f.k] = el.value === "" ? "" : Math.round(parseFloat(el.value) * 100) / 100;
       else if (f.t === "int") out[f.k] = el.value === "" ? "" : Math.max(0, Math.round(parseFloat(el.value)));
       else out[f.k] = f.up ? el.value.trim().toUpperCase() : (f.t === "textarea" ? el.value : el.value.trim());
@@ -1589,7 +1607,7 @@ a.btn-primary { color: var(--on-wine); }
     return out;
   }
   function validate(schema, data) {
-    var miss = schema.filter(function (f) { return f.req && (data[f.k] === "" || data[f.k] == null); }).map(function (f) { return f.l; });
+    var miss = schema.filter(function (f) { return f.req && (data[f.k] === "" || data[f.k] == null || (Array.isArray(data[f.k]) && !data[f.k].length)); }).map(function (f) { return f.l; });
     if (miss.length) return "Preencha: " + miss.join(", ") + ".";
     if (data.inicio && data.fim && data.fim < data.inicio) return "A data de volta precisa ser igual ou depois da ida.";
     if (data.checkin && data.checkout && data.checkout <= data.checkin) return "O check-out precisa ser depois do check-in.";
@@ -1755,7 +1773,7 @@ a.btn-primary { color: var(--on-wine); }
     var ds = t.dataset;
     if (ds.tab) { if (mapFull) { mapFull = false; document.body.style.overflow = ""; } state.tab = ds.tab; boardPositioned = false; try { localStorage.setItem("kauri-tab2", state.tab); } catch (x) {} render(); return; }
     if (t.id === "fab" || ds.action === "menu") { var m = $("add-menu"); m.hidden = !m.hidden; e.stopPropagation(); return; }
-    if (ds.action === "upload") { $("add-menu").hidden = true; $("file-input").click(); return; }
+    if (ds.action === "upload") { $("add-menu").hidden = true; openUpload(); return; }
     if (ds.add) { $("add-menu").hidden = true; var pre = {}; if (ds.day) pre.data = ds.day; if (ds.cat) pre.categoria = ds.cat; openItem(ds.add, null, pre); return; }
     if (ds.edit) { var it = state.itens[ds.edit]; if (it) { closeSheet(); openItem(it.tipo, ds.edit); } return; }
     if (ds.dur) { stepDur(ds.dur, +ds.step); return; }
@@ -1808,6 +1826,7 @@ a.btn-primary { color: var(--on-wine); }
     var el = e.target;
     if (el.id === "trip-select") { state.tripId = el.value; boardPositioned = false; render(); return; }
     if (el.id === "file-input") { uploadFiles(el.files); el.value = ""; return; }
+    if (el.id === "f-arquivos") { var nm = $("f-nome"); if (nm && !nm.value && el.files.length === 1) nm.value = el.files[0].name.replace(/\.[^.]+$/, "").replace(/[_]+/g, " "); return; }
     if (el.id === "photo-input") { uploadPhoto(el.files[0]); el.value = ""; return; }
     if (el.dataset && el.dataset.fx) {
       var trip = currentTrip(); if (!trip) return;
