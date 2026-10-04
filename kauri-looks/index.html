@@ -412,8 +412,9 @@ main { max-width: 960px; margin: 0 auto; padding: 20px 16px 120px; display: grid
       (state.ogen ? '<div class="progress">' + esc(state.ogen) + "</div>" :
         '<div class="day-actions">' + (os.length ? '<button type="button" class="btn btn-primary" data-distribuir="1"' + (sampler ? "" : " disabled") + ">" + (feitos ? "Redistribuir os looks nos dias" : "Distribuir meus looks nos dias") + "</button>" : "") +
         '<button type="button" class="btn' + (os.length ? "" : " btn-primary") + '" data-tab="outfits">' + (os.length ? "Adicionar mais looks" : "Subir fotos dos looks") + "</button></div>") +
-      (os.length && os.length < ds.length ? '<p class="day-sum">Vocês têm ' + os.length + " looks para " + ds.length + " dias: alguns vão se repetir, sempre longe um do outro. Quanto mais looks, mais variado.</p>" : "") +
+      (os.length && feitos < ds.length ? '<p class="day-sum">' + (ds.length - feitos) + " dias ainda sem look. Cada look vai para o dia em que combina mais; suba mais fotos para completar a viagem.</p>" : "") +
       (!sampler ? '<p class="day-sum">A escolha automática funciona quando o app é aberto pelo Claude no navegador. Sem ela, escolha o look de cada dia tocando em "Escolher look".</p>' : "") +
+      (state.oerr ? '<div class="note"><b>Atenção:</b> ' + esc(state.oerr) + "</div>" : "") +
       (meta.faltandoOut && meta.faltandoOut.length ? '<div class="note"><b>Pode faltar:</b><ul class="missing">' + meta.faltandoOut.map(function (f) { return "<li>" + esc(f) + "</li>"; }).join("") + "</ul></div>" : "") + "</div>";
     if (!ds.length) return head + '<div class="empty"><h3>Roteiro não carregado</h3></div>';
     return head + ds.map(dayCardOutfit).join("");
@@ -440,7 +441,7 @@ main { max-width: 960px; margin: 0 auto; padding: 20px 16px 120px; display: grid
     if (!os.length) return head + q + '<div class="empty"><h3>Nenhum look ainda</h3><p>Suba as fotos e depois toque em "Distribuir meus looks nos dias" na aba Dias.</p></div>';
     return head + q + '<div class="ogrid">' + os.map(function (o) {
       var usado = diasDoOutfit(o.id);
-      return '<button type="button" class="ocard" data-oedit="' + esc(o.id) + '"><div class="o-ph"><img src="' + esc(o.foto) + '" alt="" loading="lazy">' + (usado.length ? '<span class="o-days">' + esc(usado.join(" · ")) + "</span>" : '<span class="o-days off">Sem dia</span>') + '</div><div class="tx"><b>' + esc(o.nome || "Look") + "</b><small>" + esc((NIVEL[o.aquece] || "") + (o.estilo ? " · " + o.estilo : "")) + "</small></div></button>";
+      return '<button type="button" class="ocard" data-oedit="' + esc(o.id) + '"><div class="o-ph"><img src="' + esc(o.foto) + '" alt="" loading="lazy">' + (usado.length ? '<span class="o-days">' + esc(usado.join(" · ")) + "</span>" : '<span class="o-days off">Sem dia</span>') + '</div><div class="tx"><b>' + esc(o.nome || "Look") + "</b><small>" + (o.analisado === false ? "Toque para analisar" : esc((NIVEL[o.aquece] || "") + (o.estilo ? " · " + o.estilo : ""))) + "</small></div></button>";
     }).join("") + "</div>";
   }
   var OUTFIT_PROMPT = "A foto mostra um look completo para uma viagem a Barcelona, Madri, Londres e Paris no fim de novembro (3 a 16 °C, garoa em Londres). Pode ter uma pessoa vestindo; ignore o rosto e o fundo e descreva só a roupa. " +
@@ -467,39 +468,56 @@ main { max-width: 960px; margin: 0 auto; padding: 20px 16px 120px; display: grid
       oupd(it, "Enviando..."); return assets.upload(blob);
     }).then(function (r) {
       up = r;
-      if (!(sampler && sampler.canSee)) return {};
-      oupd(it, "Analisando o look...");
-      return sampler.json(OUTFIT_PROMPT, { images: it.blob, modelTier: "default" }).catch(function () { return {}; });
+      return analisarFoto(it.blob, function (m) { oupd(it, m); });
     }).then(function (a) {
-      a = a || {};
+      var falhou = !a || !a.nome; a = a || {};
       var doc = { pessoa: pessoa, foto: up.url || "", fotoId: up.id || "", nome: String(a.nome || "Look").slice(0, 80), pecas: (Array.isArray(a.pecas) ? a.pecas : []).slice(0, 10).map(String),
         aquece: [1, 2, 3, 4, 5].indexOf(+a.aquece) >= 0 ? +a.aquece : 3, conforto: [1, 2, 3].indexOf(+a.conforto) >= 0 ? +a.conforto : 2, chuva: !!a.chuva,
-        estilo: String(a.estilo || "").slice(0, 30), cores: String(a.cores || "").slice(0, 60), fotogenico: [1, 2, 3].indexOf(+a.fotogenico) >= 0 ? +a.fotogenico : 2, obs: String(a.obs || "").slice(0, 160), criadoEm: new Date().toISOString() };
-      return setDoc("outfits", newId(), doc).then(function () { oupd(it, "Salvo: " + doc.nome, "ok"); return true; });
+        estilo: String(a.estilo || "").slice(0, 30), cores: String(a.cores || "").slice(0, 60), fotogenico: [1, 2, 3].indexOf(+a.fotogenico) >= 0 ? +a.fotogenico : 2, obs: String(a.obs || "").slice(0, 160), analisado: !falhou, criadoEm: new Date().toISOString() };
+      return setDoc("outfits", newId(), doc).then(function () { oupd(it, falhou ? "Salvo, mas sem análise: " + (ultimoErroIA || "toque no look e em Analisar") : "Salvo: " + doc.nome, falhou ? "err" : "ok"); return true; });
     }).catch(function (e) { oupd(it, errMsg(e), "err"); return false; });
+  }
+  // Analisa a foto do look com o Claude; devolve null (e guarda o motivo) quando não consegue
+  var ultimoErroIA = "";
+  function analisarFoto(blob, step) {
+    if (!sampler) { ultimoErroIA = "a análise com IA não abriu nesta tela. Abra o app pelo navegador em claude.ai."; return Promise.resolve(null); }
+    if (!sampler.canSee) { ultimoErroIA = "esta tela não consegue enviar fotos para o Claude. Abra pelo navegador do computador ou do celular em claude.ai."; return Promise.resolve(null); }
+    step && step("Analisando o look...");
+    return sampler.json(OUTFIT_PROMPT, { images: blob, modelTier: "default" }).catch(function (e) { ultimoErroIA = errMsg(e); return null; });
+  }
+  function reanalisar(id) {
+    var o = state.outfits[id]; if (!o || !o.foto) return;
+    toast("Analisando o look...");
+    fetch(o.foto).then(function (r) { return r.blob(); }).then(function (b) { return analisarFoto(b); }).then(function (a) {
+      if (!a || !a.nome) throw new Error("Não consegui analisar: " + (ultimoErroIA || "tente de novo."));
+      return patchDoc("outfits", id, { nome: String(a.nome).slice(0, 80), pecas: (Array.isArray(a.pecas) ? a.pecas : []).slice(0, 10).map(String), aquece: [1, 2, 3, 4, 5].indexOf(+a.aquece) >= 0 ? +a.aquece : 3, conforto: [1, 2, 3].indexOf(+a.conforto) >= 0 ? +a.conforto : 2, chuva: !!a.chuva, estilo: String(a.estilo || "").slice(0, 30), cores: String(a.cores || "").slice(0, 60), fotogenico: [1, 2, 3].indexOf(+a.fotogenico) >= 0 ? +a.fotogenico : 2, obs: String(a.obs || "").slice(0, 160), analisado: true });
+    }).then(function () { toast("Look analisado. Distribuindo..."); closeSheet(); distribuirLooks(); }).catch(function (e) { toast(errMsg(e)); });
   }
   function outfitsTxt(os) { return os.map(function (o) { return o.id + " | " + o.nome + " | peças: " + (o.pecas || []).join(", ") + " | aquece " + o.aquece + "/5 | conforto para caminhar " + o.conforto + "/3 | chuva: " + (o.chuva ? "sim" : "não") + " | estilo: " + (o.estilo || "-") + " | cores: " + (o.cores || "-") + " | fotogênico " + o.fotogenico + "/3" + (o.obs ? " | " + o.obs : ""); }).join("\n"); }
   function distribuirLooks() {
     var os = meusOutfits(), ds = dias(), pessoa = state.pessoa;
-    if (!sampler || !os.length || !ds.length) return;
+    if (!os.length || !ds.length) return;
+    if (!sampler) { state.oerr = "A distribuição automática não abriu nesta tela. Abra o app pelo navegador em claude.ai, ou escolha o look de cada dia em \"Escolher look\"."; render(); return; }
+    state.oerr = "";
     state.ogen = "Escolhendo o melhor dia para cada look... pode levar até 1 minuto."; render();
     var prompt = "Você é consultora de estilo de viagem. " + pessoa + " já montou os looks abaixo (fotos de looks completos). Escolha qual look usar em cada dia da viagem.\n\nLOOKS (id | nome | peças | aquece | conforto | chuva | estilo | cores | fotogênico | obs):\n" + outfitsTxt(os) +
       "\n\nDIAS:\n" + ds.map(diaTxt).join("\n") +
       "\n\nRegras: use só os ids da lista. Todo dia tem um look \"Dia todo\" (ou \"Voo\" nos dias de voo longo). Só crie um segundo look \"Noite\" se o dia tiver programa noturno que peça troca e houver um look adequado sobrando. " +
       "Combine o quanto o look aquece com a temperatura (Madri, Disney, barco no Sena e jogo do PSG à noite pedem os mais quentes). Dias de caminhada intensa pedem conforto 3. Em Londres, prefira looks que aguentam chuva. Dias de fotos clássicas em Paris (25/11 à tarde e 27/11) pedem os looks mais fotogênicos. " +
-      "Respeite os cuidados de cada dia (igrejas, estádios e cores de times rivais, voos). Use todos os looks pelo menos uma vez, se der. Se houver menos looks que dias, repita os mais versáteis, nunca em dias seguidos. Se nenhum look servir bem para um dia, use o mais próximo e explique o ajuste na dica (ex.: some uma segunda pele). " +
+      "Respeite os cuidados de cada dia (igrejas, estádios e cores de times rivais, voos). Use todos os looks pelo menos uma vez. Cada look pode aparecer em no máximo " + (os.length >= 8 ? "2 dias" : "1 dia") + ", nunca em dias seguidos. Looks temáticos vão no dia do tema (ex.: Harry Potter no Warner Bros. Studio Tour, cores do PSG no jogo). Dias sem look que combine ficam FORA da resposta (não force). " +
       "O porquê tem 1 frase simples falando com a pessoa.\n\nResponda somente JSON: {\"dias\":[{\"data\":\"AAAA-MM-DD\",\"looks\":[{\"momento\":\"Dia todo\",\"outfitId\":\"id\",\"porque\":\"...\"}],\"dica\":\"...\"}],\"faltando\":[\"até 4 peças ou looks que fariam falta\"]}";
     sampler.json(prompt, { modelTier: "complex" }).then(function (r) {
       var valid = {}; os.forEach(function (o) { valid[o.id] = 1; });
-      var writes = (r && Array.isArray(r.dias) ? r.dias : []).filter(function (d) { return d && state.dias[d.data]; }).map(function (d) {
+      var manual = {}; ds.forEach(function (d) { var l = state.looks[pessoa + "_" + d.data]; if (l && l.manual) manual[d.data] = 1; });
+      var writes = (r && Array.isArray(r.dias) ? r.dias : []).filter(function (d) { return d && state.dias[d.data] && !manual[d.data]; }).map(function (d) {
         var looks = (Array.isArray(d.looks) ? d.looks : []).filter(function (lk) { return lk && valid[lk.outfitId]; }).slice(0, 2).map(function (lk) { return { momento: String(lk.momento || "Dia todo").slice(0, 20), outfitId: lk.outfitId, porque: String(lk.porque || "").slice(0, 300) }; });
         if (!looks.length) return null;
         return setDoc("looks", pessoa + "_" + d.data, { pessoa: pessoa, data: d.data, looks: looks, dica: String(d.dica || "").slice(0, 300), modo: "outfits", geradoEm: new Date().toISOString() });
       }).filter(Boolean);
       var falt = (r && Array.isArray(r.faltando) ? r.faltando : []).slice(0, 4).map(String);
       return Promise.all(writes.concat([patchMeta(pessoa, { faltandoOut: falt })])).then(function () { return writes.length; });
-    }).then(function (n) { state.ogen = ""; render(); toast(n ? "Looks distribuídos em " + n + " dias" : "Não consegui distribuir. Tente de novo."); })
-      .catch(function (e) { state.ogen = ""; render(); toast(errMsg(e)); });
+    }).then(function (n) { state.ogen = ""; state.oerr = n ? "" : "O Claude não devolveu nenhum dia. Toque em Distribuir de novo."; render(); toast(n ? "Looks distribuídos em " + n + " dias" : "Não consegui distribuir."); })
+      .catch(function (e) { state.ogen = ""; state.oerr = "Não consegui distribuir: " + errMsg(e); render(); });
   }
   function patchMeta(pessoa, data) { return state.meta[pessoa] ? patchDoc("meta", pessoa, data) : setDoc("meta", pessoa, data); }
   // Trocar o look de um dia (ou incluir um segundo)
@@ -517,7 +535,7 @@ main { max-width: 960px; margin: 0 auto; padding: 20px 16px 120px; display: grid
     if (!oid) looks.splice(i, 1);
     else if (looks[i]) { looks[i].outfitId = oid; looks[i].porque = "Escolhido por você."; }
     else looks.push({ momento: looks.length ? "Noite" : "Dia todo", outfitId: oid, porque: "Escolhido por você." });
-    var p = l ? patchDoc("looks", key, { looks: looks, modo: "outfits" }) : setDoc("looks", key, { pessoa: state.pessoa, data: s2.odata, looks: looks, dica: "", modo: "outfits" });
+    var p = l ? patchDoc("looks", key, { looks: looks, modo: "outfits", manual: true }) : setDoc("looks", key, { pessoa: state.pessoa, data: s2.odata, looks: looks, dica: "", modo: "outfits", manual: true });
     p.then(function () { closeSheet(); toast(oid ? "Look do dia atualizado" : "Look tirado do dia"); }).catch(function (e) { toast(errMsg(e)); });
   }
   function openOutfit(id) {
@@ -531,6 +549,7 @@ main { max-width: 960px; margin: 0 auto; padding: 20px 16px 120px; display: grid
       '<div class="field"><label for="o-pecas">Peças (separadas por vírgula)</label><input id="o-pecas" value="' + esc((o.pecas || []).join(", ")) + '"></div>' +
       '<div class="field"><label for="o-obs">Observação para escolher o dia</label><input id="o-obs" value="' + esc(o.obs) + '" placeholder="Ex.: quero usar em Paris; não serve para chuva"></div>' +
       '<p class="day-sum">' + (usado.length ? "Usado em: " + esc(usado.join(", ")) : "Ainda sem dia.") + "</p>" +
+      (sampler ? '<button type="button" class="btn btn-small" data-oanalisar="' + esc(id) + '">' + (o.analisado === false ? "Analisar este look com o Claude" : "Analisar de novo") + "</button>" : "") +
       '<div class="sheet-actions"><button type="button" class="btn btn-danger" data-odel="' + esc(id) + '">Excluir look</button><button type="button" class="btn btn-primary" data-osave="' + esc(id) + '">Salvar</button></div>');
   }
   function saveOutfit(id) {
@@ -925,6 +944,7 @@ main { max-width: 960px; margin: 0 auto; padding: 20px 16px 120px; display: grid
     if (ds.ochange) { var oc = ds.ochange.split("|"); openOutfitPicker(oc[0], +oc[1]); return; }
     if (ds.opick != null && sheet && sheet.odata) { applyOutfitPick(ds.opick); return; }
     if (ds.oedit) { openOutfit(ds.oedit); return; }
+    if (ds.oanalisar) { reanalisar(ds.oanalisar); return; }
     if (ds.osave) { saveOutfit(ds.osave); return; }
     if (ds.odel) { if (!t.classList.contains("armed")) { t.classList.add("armed"); t.textContent = "Toque de novo para excluir"; return; } deleteOutfit(ds.odel); return; }
     if (ds.recut) { var rc = ds.recut.split("|"); recut(rc[0], +rc[1]); return; }
