@@ -389,6 +389,15 @@ tr.total td { font-weight: 800; border-bottom: 0; }
 .compra-check { display: grid; place-items: center; width: 44px; height: 44px; cursor: pointer; }
 .compra-check input { width: 22px; height: 22px; accent-color: var(--wine); }
 .row.compra-row.done .row-title { text-decoration: line-through; color: var(--muted); }
+.seguro-card { border: 1px solid var(--ok); background: var(--ok-soft); border-radius: 14px; padding: 12px 14px; margin-bottom: 18px; display: grid; gap: 10px; }
+.seguro-card .k { display: block; font-size: 11px; letter-spacing: .1em; text-transform: uppercase; font-weight: 800; color: var(--ok); }
+.seguro-card .muted { display: block; font-size: 13px; color: var(--muted); }
+.sg-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; flex-wrap: wrap; }
+.sg-top b { font-size: 16px; }
+.sg-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 8px; }
+.sg-grid div { background: var(--surface); border-radius: 10px; padding: 8px 10px; display: grid; gap: 2px; }
+.sg-grid span { font-size: 12px; color: var(--muted); }
+.sg-tel { background: var(--surface); border-radius: 10px; padding: 8px 10px; font-size: 14px; display: grid; gap: 2px; }
 .offline-box { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; border: 1px dashed var(--wine); background: var(--wine-soft); border-radius: 14px; padding: 12px 14px; margin-bottom: 18px; }
 .offline-box > div { display: grid; gap: 2px; min-width: 0; flex: 1 1 260px; font-size: 14px; }
 .offline-box span { color: var(--muted); }
@@ -1168,6 +1177,7 @@ a.btn-primary { color: var(--on-wine); }
       stat("Atividades", count("roteiro"), all.filter(function (i) { return i.feito; }).length + " feitas") + "</div>";
     html += costBox(trip, costItems(trip.id), "Gasto lançado", "Total gasto até agora");
     if (trip.obs) html += '<div class="obs" style="margin-bottom:18px">' + esc(trip.obs) + "</div>";
+    html += seguroCard(trip);
     if (downloads) html += '<div class="offline-box"><div><b>Sem internet na viagem?</b><span>Baixe o guia offline: roteiro, voos, hotéis, transporte, caixa e todos os bilhetes em imagem, num arquivo que abre sem internet.</span></div><button type="button" class="btn btn-primary" data-offline="1">Baixar guia offline</button></div>';
     var days = tripDays(trip);
     var dot = { voo: "var(--wine)", hospedagem: "var(--gold)", passagem: "var(--muted)", roteiro: "var(--line)" };
@@ -1503,11 +1513,20 @@ a.btn-primary { color: var(--on-wine); }
     { id: "cartoes", t: "Avisar o banco da viagem e levar 2 cartões diferentes", d: "Prefira cartão ou conta global com aproximação. Em Londres quase tudo é por aproximação." },
     { id: "receita", t: "Guardar notas fiscais das compras", d: "Para o Tax Free e para a cota de isenção na volta ao Brasil (US$ 1.000 por pessoa)." }
   ];
+  // Cartão do seguro viagem (dados guardados na viagem: trip.seguro)
+  function seguroCard(trip) {
+    var sg = trip.seguro; if (!sg) return "";
+    var doc = (sg.docId && state.documentos[sg.docId]) ? '<button type="button" class="btn btn-small btn-primary" data-viewdoc="' + esc(sg.docId) + '">Abrir apólice</button>' : "";
+    return '<div class="seguro-card"><div class="sg-top"><div><span class="k">Seguro viagem</span><b>' + esc(sg.nome || "") + '</b><span class="muted">' + esc(sg.validade || "") + "</span></div>" + doc + "</div>" +
+      '<div class="sg-grid">' + (sg.linhas || []).map(function (l) { return "<div><span>" + esc(l[0]) + "</span><b>" + esc(l[1]) + "</b></div>"; }).join("") + "</div>" +
+      (sg.telefones ? '<div class="sg-tel"><span class="k">Em caso de problema, ligue 24h</span>' + sg.telefones.map(function (t) { return "<div>" + esc(t[0]) + ": <b>" + esc(t[1]) + "</b></div>"; }).join("") + "</div>" : "") +
+      (sg.obs ? '<p class="row-sub" style="margin:8px 0 0">' + esc(sg.obs) + "</p>" : "") + "</div>";
+  }
   function viewOrient(trip) {
     var fx = trip.cambio || {}, pax = +trip.viajantes || 2;
     var brl = function (v, c) { var r = +fx[c]; return r ? " (≈ " + money(v * r, "BRL") + ")" : ""; };
     var esp = Math.max(1098.90, 122.10 * 6), fra = 65 * 5;
-    var html = '<div class="section-head"><div><h2>Orientações da viagem</h2><p>O que cada país pede para brasileiros, quanto comprovar e o que fazer antes de embarcar. Regras conferidas em outubro de 2026; revise 15 dias antes.</p></div></div>';
+    var html = seguroCard(trip) + '<div class="section-head"><div><h2>Orientações da viagem</h2><p>O que cada país pede para brasileiros, quanto comprovar e o que fazer antes de embarcar. Regras conferidas em outubro de 2026; revise 15 dias antes.</p></div></div>';
     html += '<div class="group-label">Quanto comprovar na imigração (para ' + pax + " pessoas)</div>" +
       '<div class="or-money">' +
       '<div class="stat"><div class="k">Espanha</div><div class="v">' + esc(money(esp * pax, "EUR")) + '</div><div class="s">' + esc(money(esp, "EUR")) + " por pessoa. Mínimo legal de € 1.098,90 por pessoa (estadias até 9 dias)" + esc(brl(esp * pax, "EUR")) + "</div></div>" +
@@ -2244,6 +2263,7 @@ a.btn-primary { color: var(--on-wine); }
     var pend = tripCompras(trip.id).filter(function (c) { return !c.comprado; });
     if (pend.length) { sec("compras", "Compras pendentes"); pend.forEach(function (c) { H.push('<div class="row2"><span>' + e2(c.item) + ' <span class="muted">' + e2([c.cidade, c.loja, c.para].filter(Boolean).join(" · ")) + "</span></span><b>" + (num(c.precoEst) ? e2(money(num(c.precoEst), c.moeda)) : "") + "</b></div>"); }); }
     sec("emergencia", "Emergência");
+    if (trip.seguro) H.push('<div class="card"><b>Seguro viagem: ' + e2(trip.seguro.nome) + "</b><br>" + (trip.seguro.linhas || []).map(function (l) { return e2(l[0] + ": " + l[1]); }).join("<br>") + "<br>" + (trip.seguro.telefones || []).map(function (t) { return e2(t[0]) + ": <b>" + e2(t[1]) + "</b>"; }).join("<br>") + "</div>");
     H.push('<div class="card">Emergência na Espanha e na França: <b>112</b> · No Reino Unido: <b>999</b> ou <b>112</b>.<br>Guarde também o telefone do seguro viagem e do consulado do Brasil de cada cidade.</div>');
     // Documentos com imagens embutidas
     sec("documentos", "Documentos, bilhetes e ingressos");
