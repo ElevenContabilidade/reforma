@@ -455,7 +455,8 @@ main { max-width: 960px; margin: 0 auto; padding: 20px 16px 120px; display: grid
     items.forEach(function (it) { chain = chain.then(function () { return processOutfit(it).then(function (r) { if (r) ok++; }); }); });
     chain.then(function () {
       setTimeout(function () { state.oqueue = state.oqueue.filter(function (q) { return q.cls === "err"; }); render(); }, 3000);
-      if (ok && sampler) { toast("Looks salvos. Distribuindo nos dias..."); distribuirLooks(); }
+      if (ok && sampler && !sampler.canSee) { var pend = meusOutfits().filter(function (o) { return o.analisado === false; }); if (pend.length) { toast("Foto salva. Descreva o look para o Claude escolher o dia."); openOutfit(pend[pend.length - 1].id); } }
+      else if (ok && sampler) { toast("Looks salvos. Distribuindo nos dias..."); distribuirLooks(); }
     });
   }
   function oupd(it, st, cls) { it.status = st; it.cls = cls || ""; if (state.tab === "outfits") render(); }
@@ -490,6 +491,15 @@ main { max-width: 960px; margin: 0 auto; padding: 20px 16px 120px; display: grid
     toast("Analisando o look...");
     fetch(o.foto).then(function (r) { return r.blob(); }).then(function (b) { return analisarFoto(b); }).then(function (a) {
       if (!a || !a.nome) throw new Error("Não consegui analisar: " + (ultimoErroIA || "tente de novo."));
+      return patchDoc("outfits", id, { nome: String(a.nome).slice(0, 80), pecas: (Array.isArray(a.pecas) ? a.pecas : []).slice(0, 10).map(String), aquece: [1, 2, 3, 4, 5].indexOf(+a.aquece) >= 0 ? +a.aquece : 3, conforto: [1, 2, 3].indexOf(+a.conforto) >= 0 ? +a.conforto : 2, chuva: !!a.chuva, estilo: String(a.estilo || "").slice(0, 30), cores: String(a.cores || "").slice(0, 60), fotogenico: [1, 2, 3].indexOf(+a.fotogenico) >= 0 ? +a.fotogenico : 2, obs: String(a.obs || "").slice(0, 160), analisado: true });
+    }).then(function () { toast("Look analisado. Distribuindo..."); closeSheet(); distribuirLooks(); }).catch(function (e) { toast(errMsg(e)); });
+  }
+  function analisarDescricao(id) {
+    var txt = (($("o-desc") || {}).value || "").trim();
+    if (txt.length < 8) { toast("Escreva as peças do look."); return; }
+    toast("Analisando o look...");
+    sampler.json(OUTFIT_PROMPT.replace("A foto mostra um look completo", "A descrição a seguir é de um look completo") + "\n\nDescrição do look: " + txt, { modelTier: "default" }).then(function (a) {
+      if (!a || !a.nome) throw new Error("Não consegui analisar. Tente descrever com mais detalhes.");
       return patchDoc("outfits", id, { nome: String(a.nome).slice(0, 80), pecas: (Array.isArray(a.pecas) ? a.pecas : []).slice(0, 10).map(String), aquece: [1, 2, 3, 4, 5].indexOf(+a.aquece) >= 0 ? +a.aquece : 3, conforto: [1, 2, 3].indexOf(+a.conforto) >= 0 ? +a.conforto : 2, chuva: !!a.chuva, estilo: String(a.estilo || "").slice(0, 30), cores: String(a.cores || "").slice(0, 60), fotogenico: [1, 2, 3].indexOf(+a.fotogenico) >= 0 ? +a.fotogenico : 2, obs: String(a.obs || "").slice(0, 160), analisado: true });
     }).then(function () { toast("Look analisado. Distribuindo..."); closeSheet(); distribuirLooks(); }).catch(function (e) { toast(errMsg(e)); });
   }
@@ -535,7 +545,7 @@ main { max-width: 960px; margin: 0 auto; padding: 20px 16px 120px; display: grid
     if (!oid) looks.splice(i, 1);
     else if (looks[i]) { looks[i].outfitId = oid; looks[i].porque = "Escolhido por você."; }
     else looks.push({ momento: looks.length ? "Noite" : "Dia todo", outfitId: oid, porque: "Escolhido por você." });
-    var p = l ? patchDoc("looks", key, { looks: looks, modo: "outfits", manual: true }) : setDoc("looks", key, { pessoa: state.pessoa, data: s2.odata, looks: looks, dica: "", modo: "outfits", manual: true });
+    var p = l ? patchDoc("looks", key, { looks: looks, modo: "outfits", manual: looks.length > 0 }) : setDoc("looks", key, { pessoa: state.pessoa, data: s2.odata, looks: looks, dica: "", modo: "outfits", manual: looks.length > 0 });
     p.then(function () { closeSheet(); toast(oid ? "Look do dia atualizado" : "Look tirado do dia"); }).catch(function (e) { toast(errMsg(e)); });
   }
   function openOutfit(id) {
@@ -549,7 +559,8 @@ main { max-width: 960px; margin: 0 auto; padding: 20px 16px 120px; display: grid
       '<div class="field"><label for="o-pecas">Peças (separadas por vírgula)</label><input id="o-pecas" value="' + esc((o.pecas || []).join(", ")) + '"></div>' +
       '<div class="field"><label for="o-obs">Observação para escolher o dia</label><input id="o-obs" value="' + esc(o.obs) + '" placeholder="Ex.: quero usar em Paris; não serve para chuva"></div>' +
       '<p class="day-sum">' + (usado.length ? "Usado em: " + esc(usado.join(", ")) : "Ainda sem dia.") + "</p>" +
-      (sampler ? '<button type="button" class="btn btn-small" data-oanalisar="' + esc(id) + '">' + (o.analisado === false ? "Analisar este look com o Claude" : "Analisar de novo") + "</button>" : "") +
+      (sampler && sampler.canSee ? '<button type="button" class="btn btn-small" data-oanalisar="' + esc(id) + '">' + (o.analisado === false ? "Analisar este look com o Claude" : "Analisar de novo") + "</button>" : "") +
+      (sampler && !sampler.canSee ? '<div class="field"><label for="o-desc">Descreva o look para o Claude analisar (nesta tela ele não consegue ver a foto)</label><textarea id="o-desc" placeholder="Ex.: blazer de tweed preto, blusa gola alta, saia preguedada curta, meia-calça fina e coturno"></textarea></div><button type="button" class="btn btn-small btn-primary" data-odesc="' + esc(id) + '">Analisar pela descrição</button>' : "") +
       '<div class="sheet-actions"><button type="button" class="btn btn-danger" data-odel="' + esc(id) + '">Excluir look</button><button type="button" class="btn btn-primary" data-osave="' + esc(id) + '">Salvar</button></div>');
   }
   function saveOutfit(id) {
@@ -945,6 +956,7 @@ main { max-width: 960px; margin: 0 auto; padding: 20px 16px 120px; display: grid
     if (ds.opick != null && sheet && sheet.odata) { applyOutfitPick(ds.opick); return; }
     if (ds.oedit) { openOutfit(ds.oedit); return; }
     if (ds.oanalisar) { reanalisar(ds.oanalisar); return; }
+    if (ds.odesc) { analisarDescricao(ds.odesc); return; }
     if (ds.osave) { saveOutfit(ds.osave); return; }
     if (ds.odel) { if (!t.classList.contains("armed")) { t.classList.add("armed"); t.textContent = "Toque de novo para excluir"; return; } deleteOutfit(ds.odel); return; }
     if (ds.recut) { var rc = ds.recut.split("|"); recut(rc[0], +rc[1]); return; }
