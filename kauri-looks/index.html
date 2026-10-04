@@ -142,6 +142,18 @@ main { max-width: 960px; margin: 0 auto; padding: 20px 16px 120px; display: grid
 .bar { height: 8px; border-radius: 999px; background: var(--surface-2); overflow: hidden; }
 .bar i { display: block; height: 100%; background: var(--ok); border-radius: 999px; }
 
+/* O que levar */
+.pack.lv { grid-template-columns: auto 1fr; }
+.lv-row { display: flex; gap: 8px; align-items: center; }
+.lv-row .pack { flex: 1; min-width: 0; }
+.liquidos { border: 1px solid var(--gold); background: var(--gold-soft); border-radius: 14px; padding: 10px 14px; }
+.liquidos summary { cursor: pointer; font-weight: 800; color: var(--gold-ink); }
+.liquidos ul { margin: 8px 0 0; padding-left: 18px; display: grid; gap: 4px; font-size: 14px; }
+.lv-add { display: flex; flex-wrap: wrap; gap: 6px; }
+.lv-add input { flex: 1 1 180px; min-width: 0; border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; }
+.lv-add select { border: 1px solid var(--line); border-radius: 10px; padding: 8px; background: var(--surface); }
+.pack-group { margin-bottom: 4px; }
+
 /* Folha (formulários e escolhas) */
 .scrim { position: fixed; inset: 0; background: rgba(42, 18, 20, .45); z-index: 20; display: grid; align-items: end; justify-items: center; }
 .sheet { background: var(--surface); width: 100%; max-width: 620px; max-height: 92vh; overflow-y: auto; border-radius: 22px 22px 0 0; padding: 18px 16px calc(22px + env(safe-area-inset-bottom, 0px)); display: grid; gap: 14px; }
@@ -182,8 +194,8 @@ main { max-width: 960px; margin: 0 auto; padding: 20px 16px 120px; display: grid
   var PESSOAS = ["Kauane", "Iuri"];
   var TIPOS = ["Blusa/camisa", "Malha/suéter", "Calça/saia", "Vestido/macacão", "Casaco", "Calçado", "Acessório", "Bolsa"];
   var AQUECE = { 1: "Leve", 2: "Médio", 3: "Quente" };
-  var COLS = ["pecas", "dias", "looks", "meta"];
-  var state = { pecas: {}, dias: {}, looks: {}, meta: {}, loaded: {}, mode: "connecting", tab: "looks", pessoa: "Kauane", filtro: "", gen: "", queue: [] };
+  var COLS = ["pecas", "dias", "looks", "meta", "levar"];
+  var state = { pecas: {}, dias: {}, looks: {}, meta: {}, levar: {}, loaded: {}, mode: "connecting", tab: "looks", pessoa: "Kauane", filtro: "", gen: "", queue: [] };
   var store = null, assets = null, sampler = null, sheet = null;
 
   try { state.pessoa = localStorage.getItem("looks-pessoa") || "Kauane"; state.tab = localStorage.getItem("looks-tab") || "looks"; } catch (e) {}
@@ -208,8 +220,8 @@ main { max-width: 960px; margin: 0 auto; padding: 20px 16px 120px; display: grid
 
   // ---------- Dados ----------
   function localKey() { return "looks-dados"; }
-  function localSave() { try { localStorage.setItem(localKey(), JSON.stringify({ pecas: state.pecas, looks: state.looks, meta: state.meta })); } catch (e) {} }
-  function localLoad() { try { var d = JSON.parse(localStorage.getItem(localKey()) || "{}"); state.pecas = d.pecas || {}; state.dias = d.dias || {}; state.looks = d.looks || {}; state.meta = d.meta || {}; } catch (e) {} }
+  function localSave() { try { localStorage.setItem(localKey(), JSON.stringify({ pecas: state.pecas, looks: state.looks, meta: state.meta, levar: state.levar })); } catch (e) {} }
+  function localLoad() { try { var d = JSON.parse(localStorage.getItem(localKey()) || "{}"); state.pecas = d.pecas || {}; state.dias = d.dias || {}; state.looks = d.looks || {}; state.meta = d.meta || {}; state.levar = d.levar || {}; } catch (e) {} }
   function setDoc(col, id, data) {
     if (store) return store.collection(col).doc(id).set(data);
     state[col][id] = data; localSave(); render(); return Promise.resolve();
@@ -263,19 +275,19 @@ main { max-width: 960px; margin: 0 auto; padding: 20px 16px 120px; display: grid
   }
 
   // ---------- Render ----------
-  var TABS = [{ id: "looks", label: "Looks" }, { id: "roupas", label: "Guarda-roupa" }, { id: "mala", label: "Mala" }];
+  var TABS = [{ id: "looks", label: "Looks" }, { id: "roupas", label: "Guarda-roupa" }, { id: "mala", label: "Mala" }, { id: "levar", label: "O que levar" }];
   function render() {
     $("who").innerHTML = PESSOAS.map(function (p) { return '<button type="button" data-who="' + p + '" aria-pressed="' + (state.pessoa === p) + '">' + p + "</button>"; }).join("");
     var nP = minhasPecas().length;
     $("tabs").innerHTML = TABS.map(function (t) {
-      var n = t.id === "roupas" ? nP : 0;
+      var n = t.id === "roupas" ? nP : t.id === "levar" ? levarFaltam() : 0;
       return '<button class="tab" role="tab" type="button" data-tab="' + t.id + '" aria-selected="' + (state.tab === t.id) + '">' + t.label + (n ? '<span class="count">' + n + "</span>" : "") + "</button>";
     }).join("");
     var loaded = COLS.every(function (c) { return state.loaded[c]; });
     var html = "";
     if (state.mode === "local") html += '<div class="note"><b>Modo offline:</b> os dados ficam só neste navegador. Abra pelo app do Claude, conectada à sua conta, para salvar e sincronizar com o Iuri.</div>';
     if (!loaded && state.mode !== "local") html += '<div class="note">Carregando o guarda-roupa...</div>';
-    else html += ({ looks: viewLooks, roupas: viewRoupas, mala: viewMala }[state.tab] || viewLooks)();
+    else html += ({ looks: viewLooks, roupas: viewRoupas, mala: viewMala, levar: viewLevar }[state.tab] || viewLooks)();
     $("main").innerHTML = html;
   }
 
@@ -350,6 +362,93 @@ main { max-width: 960px; margin: 0 auto; padding: 20px 16px 120px; display: grid
     }).join("");
     var extra = fora.length ? '<div class="note"><b>Não entraram em nenhum look (' + fora.length + "):</b> " + esc(fora.map(function (p) { return p.nome; }).join(", ")) + ". Podem ficar em casa e liberar espaço para as compras.</div>" : "";
     return head + resumo + grupos + extra;
+  }
+
+  // ---------- O que levar: checklist por pessoa e categoria ----------
+  // quem: "ambos" (cada um marca o seu), "Kauane", "Iuri" ou "casal" (um item para os dois)
+  var LEVAR = [
+    { cat: "Documentos e dinheiro", itens: [
+      ["passaporte", "Passaporte (validade até 01/03/2027 ou mais)", "ambos"], ["rg", "RG ou CNH", "ambos"],
+      ["cartoes", "Cartões de crédito, débito e conta global", "ambos"], ["especie", "Dinheiro em espécie (euros e libras)", "casal"],
+      ["seguro", "Apólice do seguro viagem (no celular e impressa)", "casal"], ["reservas", "Reservas e ingressos impressos ou no guia offline", "casal"],
+      ["caneta", "Caneta (formulários e imigração)", "casal"]] },
+    { cat: "Higiene (bagagem de mão)", liquidos: true, itens: [
+      ["saco-1l", "Saco plástico transparente de 1 litro para os líquidos", "ambos"], ["escova", "Escova de dente", "ambos"],
+      ["pasta", "Pasta de dente (até 100 ml)", "ambos"], ["desodorante", "Desodorante (bastão não conta como líquido)", "ambos"],
+      ["shampoo", "Shampoo e condicionador (até 100 ml ou em barra)", "ambos"], ["perfume", "Perfume (frasco de até 100 ml)", "ambos"],
+      ["hidratante", "Hidratante e protetor labial (frio resseca)", "ambos"], ["pente", "Pente ou escova de cabelo", "ambos"],
+      ["maquiagem", "Maquiagem (base, rímel e gloss vão no saco de líquidos)", "Kauane"], ["demaquilante", "Demaquilante (até 100 ml) ou lenço demaquilante", "Kauane"],
+      ["absorvente", "Absorventes", "Kauane"], ["secador", "Prancha ou secador bivolt (tomada 230 V)", "Kauane"],
+      ["barbeador", "Barbeador (descartável ou elétrico; gilete solta não passa)", "Iuri"], ["espuma", "Espuma ou gel de barbear (até 100 ml)", "Iuri"],
+      ["fio-dental", "Fio dental", "casal"], ["cortador", "Cortador de unha (tesoura só com lâmina até 6 cm)", "casal"], ["lencos", "Lenços umedecidos e álcool em gel (até 100 ml)", "casal"]] },
+    { cat: "Saúde", itens: [
+      ["remedios", "Remédios de uso contínuo + receita (em inglês, se possível)", "ambos"],
+      ["kit", "Kit básico: analgésico, antialérgico, estômago e enjoo, curativos", "casal"],
+      ["mascara", "Máscara de dormir e tampão de ouvido (voo noturno)", "ambos"]] },
+    { cat: "Eletrônicos", itens: [
+      ["celular", "Celular e carregador", "ambos"], ["powerbank", "Power bank (só na bagagem de mão, até 100 Wh)", "ambos"],
+      ["fones", "Fones de ouvido", "ambos"], ["adaptador", "Adaptadores de tomada: tipo C/F (Espanha e França) e tipo G (Londres)", "casal"],
+      ["regua", "Benjamim ou régua para carregar tudo de uma vez", "casal"], ["cabo", "Cabo de carregador extra", "casal"]] },
+    { cat: "Roupas que não estão nos looks", itens: [
+      ["intimas", "Roupas íntimas (dá para lavar na pia no meio da viagem)", "ambos"], ["meias", "Meias grossas ou térmicas", "ambos"],
+      ["pijama", "Pijama", "ambos"], ["termica", "Segunda pele / roupa térmica", "ambos"], ["frio", "Gorro, luvas e cachecol", "ambos"],
+      ["chinelo", "Chinelo para o hotel", "ambos"], ["guarda-chuva", "Guarda-chuva compacto (Londres)", "casal"]] },
+    { cat: "Para o voo e o dia a dia", itens: [
+      ["travesseiro", "Travesseiro de pescoço", "ambos"], ["garrafa", "Garrafa vazia (encher depois do raio-x)", "ambos"],
+      ["casaco-mao", "Casaco na mão (avião frio e chegada a 5 °C)", "ambos"], ["antifurto", "Bolsa transversal ou pochete antifurto", "ambos"],
+      ["sacola", "Sacola dobrável para compras", "casal"], ["cadeado", "Cadeado pequeno para a mala", "casal"], ["lanche", "Lanche seco para o voo", "casal"]] }
+  ];
+  var REGRAS_LIQUIDOS = [
+    "Cada líquido, gel, creme ou spray em frasco de até 100 ml. Vale o tamanho escrito no frasco, não quanto tem dentro.",
+    "Todos juntos num saco plástico transparente e fechável de até 1 litro (uns 20 x 20 cm). Um saco por pessoa.",
+    "No raio-x, tire o saco da mala e coloque na bandeja separado.",
+    "Contam como líquido: pasta de dente, perfume, shampoo, cremes, protetor, base, rímel, gloss, desodorante spray, roll-on ou gel, álcool em gel.",
+    "Não contam: desodorante em bastão, batom, sabonete e shampoo em barra, pó compacto, lenço umedecido. Versões sólidas liberam espaço no saco.",
+    "Remédio líquido pode passar do limite: leve a receita e mostre na inspeção.",
+    "Power bank e baterias sempre na bagagem de mão. Gilete solta não passa; barbeador descartável ou elétrico, sim.",
+    "Como vocês não despacham mala, essa regra vale para tudo. Perfume ou creme grande comprado na viagem só passa se for do free shop, lacrado e com a nota, ou na mala despachada."
+  ];
+  function levarKey(pessoa, id) { return pessoa + "__" + id; }
+  function levarItens(pessoa) {
+    var out = [];
+    LEVAR.forEach(function (g) {
+      g.itens.forEach(function (it) {
+        if (it[2] === "ambos" || it[2] === pessoa) out.push({ key: levarKey(pessoa, it[0]), cat: g.cat, texto: it[1], casal: false });
+        else if (it[2] === "casal") out.push({ key: levarKey("Casal", it[0]), cat: g.cat, texto: it[1], casal: true });
+      });
+    });
+    Object.keys(state.levar).forEach(function (k) {
+      var d = state.levar[k];
+      if (d.custom && (d.pessoa === pessoa || d.pessoa === "Casal")) out.push({ key: k, cat: d.cat, texto: d.texto, casal: d.pessoa === "Casal", custom: true });
+    });
+    return out;
+  }
+  function levarFaltam() { return levarItens(state.pessoa).filter(function (i) { return !(state.levar[i.key] || {}).feito; }).length; }
+  function viewLevar() {
+    var itens = levarItens(state.pessoa), feitos = itens.filter(function (i) { return (state.levar[i.key] || {}).feito; }).length;
+    var pct = itens.length ? Math.round(feitos / itens.length * 100) : 0;
+    var html = '<div class="section-head"><div><h2>O que levar · ' + esc(state.pessoa) + "</h2><p>Tudo o que não é roupa dos looks. Troque entre Kauane e Iuri no topo. Itens marcados como <b>do casal</b> são um só para os dois e aparecem nas duas listas.</p></div></div>" +
+      '<div class="panel"><div class="stats"><span><b>' + feitos + "/" + itens.length + "</b>já separados</span></div><div class=\"bar\"><i style=\"width:" + pct + '%"></i></div></div>';
+    LEVAR.forEach(function (g) {
+      var gi = itens.filter(function (i) { return i.cat === g.cat; });
+      var d = gi.filter(function (i) { return (state.levar[i.key] || {}).feito; }).length;
+      html += '<div class="pack-group"><h3>' + esc(g.cat) + " (" + d + "/" + gi.length + ")</h3>";
+      if (g.liquidos) html += '<details class="liquidos" open><summary>Regras de líquidos na bagagem de mão</summary><ul>' + REGRAS_LIQUIDOS.map(function (r) { return "<li>" + esc(r) + "</li>"; }).join("") + "</ul></details>";
+      html += gi.map(function (i) {
+        var on = !!(state.levar[i.key] || {}).feito;
+        return '<div class="lv-row"><label class="pack lv' + (on ? " done" : "") + '"><input type="checkbox" data-levar="' + esc(i.key) + '"' + (on ? " checked" : "") + '><span class="tx"><b>' + esc(i.texto) + "</b>" + (i.casal ? "<small>do casal (um para os dois)</small>" : "") + "</span></label>" +
+          (i.custom ? '<button type="button" class="btn btn-small btn-danger" data-lvdel="' + esc(i.key) + '">Excluir</button>' : "") + "</div>";
+      }).join("") +
+        '<div class="lv-add"><input type="text" placeholder="Adicionar item em ' + esc(g.cat) + '" data-lvinput="' + esc(g.cat) + '" aria-label="Novo item"><select data-lvquem="' + esc(g.cat) + '" aria-label="Para quem"><option value="' + esc(state.pessoa) + '">Só ' + esc(state.pessoa) + '</option><option value="Casal">Do casal</option></select><button type="button" class="btn btn-small" data-lvadd="' + esc(g.cat) + '">Adicionar</button></div></div>';
+    });
+    return html;
+  }
+  function addLevar(cat) {
+    var inp = document.querySelector('[data-lvinput="' + cat + '"]'), sel = document.querySelector('[data-lvquem="' + cat + '"]');
+    var txt = (inp && inp.value || "").trim(); if (!txt) { toast("Escreva o item."); return; }
+    var quem = sel ? sel.value : state.pessoa;
+    setDoc("levar", levarKey(quem, "c-" + newId()), { custom: true, pessoa: quem, cat: cat, texto: txt.slice(0, 120), feito: false, criadoEm: new Date().toISOString() })
+      .then(function () { toast("Item adicionado"); }).catch(function (x) { toast(errMsg(x)); });
   }
 
   // ---------- Folhas ----------
@@ -543,13 +642,22 @@ main { max-width: 960px; margin: 0 auto; padding: 20px 16px 120px; display: grid
     if (ds.addpiece) { var b = ds.addpiece.split("|"); openPicker(b[0], +b[1], ""); return; }
     if (ds.pick && sheet && sheet.data) { applyPick(ds.pick, false); return; }
     if (ds.pickremove && sheet && sheet.data) { applyPick("", true); return; }
+    if (ds.lvadd) { addLevar(ds.lvadd); return; }
+    if (ds.lvdel) {
+      if (!t.classList.contains("armed")) { t.classList.add("armed"); t.textContent = "Excluir?"; return; }
+      delDoc("levar", ds.lvdel).catch(function (x) { toast(errMsg(x)); }); return;
+    }
   });
   document.addEventListener("change", function (e) {
     var t = e.target;
     if (t.id === "file") { handleFiles(t.files); t.value = ""; return; }
+    if (t.dataset && t.dataset.levar) { var k = t.dataset.levar, cur = state.levar[k]; (cur ? patchDoc("levar", k, { feito: t.checked }) : setDoc("levar", k, { feito: t.checked })).catch(function (x) { toast(errMsg(x)); }); return; }
     if (t.dataset && t.dataset.pack) { patchDoc("pecas", t.dataset.pack, { naMala: t.checked }).catch(function (x) { toast(errMsg(x)); }); }
   });
-  document.addEventListener("keydown", function (e) { if (e.key === "Escape" && sheet) closeSheet(); });
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape" && sheet) closeSheet();
+    if (e.key === "Enter" && e.target.dataset && e.target.dataset.lvinput) { e.preventDefault(); addLevar(e.target.dataset.lvinput); }
+  });
   document.addEventListener("dragover", function (e) { var d = e.target.closest && e.target.closest("#drop"); if (d) { e.preventDefault(); d.classList.add("over"); } });
   document.addEventListener("dragleave", function (e) { var d = e.target.closest && e.target.closest("#drop"); if (d) d.classList.remove("over"); });
   document.addEventListener("drop", function (e) { var d = e.target.closest && e.target.closest("#drop"); if (d) { e.preventDefault(); d.classList.remove("over"); handleFiles(e.dataTransfer.files); } });
