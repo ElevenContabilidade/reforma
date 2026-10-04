@@ -400,6 +400,20 @@ tr.total td { font-weight: 800; border-bottom: 0; }
 .ck-wrap { display: flex; gap: 8px; align-items: center; }
 .ck-wrap .ck { flex: 1; min-width: 0; }
 .ck-add { border: 1px dashed var(--line); background: transparent; border-radius: 12px; padding: 9px 12px; text-align: left; font-weight: 700; color: var(--wine); font-size: 14px; }
+.lang-chips { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 8px; margin-bottom: 12px; }
+.lang-chips button { border: 1px solid var(--line); background: var(--surface); border-radius: 12px; padding: 10px 12px; text-align: left; display: grid; gap: 2px; }
+.lang-chips button span { font-size: 12px; color: var(--muted); }
+.lang-chips button[aria-pressed="true"] { background: var(--wine); border-color: var(--wine); color: #fff; }
+.lang-chips button[aria-pressed="true"] span { color: rgba(255, 255, 255, .8); }
+.note-lang { background: var(--gold-soft); color: var(--gold-ink); border-radius: 12px; padding: 10px 12px; font-size: 14px; margin-bottom: 12px; }
+.lang-search { width: 100%; border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; background: var(--surface); margin-bottom: 6px; }
+.phrases { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 8px; }
+.phrase { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; background: var(--surface); display: grid; gap: 2px; align-content: start; }
+.ph-pt { font-size: 13px; color: var(--muted); }
+.ph-loc { font-family: var(--f-display); font-size: 17px; font-weight: 700; color: var(--wine); }
+.ph-pron { font-size: 13px; font-style: italic; color: var(--ink); }
+.ph-play { justify-self: start; margin-top: 6px; border: 1px solid var(--line); background: var(--surface-2); border-radius: 999px; padding: 4px 12px 4px 8px; font-size: 13px; font-weight: 700; display: inline-flex; gap: 4px; align-items: center; }
+.ph-play svg { width: 14px; height: 14px; }
 .caixa-val { display: grid; justify-items: end; text-align: right; font-variant-numeric: tabular-nums; }
 .caixa-val b { font-family: var(--f-display); font-size: 18px; }
 .caixa-val small { font-size: 12px; color: var(--muted); }
@@ -599,6 +613,7 @@ a.btn-primary { color: var(--on-wine); }
     route: '<circle cx="6" cy="19" r="3"/><path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15"/><circle cx="18" cy="5" r="3"/>',
     cal: '<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>',
     check: '<path d="M20 6 9 17l-5-5"/>',
+    play: '<path d="M11 5 6 9H2v6h4l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M19 5a10 10 0 0 1 0 14"/>',
     doc: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/>',
     img: '<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21"/>',
     ticket: '<path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2z"/><path d="M13 5v2M13 17v2M13 11v2"/>',
@@ -631,6 +646,7 @@ a.btn-primary { color: var(--on-wine); }
     { id: "custos", label: "Custos" },
     { id: "caixa", label: "Caixa" },
     { id: "orientacoes", label: "Orientações" },
+    { id: "idiomas", label: "Idiomas" },
     { id: "documentos", label: "Documentos" }
   ];
   var TIPO_NOME = { voo: "Voo", hospedagem: "Hospedagem", passagem: "Passagem", roteiro: "Atividade", transporte: "Bilhete ou passe" };
@@ -1000,7 +1016,7 @@ a.btn-primary { color: var(--on-wine); }
     var keepScroll = null, board = main.querySelector(".board");
     if (board) keepScroll = board.scrollLeft;
     var v = {
-      geral: viewGeral, roteiro: viewBoard, mapas: viewMapas, orientacoes: viewOrient, ingressos: viewIngressos, gastronomia: viewGastro, custos: viewCustos, caixa: viewCaixa, compras: viewCompras, checklist: viewChecklist, documentos: viewDocs,
+      geral: viewGeral, roteiro: viewBoard, mapas: viewMapas, orientacoes: viewOrient, idiomas: viewIdiomas, ingressos: viewIngressos, gastronomia: viewGastro, custos: viewCustos, caixa: viewCaixa, compras: viewCompras, checklist: viewChecklist, documentos: viewDocs,
       voo: viewTransporte,
       transporte: viewTransLocal,
       hospedagem: function (t) { return viewList(t, "hospedagem", "Hospedagens", cardHospedagem); }
@@ -1698,6 +1714,77 @@ a.btn-primary { color: var(--on-wine); }
           '<button type="button" class="icon-btn edit" data-edit="' + esc(it.id) + '" aria-label="Editar">' + ic("pen") + "</button></div></div>";
       }).join("") + "</div>";
     });
+    return html;
+  }
+
+  // ---- Idiomas: frases prontas por país (português | frase local | pronúncia aproximada) ----
+  var IDIOMAS = [
+    { id: "es", nome: "Espanhol", onde: "Barcelona e Madri", voz: "es-ES",
+      dica: "Em Barcelona todo mundo fala espanhol, mas as placas e cardápios costumam estar em catalão. O espanhol de Madri tem o \"c\" e o \"z\" com som de \"th\" (língua entre os dentes).",
+      grupos: [
+        ["Básico", [["Olá / Bom dia", "Hola / Buenos días", "ola / buênos días"], ["Boa tarde / Boa noite", "Buenas tardes / Buenas noches", "buênas tárdes / buênas nóches"], ["Por favor", "Por favor", "por fabór"], ["Obrigado(a)", "Gracias", "grácias"], ["Desculpe / Com licença", "Perdón / Disculpe", "perdón / discúlpe"], ["Não falo espanhol, falo português", "No hablo español, hablo portugués", "no áblo español, áblo portuguêis"], ["Pode falar mais devagar?", "¿Puede hablar más despacio?", "puêde ablár más despácio"], ["Não entendi", "No entiendo", "no entiêndo"], ["Sim / Não", "Sí / No", "si / no"], ["Onde fica o banheiro?", "¿Dónde está el baño?", "dônde está el bánho"]]],
+        ["Restaurante", [["Uma mesa para dois, por favor", "Una mesa para dos, por favor", "úna mêsa para dôs, por fabór"], ["Pode me trazer o cardápio?", "¿Me trae la carta, por favor?", "me tráe la cárta, por fabór"], ["Eu quero isto", "Quiero esto", "quiêro ésto"], ["Água sem gás / com gás", "Agua sin gas / con gas", "água sin gás / con gás"], ["A conta, por favor", "La cuenta, por favor", "la cuênta, por fabór"], ["Posso pagar com cartão?", "¿Puedo pagar con tarjeta?", "puêdo pagár con tarrrrêta"], ["Tem opção sem glúten / sem lactose?", "¿Tiene opción sin gluten / sin lactosa?", "tiêne opción sin glúten / sin lactôsa"], ["Estava delicioso", "Estaba delicioso", "estába delicióso"]]],
+        ["Transporte e direções", [["Onde fica o metrô?", "¿Dónde está el metro?", "dônde está el métro"], ["Como chego a...?", "¿Cómo llego a...?", "cômo iégo a"], ["Um bilhete para..., por favor", "Un billete para..., por favor", "un bilhête para, por fabór"], ["É longe? Dá para ir a pé?", "¿Está lejos? ¿Se puede ir andando?", "está lérros? se puêde ir andándo"], ["À direita / À esquerda / Em frente", "A la derecha / A la izquierda / Todo recto", "a la derêcha / a la isquiêrda / tôdo récto"], ["Para o aeroporto, por favor", "Al aeropuerto, por favor", "al aeropuêrto, por fabór"]]],
+        ["Compras", [["Quanto custa?", "¿Cuánto cuesta?", "cuánto cuésta"], ["Tem em outro tamanho?", "¿Lo tiene en otra talla?", "lo tiêne en ótra táia"], ["Posso experimentar?", "¿Me lo puedo probar?", "me lo puêdo probár"], ["Só estou olhando, obrigado(a)", "Solo estoy mirando, gracias", "sólo estói mirándo, grácias"], ["Tem tax free?", "¿Hacen tax free?", "ácen tax free"]]],
+        ["Hotel", [["Tenho uma reserva no nome de...", "Tengo una reserva a nombre de...", "têngo úna resêrba a nômbre de"], ["Podemos deixar as malas aqui?", "¿Podemos dejar las maletas aquí?", "podêmos derrár las malêtas aquí"], ["Qual é a senha do wi-fi?", "¿Cuál es la contraseña del wifi?", "cuál es la contrasênha del uífi"], ["A que horas é o check-out?", "¿A qué hora es el check-out?", "a quê ôra es el tchec-áut"]]],
+        ["Emergência", [["Socorro!", "¡Ayuda!", "aiúda"], ["Chame a polícia / uma ambulância", "Llame a la policía / a una ambulancia", "iáme a la polícia / a úna ambulância"], ["Fui roubado(a)", "Me han robado", "me an robádo"], ["Preciso de um médico", "Necesito un médico", "necessíto un médico"], ["Onde fica a farmácia?", "¿Dónde hay una farmacia?", "dônde ái úna farmácia"], ["Sou alérgico(a) a...", "Soy alérgico(a) a...", "sôi alérrico a"]]]
+      ] },
+    { id: "ca", nome: "Catalão", onde: "Barcelona (o básico, para ser simpático)", voz: "ca-ES",
+      dica: "Não é obrigatório: em Barcelona todos entendem espanhol. Mas um \"bon dia\" e um \"gràcies\" em catalão são muito bem recebidos. Placas: \"Sortida\" = saída, \"Entrada\" = entrada, \"Tancat\" = fechado, \"Obert\" = aberto.",
+      grupos: [
+        ["Básico", [["Bom dia", "Bon dia", "bon día"], ["Boa tarde / Boa noite", "Bona tarda / Bona nit", "bôna tárda / bôna nit"], ["Por favor", "Si us plau", "si us pláu"], ["Obrigado(a)", "Gràcies / Moltes gràcies", "grássies / móltes grássies"], ["Tchau / Até logo", "Adéu / Fins ara", "adéu / fins ára"], ["Desculpe", "Perdó", "perdó"], ["A conta, por favor", "El compte, si us plau", "el cônte, si us pláu"], ["Saída", "Sortida", "surtída"], ["Onde fica o banheiro?", "On és el lavabo?", "on es el labábu"]]]
+      ] },
+    { id: "en", nome: "Inglês", onde: "Londres", voz: "en-GB",
+      dica: "Em Londres, \"please\", \"thank you\" e \"sorry\" abrem portas. Para chamar o garçom não se estala o dedo: faça contato visual e levante a mão. Nos pubs, o pedido é feito no balcão.",
+      grupos: [
+        ["Básico", [["Olá / Bom dia", "Hello / Good morning", "relôu / gud mórning"], ["Por favor", "Please", "plíz"], ["Obrigado(a)", "Thank you / Cheers", "thénk iú / tchíers"], ["Desculpe / Com licença", "Sorry / Excuse me", "sóri / eks-kiúz mi"], ["Não falo inglês muito bem", "I don't speak English very well", "ai dôunt spík ínglish véri uél"], ["Pode repetir, por favor?", "Could you repeat that, please?", "kud iú ripít dét, plíz"], ["Pode falar mais devagar?", "Could you speak more slowly?", "kud iú spík mór slôuli"], ["Onde fica o banheiro?", "Where is the toilet?", "uér iz de tóilet"]]],
+        ["Restaurante e pub", [["Uma mesa para dois, por favor", "A table for two, please", "a têibol for tú, plíz"], ["Posso ver o cardápio?", "Can I see the menu?", "kén ai sí de méniu"], ["Eu vou querer isto", "I'll have this, please", "ail rév dis, plíz"], ["Água da torneira, por favor", "Tap water, please", "tép uóter, plíz"], ["A conta, por favor", "Can we have the bill, please?", "kén ui rév de bil, plíz"], ["Para viagem / Para comer aqui", "Takeaway / Eat in", "têik-auei / ít in"], ["A gorjeta está incluída?", "Is service included?", "iz sêrvis inklúded"]]],
+        ["Transporte e direções", [["Onde fica a estação de metrô?", "Where is the tube station?", "uér iz de tiúb stêishon"], ["Como chego a...?", "How do I get to...?", "ráu du ai guét tu"], ["Esta linha vai para...?", "Does this line go to...?", "dâz dis láin gôu tu"], ["Qual plataforma?", "Which platform?", "uítch plétform"], ["À direita / À esquerda / Em frente", "Right / Left / Straight ahead", "ráit / léft / strêit arréd"], ["Cuidado com o vão (aviso do metrô)", "Mind the gap", "máind de guép"]]],
+        ["Compras", [["Quanto custa?", "How much is it?", "ráu mâtch iz it"], ["Tem em outro tamanho?", "Do you have this in another size?", "du iú rév dis in anâder sáiz"], ["Posso experimentar?", "Can I try it on?", "kén ai trái it on"], ["Só estou olhando, obrigado(a)", "I'm just looking, thanks", "áim djâst lúking, thénks"], ["Aceita cartão?", "Do you take card?", "du iú têik kárd"]]],
+        ["Hotel", [["Tenho uma reserva no nome de...", "I have a booking under the name...", "ai rév a búking ânder de nêim"], ["Podemos deixar as malas aqui?", "Can we leave our bags here?", "kén ui lív áuer bégz rír"], ["Qual é a senha do wi-fi?", "What's the wi-fi password?", "uóts de uái-fái pásuord"], ["A que horas é o check-out?", "What time is check-out?", "uót táim iz tchék-áut"]]],
+        ["Emergência", [["Socorro!", "Help!", "rélp"], ["Chame a polícia / uma ambulância", "Call the police / an ambulance", "kól de polís / an émbiulens"], ["Roubaram minha carteira", "My wallet was stolen", "mái uólet uóz stôulen"], ["Preciso de um médico", "I need a doctor", "ai níd a dóctor"], ["Onde fica a farmácia?", "Where is the pharmacy?", "uér iz de fármassi"], ["Sou alérgico(a) a...", "I'm allergic to...", "áim alérdjic tu"]]]
+      ] },
+    { id: "fr", nome: "Francês", onde: "Paris e Versalhes", voz: "fr-FR",
+      dica: "Em Paris, sempre comece com \"Bonjour\" ao entrar numa loja, café ou ao falar com alguém: sem isso, o atendimento costuma ser frio. Depois das 18h, use \"Bonsoir\".",
+      grupos: [
+        ["Básico", [["Bom dia / Olá", "Bonjour", "bonjúr"], ["Boa noite (ao chegar)", "Bonsoir", "bonsuár"], ["Por favor", "S'il vous plaît", "sil vu plé"], ["Obrigado(a) / Muito obrigado(a)", "Merci / Merci beaucoup", "mercí / mercí bocú"], ["Desculpe / Com licença", "Pardon / Excusez-moi", "pardôn / ekskuzê muá"], ["Tchau", "Au revoir", "ô revuár"], ["Não falo francês. Fala inglês?", "Je ne parle pas français. Vous parlez anglais ?", "je ne parl pá franssé. vu parlê anglé"], ["Não entendi", "Je ne comprends pas", "je ne comprân pá"], ["Sim / Não", "Oui / Non", "uí / nôn"], ["Onde fica o banheiro?", "Où sont les toilettes ?", "u sôn le tualét"]]],
+        ["Restaurante e café", [["Uma mesa para dois, por favor", "Une table pour deux, s'il vous plaît", "un tábl pur dê, sil vu plé"], ["O cardápio, por favor", "La carte, s'il vous plaît", "la kárt, sil vu plé"], ["Eu vou querer isto", "Je vais prendre ça", "je vé prândr sá"], ["Uma jarra de água (grátis)", "Une carafe d'eau", "un karáf dô"], ["Um café / Um croissant", "Un café / Un croissant", "ân kafê / ân kruassân"], ["A conta, por favor", "L'addition, s'il vous plaît", "ladissiôn, sil vu plé"], ["Posso pagar com cartão?", "Je peux payer par carte ?", "je pê peiê par kárt"], ["Estava delicioso", "C'était délicieux", "setê delissiê"]]],
+        ["Transporte e direções", [["Onde fica o metrô?", "Où est le métro ?", "u é le metrô"], ["Como chego a...?", "Comment aller à... ?", "komân alê a"], ["Um bilhete, por favor", "Un ticket, s'il vous plaît", "ân tiquê, sil vu plé"], ["É longe?", "C'est loin ?", "sé luân"], ["À direita / À esquerda / Em frente", "À droite / À gauche / Tout droit", "a druát / a gôch / tu druá"], ["Saída", "Sortie", "sortí"]]],
+        ["Compras", [["Quanto custa?", "Combien ça coûte ?", "kombiân sa kút"], ["Tem em outro tamanho?", "Vous l'avez dans une autre taille ?", "vu lavê dân zun ôtr tái"], ["Posso experimentar?", "Je peux l'essayer ?", "je pê lesseiê"], ["Só estou olhando, obrigado(a)", "Je regarde seulement, merci", "je regárd sêlmân, mercí"], ["Tem tax free (détaxe)?", "Vous faites la détaxe ?", "vu fét la detáx"]]],
+        ["Hotel", [["Tenho uma reserva no nome de...", "J'ai une réservation au nom de...", "jé un rezervassiôn ô nôm de"], ["Podemos deixar as malas aqui?", "On peut laisser nos bagages ici ?", "ôn pê lessê nô bagáj issí"], ["Qual é a senha do wi-fi?", "Quel est le code wifi ?", "kél é le kód uifí"], ["A que horas é o check-out?", "À quelle heure est le départ ?", "a kél êr é le depár"]]],
+        ["Emergência", [["Socorro!", "Au secours !", "ô sekúr"], ["Chame a polícia / uma ambulância", "Appelez la police / une ambulance", "aplê la polís / un ambulâns"], ["Fui roubado(a)", "On m'a volé", "ôn ma volê"], ["Preciso de um médico", "J'ai besoin d'un médecin", "jé bezuân dân medsân"], ["Onde fica a farmácia?", "Où est la pharmacie ?", "u é la farmassí"], ["Sou alérgico(a) a...", "Je suis allergique à...", "je suí alerjík a"]]]
+      ] }
+  ];
+  var idiomaSel = "es", idiomaBusca = "";
+  document.addEventListener("input", function (e) {
+    if (e.target.id !== "idioma-busca") return;
+    idiomaBusca = e.target.value; var pos = e.target.selectionStart; render();
+    var el = $("idioma-busca"); if (el) { el.focus(); try { el.setSelectionRange(pos, pos); } catch (x) {} }
+  });
+  try { idiomaSel = localStorage.getItem("kauri-idioma") || "es"; } catch (e) {}
+  var podeFalar = !!(window.speechSynthesis && window.SpeechSynthesisUtterance);
+  function falar(txt, lang) {
+    if (!podeFalar) return;
+    try { speechSynthesis.cancel(); var u = new SpeechSynthesisUtterance(txt.replace(/\.\.\./g, "")); u.lang = lang; u.rate = 0.85; speechSynthesis.speak(u); } catch (e) { toast("Não foi possível tocar o áudio aqui."); }
+  }
+  function viewIdiomas() {
+    var L = IDIOMAS.filter(function (x) { return x.id === idiomaSel; })[0] || IDIOMAS[0];
+    var q = idiomaBusca.trim().toLowerCase();
+    var html = '<div class="section-head"><div><h2>Idiomas</h2><p>Frases prontas para se virar em cada cidade, com pronúncia aproximada' + (podeFalar ? " e botão para ouvir" : "") + '.</p></div></div>' +
+      '<div class="lang-chips">' + IDIOMAS.map(function (x) { return '<button type="button" data-idioma="' + x.id + '" aria-pressed="' + (x.id === L.id) + '"><b>' + esc(x.nome) + "</b><span>" + esc(x.onde) + "</span></button>"; }).join("") + "</div>" +
+      '<div class="note-lang">' + esc(L.dica) + "</div>" +
+      '<input type="search" id="idioma-busca" class="lang-search" placeholder="Buscar frase (ex.: conta, banheiro, metrô)" value="' + esc(idiomaBusca) + '">';
+    var achou = 0;
+    L.grupos.forEach(function (g) {
+      var fr = g[1].filter(function (f) { return !q || (f[0] + " " + f[1]).toLowerCase().indexOf(q) >= 0; });
+      if (!fr.length) return;
+      achou += fr.length;
+      html += '<div class="group-label">' + esc(g[0]) + '</div><div class="phrases">' + fr.map(function (f) {
+        return '<div class="phrase"><div class="ph-pt">' + esc(f[0]) + '</div><div class="ph-loc">' + esc(f[1]) + '</div><div class="ph-pron">fala-se: ' + esc(f[2]) + "</div>" +
+          (podeFalar ? '<button type="button" class="ph-play" data-falar="' + esc(f[1]) + '" data-lang="' + L.voz + '" aria-label="Ouvir">' + ic("play") + "Ouvir</button>" : "") + "</div>";
+      }).join("") + "</div>";
+    });
+    if (!achou) html += '<div class="empty"><h3>Nenhuma frase encontrada</h3><p>Tente outra palavra.</p></div>';
     return html;
   }
 
@@ -2494,6 +2581,8 @@ a.btn-primary { color: var(--on-wine); }
     if (t.id === "btn-search") { searchPlace(currentTrip()); return; }
     if (ds.doc) { openDoc(ds.doc); return; }
     if (ds.conta != null) { openConta(ds.conta); return; }
+    if (ds.idioma) { idiomaSel = ds.idioma; idiomaBusca = ""; try { localStorage.setItem("kauri-idioma", idiomaSel); } catch (x) {} render(); return; }
+    if (ds.falar) { falar(ds.falar, ds.lang); return; }
     if (ds.cknew != null) { openCkNew(ds.cknew); return; }
     if (ds.ckdel) {
       if (!t.classList.contains("armed")) { t.classList.add("armed"); t.textContent = "Excluir?"; return; }
