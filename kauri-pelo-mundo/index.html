@@ -357,6 +357,11 @@ tr.total td { font-weight: 800; border-bottom: 0; }
 .ai-row { display: flex; gap: 8px; align-items: flex-end; }
 .ai-row textarea { flex: 1; min-width: 0; resize: none; border: 1px solid var(--line); border-radius: 12px; padding: 9px 11px; min-height: 44px; max-height: 120px; background: var(--bg); }
 .ai-hint { font-size: 11px; color: var(--muted); }
+.quick-form { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.quick-form .full { grid-column: 1 / -1; }
+.quick-form .field { display: grid; gap: 4px; }
+.quick-form label { font-size: 12px; font-weight: 700; color: var(--muted); }
+.quick-form input, .quick-form select { border: 1px solid var(--line); border-radius: 10px; padding: 9px 10px; background: var(--surface); width: 100%; min-width: 0; }
 .ai-sugs { display: flex; gap: 6px; flex-wrap: wrap; }
 .ai-sugs button { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 5px 10px; font-size: 12px; font-weight: 600; color: var(--muted); }
 @media (max-width: 600px) { .ai-panel { inset: 0; width: auto; height: auto; border-radius: 0; border: 0; padding-top: env(safe-area-inset-top, 0px); } .ai-fab { padding: 12px 14px; } }
@@ -932,7 +937,7 @@ a.btn-primary { color: var(--on-wine); }
     renderTabs(trip);
     renderMain(trip);
     $("fab").hidden = !trip;
-    $("ai-fab").hidden = !sampler || !trip || ai.open;
+    $("ai-fab").hidden = !trip || ai.open;
   }
 
   function renderPicker(trip) {
@@ -1946,9 +1951,10 @@ a.btn-primary { color: var(--on-wine); }
   var AI_SUGS = ["Hoje gastamos 38 euros no almoço", "Comprei um perfume por 85 euros", "Quanto temos no caixa?"];
   function renderAI() {
     var fab = $("ai-fab"), panel = $("ai-panel"), trip = currentTrip();
-    fab.hidden = !sampler || !trip || ai.open;
+    fab.hidden = !trip || ai.open;
     panel.hidden = !ai.open;
     if (!ai.open) return;
+    if (!sampler) { renderQuick(panel, trip); return; }
     var draft = ($("ai-text") || {}).value || "";
     panel.innerHTML = '<div class="ai-head"><div><h2>Assistente da viagem</h2><p>Lança gastos, marca o que já fizeram e responde dúvidas</p></div><button type="button" class="x" data-aiclose="1" aria-label="Fechar">×</button></div>' +
       '<div class="ai-msgs" id="ai-msgs">' + ai.msgs.map(function (m, i) {
@@ -1964,6 +1970,31 @@ a.btn-primary { color: var(--on-wine); }
       '<div class="ai-hint">Para falar: toque no microfone do teclado do celular e dite a mensagem.</div></form>';
     var box = $("ai-msgs"); box.scrollTop = box.scrollHeight;
   }
+  // Sem a IA nesta tela (ex.: app do celular): lançamento rápido manual de gasto, com baixa opcional no caixa
+  function renderQuick(panel, trip) {
+    var hoje = today(), dia = hoje >= trip.inicio && hoje <= trip.fim ? hoje : trip.inicio;
+    var contas = tripContas(trip.id);
+    panel.innerHTML = '<div class="ai-head"><div><h2>Lançar gasto</h2><p>Lançamento rápido, direto no app</p></div><button type="button" class="x" data-aiclose="1" aria-label="Fechar">×</button></div>' +
+      '<div class="ai-msgs"><div class="msg bot">A assistente de IA não abriu nesta tela. Ela funciona quando o app é aberto pelo navegador em claude.ai (no computador ou no Safari/Chrome do celular). Enquanto isso, lance o gasto aqui:</div>' +
+      '<form id="quick-form" class="quick-form">' +
+      '<div class="field"><label for="q-valor">Valor</label><input id="q-valor" type="number" step="0.01" min="0" inputmode="decimal" required></div>' +
+      '<div class="field"><label for="q-moeda">Moeda</label><select id="q-moeda">' + ["EUR", "GBP", "BRL", "USD"].map(function (m) { return "<option>" + m + "</option>"; }).join("") + "</select></div>" +
+      '<div class="field"><label for="q-cat">Categoria</label><select id="q-cat">' + GASTO_CATS.map(function (c) { return "<option>" + esc(c) + "</option>"; }).join("") + "</select></div>" +
+      '<div class="field"><label for="q-data">Dia</label><input id="q-data" type="date" value="' + esc(dia) + '"></div>' +
+      '<div class="field full"><label for="q-desc">Descrição</label><input id="q-desc" placeholder="Ex.: almoço na Boqueria"></div>' +
+      '<div class="field full"><label for="q-conta">Pago com (opcional: desconta do Caixa)</label><select id="q-conta"><option value="">Não descontar</option>' + contas.map(function (c) { return '<option value="' + esc(c.id) + '">' + esc(c.nome + " (" + (c.moeda || "BRL") + ")") + "</option>"; }).join("") + "</select></div>" +
+      '<button type="submit" class="btn btn-primary full">Lançar gasto</button></form></div>';
+  }
+  document.addEventListener("submit", function (e) {
+    if (e.target.id !== "quick-form") return;
+    e.preventDefault();
+    var trip = currentTrip(); if (!trip) return;
+    var v = Math.round(num($("q-valor").value) * 100) / 100; if (!(v > 0)) { toast("Informe o valor."); return; }
+    var a = { tipo: "gasto", data: $("q-data").value || today(), categoria: $("q-cat").value, valor: v, moeda: $("q-moeda").value, descricao: $("q-desc").value.trim() };
+    var cid = $("q-conta").value, ps = [saveDoc("gastos", newId(), { viagemId: trip.id, data: a.data, categoria: a.categoria, valor: a.valor, moeda: a.moeda, descricao: a.descricao, origem: "rapido", criadoEm: new Date().toISOString() })];
+    if (cid) { var nv = novoSaldo({ contaId: cid, operacao: "subtrair", valor: v, moeda: a.moeda }); if (nv == null) { toast("Falta a cotação de " + a.moeda + " na aba Custos para descontar do caixa."); return; } ps.push(patchDoc("contas", cid, { saldo: nv, atualizadoEm: new Date().toISOString() })); }
+    Promise.all(ps).then(function () { toast("Gasto lançado" + (cid ? " e caixa atualizado" : "")); $("q-valor").value = ""; $("q-desc").value = ""; }).catch(function (x) { toast(errMsg(x)); });
+  });
   function descAcao(a, run) {
     run = run || {};
     if (a.tipo === "gasto") return "Gasto: " + money(num(a.valor), a.moeda || "EUR") + " · " + (a.categoria || "Outros") + " · " + fmtDay(a.data) + (a.descricao ? " · " + a.descricao : "");
