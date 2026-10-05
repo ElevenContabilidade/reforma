@@ -24,6 +24,20 @@
   --color-gold-500: #c9922b;
 }
 
+/*
+ * "impresso:" vale na impressão e também na página de impressão gerada
+ * (classe .modo-impressao), para que a medição do "caber em uma página"
+ * use o mesmo layout compacto que vai para o papel.
+ */
+@custom-variant impresso {
+  @media print {
+    @slot;
+  }
+  &:where(.modo-impressao, .modo-impressao *) {
+    @slot;
+  }
+}
+
 html {
   color-scheme: light;
 }

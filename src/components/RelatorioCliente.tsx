@@ -68,7 +68,7 @@ function Kpi({ rotulo, valor, detalhe, destaque }: { rotulo: string; valor: stri
   return (
     <div className={`rounded-xl border p-4 ${destaque ? 'border-brand-700 bg-brand-700 text-white' : 'border-stone-200 bg-white'}`}>
       <p className={`text-[11px] font-semibold uppercase tracking-wide ${destaque ? 'text-gold-200' : 'text-stone-500'}`}>{rotulo}</p>
-      <p className={`mt-1 text-xl font-semibold tabular-nums print:text-base ${destaque ? 'text-white' : 'text-stone-900'}`}>{valor}</p>
+      <p className={`mt-1 text-xl font-semibold tabular-nums impresso:text-base ${destaque ? 'text-white' : 'text-stone-900'}`}>{valor}</p>
       {detalhe && <p className={`mt-0.5 text-xs ${destaque ? 'text-brand-100' : 'text-stone-500'}`}>{detalhe}</p>}
     </div>
   );
@@ -76,8 +76,8 @@ function Kpi({ rotulo, valor, detalhe, destaque }: { rotulo: string; valor: stri
 
 function Secao({ titulo, children, className }: { titulo: string; children: ReactNode; className?: string }) {
   return (
-    <section className={`print-avoid-break rounded-xl border border-stone-200 bg-white p-5 ${className ?? ''}`}>
-      <h3 className="mb-3 border-l-4 border-gold-400 pl-2 text-sm font-semibold uppercase tracking-wide text-brand-800">{titulo}</h3>
+    <section className={`print-avoid-break rounded-xl border border-stone-200 bg-white p-5 impresso:p-3 ${className ?? ''}`}>
+      <h3 className="mb-3 impresso:mb-2 border-l-4 border-gold-400 pl-2 text-sm font-semibold uppercase tracking-wide text-brand-800">{titulo}</h3>
       {children}
     </section>
   );
@@ -313,7 +313,7 @@ export function RelatorioCliente({ cnpjSugerido }: { cnpjSugerido?: string }) {
 
           <div className="flex flex-wrap gap-2">
             <button
-              onClick={() => imprimirAreaImpressao(`Relatório ${atual.competencia} - ${empresa.razaoSocial}`)}
+              onClick={() => imprimirAreaImpressao(`Relatório ${atual.competencia} - ${empresa.razaoSocial}`, { umaPagina: true })}
               className="inline-flex items-center gap-1.5 rounded-lg bg-brand-700 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-brand-800"
             >
               <Printer className="h-4 w-4" />
@@ -384,10 +384,10 @@ export function RelatorioCliente({ cnpjSugerido }: { cnpjSugerido?: string }) {
     <div className="space-y-6">
       {painel}
 
-      <article className="space-y-4 rounded-2xl border border-stone-200 bg-stone-50 p-4 sm:p-6 print:border-0 print:bg-white print:p-0">
+      <article className="space-y-4 impresso:space-y-2.5 rounded-2xl border border-stone-200 bg-stone-50 p-4 sm:p-6 impresso:border-0 impresso:bg-white impresso:p-0">
         {/* Cabeçalho do documento */}
         <header className="print-avoid-break overflow-hidden rounded-xl bg-brand-900 text-white">
-          <div className="flex flex-col gap-4 px-5 py-5 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-4 px-5 py-5 impresso:py-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3">
               <EleveIcon className="h-12 w-12 shrink-0" />
               <div>
@@ -454,7 +454,7 @@ export function RelatorioCliente({ cnpjSugerido }: { cnpjSugerido?: string }) {
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Secao titulo="Faturamento mensal">
-            <div className="h-56 w-full">
+            <div className="h-56 w-full impresso:h-40">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={dadosFaturamento} margin={{ top: 8, right: 4, left: 0, bottom: 0 }}>
                   <CartesianGrid stroke={GRADE} vertical={false} />
@@ -478,7 +478,7 @@ export function RelatorioCliente({ cnpjSugerido }: { cnpjSugerido?: string }) {
           <Secao titulo="Evolução do faturamento nos últimos 12 meses">
             {dados12m.length > 1 ? (
               <>
-                <div className="h-56 w-full">
+                <div className="h-56 w-full impresso:h-40">
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={dados12m} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
                       <CartesianGrid stroke={GRADE} vertical={false} />
@@ -522,7 +522,7 @@ export function RelatorioCliente({ cnpjSugerido }: { cnpjSugerido?: string }) {
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Secao titulo="Para onde vai o imposto do mês">
             <div className="flex items-center gap-3">
-              <div className="h-40 w-40 shrink-0 print:h-28 print:w-28">
+              <div className="h-40 w-40 shrink-0 impresso:h-28 impresso:w-28">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie data={dadosTributos} dataKey="valor" nameKey="nome" innerRadius="55%" outerRadius="95%" paddingAngle={1} isAnimationActive={false}>
@@ -557,7 +557,7 @@ export function RelatorioCliente({ cnpjSugerido }: { cnpjSugerido?: string }) {
           </Secao>
 
           <Secao titulo="Imposto pago por mês">
-            <div className="h-48 w-full">
+            <div className="h-48 w-full impresso:h-36">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={dadosImposto} margin={{ top: 8, right: 0, left: 0, bottom: 0 }}>
                   <CartesianGrid stroke={GRADE} vertical={false} />
@@ -599,12 +599,12 @@ export function RelatorioCliente({ cnpjSugerido }: { cnpjSugerido?: string }) {
             <table className="w-full min-w-[560px] text-xs">
               <thead>
                 <tr className="border-b border-stone-200 text-left text-stone-500">
-                  <th className="py-2 font-medium">Competência</th>
-                  <th className="py-2 text-right font-medium">Faturamento</th>
-                  <th className="py-2 text-right font-medium">DAS</th>
-                  <th className="py-2 text-right font-medium">% imposto</th>
-                  <th className="py-2 pl-3 font-medium">Vencimento</th>
-                  <th className="py-2 font-medium">Situação</th>
+                  <th className="py-2 impresso:py-1 font-medium">Competência</th>
+                  <th className="py-2 impresso:py-1 text-right font-medium">Faturamento</th>
+                  <th className="py-2 impresso:py-1 text-right font-medium">DAS</th>
+                  <th className="py-2 impresso:py-1 text-right font-medium">% imposto</th>
+                  <th className="py-2 impresso:py-1 pl-3 font-medium">Vencimento</th>
+                  <th className="py-2 impresso:py-1 font-medium">Situação</th>
                   <th className="no-print py-2" />
                 </tr>
               </thead>
@@ -613,15 +613,15 @@ export function RelatorioCliente({ cnpjSugerido }: { cnpjSugerido?: string }) {
                   const situacao = situacaoDas(a);
                   return (
                     <tr key={a.competencia} className={`border-b border-stone-100 last:border-0 ${a.competencia === atual.competencia ? 'bg-gold-50' : ''}`}>
-                      <td className="py-2 font-medium text-stone-800">
+                      <td className="py-2 impresso:py-1 font-medium text-stone-800">
                         {a.competencia}
                         {a.retificadora && <span className="ml-1 text-[10px] text-stone-400">(retificada)</span>}
                       </td>
-                      <td className="py-2 text-right tabular-nums">{formatarMoeda(a.receitaPA)}</td>
-                      <td className="py-2 text-right tabular-nums">{formatarMoeda(a.valorDas)}</td>
-                      <td className="py-2 text-right tabular-nums">{a.receitaPA > 0 ? formatarPercentual((a.valorDas / a.receitaPA) * 100) : '—'}</td>
-                      <td className="py-2 pl-3 tabular-nums">{formatarData(vencimentoDas(a.competencia))}</td>
-                      <td className="py-2">
+                      <td className="py-2 impresso:py-1 text-right tabular-nums">{formatarMoeda(a.receitaPA)}</td>
+                      <td className="py-2 impresso:py-1 text-right tabular-nums">{formatarMoeda(a.valorDas)}</td>
+                      <td className="py-2 impresso:py-1 text-right tabular-nums">{a.receitaPA > 0 ? formatarPercentual((a.valorDas / a.receitaPA) * 100) : '—'}</td>
+                      <td className="py-2 impresso:py-1 pl-3 tabular-nums">{formatarData(vencimentoDas(a.competencia))}</td>
+                      <td className="py-2 impresso:py-1">
                         <span className={`inline-block rounded-full px-2 py-0.5 text-[11px] font-semibold ${ESTILO_SITUACAO[situacao]}`}>
                           {ROTULO_SITUACAO[situacao]}
                           {situacao === 'pago' && a.dataPagamento ? ` em ${isoParaBr(a.dataPagamento)}` : ''}
@@ -685,14 +685,14 @@ export function RelatorioCliente({ cnpjSugerido }: { cnpjSugerido?: string }) {
           </Secao>
         )}
 
-        <Secao titulo="Observações da contabilidade">
+        <Secao titulo="Observações da contabilidade" className={empresa.observacoes?.trim() ? '' : 'impresso:hidden'}>
           <textarea
             className="no-print min-h-20 w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500"
             placeholder="Escreva aqui uma orientação para o cliente (aparece no relatório impresso)."
             value={empresa.observacoes ?? ''}
             onChange={(e) => setCarteira(atualizarEmpresa(carteira, empresa.cnpj, { observacoes: e.target.value }))}
           />
-          <p className="hidden whitespace-pre-line text-sm text-stone-700 print:block">
+          <p className="hidden whitespace-pre-line text-sm text-stone-700 impresso:block">
             {empresa.observacoes?.trim() || 'Sem observações adicionais para esta competência.'}
           </p>
         </Secao>
