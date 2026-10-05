@@ -220,7 +220,8 @@ export function RelatorioCliente({ cnpjSugerido }: { cnpjSugerido?: string }) {
       <div>
         <h2 className="text-base font-semibold text-stone-900">Relatório mensal do cliente</h2>
         <p className="text-sm text-stone-500">
-          Envie um ou mais PDFs da declaração do PGDAS-D (um por competência). Quanto mais meses enviar, mais completo fica o
+          Envie um ou mais PDFs da declaração ou do extrato do PGDAS-D (um por competência). Pelo extrato, a data e o valor
+          pagos do DAS são preenchidos automaticamente. Quanto mais meses enviar, mais completo fica o
           histórico de impostos. Os dados ficam salvos neste navegador, separados por CNPJ.
         </p>
       </div>
@@ -629,6 +630,9 @@ export function RelatorioCliente({ cnpjSugerido }: { cnpjSugerido?: string }) {
                           {ROTULO_SITUACAO[situacao]}
                           {situacao === 'pago' && a.dataPagamento ? ` em ${isoParaBr(a.dataPagamento)}` : ''}
                         </span>
+                        {a.valorPago !== undefined && a.valorPago < a.valorDas - 0.05 && (
+                          <span className="ml-1 text-[11px] text-stone-500">pago parcial: {formatarMoeda(a.valorPago)}</span>
+                        )}
                       </td>
                       <td className="no-print py-2">
                         <div className="flex items-center justify-end gap-1.5">
@@ -667,7 +671,7 @@ export function RelatorioCliente({ cnpjSugerido }: { cnpjSugerido?: string }) {
             </table>
           </div>
           <p className="mt-2 text-[11px] text-stone-500">
-            A situação do pagamento é conferida pela contabilidade no PGDAS-D / e-CAC. "Não confirmado" indica guia vencida cujo pagamento ainda não
+            A situação do pagamento vem do extrato do PGDAS-D ou é conferida pela contabilidade no e-CAC. "Não confirmado" indica guia vencida cujo pagamento ainda não
             foi verificado.
           </p>
         </Secao>

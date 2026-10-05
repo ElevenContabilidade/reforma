@@ -114,6 +114,7 @@ export interface ApuracaoPgdas {
   dataTransmissao?: string; // DD/MM/AAAA
   status: StatusPagamento;
   dataPagamento?: string; // AAAA-MM-DD
+  valorPago?: number; // soma dos pagamentos lidos do extrato do PGDAS-D
 }
 
 /** Histórico de apurações de uma empresa, agrupado pelo CNPJ. */

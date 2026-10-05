@@ -60,12 +60,36 @@ function tributosDoTexto(texto: string): { tributos: Partial<Record<TributoDas, 
   return { tributos, total: valores[8] };
 }
 
+/**
+ * Pagamentos do bloco "Informações da Arrecadação do DAS" do extrato do
+ * PGDAS-D (linhas "Data de Pagamento  Banco/Agência  Valor Pago").
+ */
+function pagamentosDoTexto(texto: string): { data: string; valor: number }[] {
+  const inicio = texto.search(/Informa[çc][õo]es da Arrecada[çc][ãa]o do DAS/i);
+  if (inicio < 0) return [];
+  const resto = texto.slice(inicio + 20);
+  // O bloco termina no próximo título numerado (ex.: "6.3)", "7)") ou no rodapé da página.
+  const fim = resto.search(/ \d{1,2}(?:\.\d{1,2})*\) [A-ZÀ-Ú]| P[áa]gina \d/);
+  const bloco = fim >= 0 ? resto.slice(0, fim) : resto.slice(0, 1500);
+  const pagamentos: { data: string; valor: number }[] = [];
+  for (const m of bloco.matchAll(new RegExp(`(\\d{2})\\/(\\d{2})\\/(\\d{4}) \\S+ ${NUM}`, 'g'))) {
+    pagamentos.push({ data: `${m[3]}-${m[2]}-${m[1]}`, valor: paraNumero(m[4]) });
+  }
+  return pagamentos;
+}
+
 function anexosDoTexto(textoNormalizado: string): AnexoSimples[] {
   const encontrados = new Set<AnexoSimples>();
   for (const m of textoNormalizado.matchAll(/tributad[ao]s pelo anexo (i{1,3}v?|v)\b/g)) {
     encontrados.add(m[1].toUpperCase() as AnexoSimples);
   }
   return [...encontrados];
+}
+
+/** Valor do débito no "Resumo da Declaração" (2º número após o rótulo). */
+function resumo(texto: string): number | undefined {
+  const m = texto.match(new RegExp(`Valor Total do D[ée]bito Declarado \\(R\\$\\) ${NUM} ${NUM}`, 'i'));
+  return m ? paraNumero(m[2]) : undefined;
 }
 
 /** "09/2026" -> "2026-09" (ordenável). */
@@ -85,7 +109,11 @@ export function interpretarDeclaracao(texto: string): ApuracaoPgdas | undefined 
 
   const textoNormalizado = normalizar(texto);
   const { tributos, total } = tributosDoTexto(texto);
-  const resumo = texto.match(new RegExp(`Valor Total do D[ée]bito Declarado \\(R\\$\\) ${NUM} ${NUM}`, 'i'));
+  const pagamentos = pagamentosDoTexto(texto);
+  const valorPago = pagamentos.reduce((s, p) => s + p.valor, 0);
+  const valorDas = total ?? (resumo(texto) ?? 0);
+  // Considera quitado quando o total pago cobre o DAS (centavos de tolerância).
+  const quitado = pagamentos.length > 0 && valorPago >= valorDas - 0.05;
 
   return {
     competencia,
@@ -98,13 +126,15 @@ export function interpretarDeclaracao(texto: string): ApuracaoPgdas | undefined 
     rbt12: linhaReceita(texto, 'anteriores ao PA \\(RBT12\\)') ?? 0,
     rba: linhaReceita(texto, 'corrente \\(RBA\\)'),
     rbaa: linhaReceita(texto, 'anterior \\(RBAA\\)'),
-    valorDas: total ?? (resumo ? paraNumero(resumo[2]) : 0),
+    valorDas,
     tributos,
     receitasAnteriores: receitasAnteriores(texto),
     fatorR: texto.match(/Fator r = (.+?) 2\.5\)/i)?.[1]?.trim(),
     numeroDeclaracao: texto.match(/N[ºo°] da Declara[çc][ãa]o:? (\d+)/i)?.[1],
     retificadora: /Declara[çc][ãa]o Retificadora/i.test(texto),
     dataTransmissao: texto.match(/transmiss[ãa]o da Declara[çc][ãa]o:? (\d{2}\/\d{2}\/\d{4})/i)?.[1],
-    status: 'nao-informado',
+    status: quitado ? 'pago' : pagamentos.length > 0 ? 'aberto' : 'nao-informado',
+    dataPagamento: pagamentos.length > 0 ? pagamentos.map((p) => p.data).sort().at(-1) : undefined,
+    valorPago: pagamentos.length > 0 ? valorPago : undefined,
   };
 }

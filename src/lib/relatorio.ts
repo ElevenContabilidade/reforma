@@ -49,9 +49,11 @@ export function incluirApuracoes(lista: CarteiraEmpresa[], novas: ApuracaoPgdas[
     }
     if (nova.razaoSocial) empresa.razaoSocial = nova.razaoSocial;
     const existente = empresa.apuracoes.find((a) => a.competencia === nova.competencia);
-    const mesclada: ApuracaoPgdas = existente
-      ? { ...nova, status: existente.status, dataPagamento: existente.dataPagamento }
-      : nova;
+    // Pagamento lido do extrato prevalece; sem ele, mantém o que já foi marcado à mão.
+    const mesclada: ApuracaoPgdas =
+      existente && !nova.dataPagamento
+        ? { ...nova, status: existente.status, dataPagamento: existente.dataPagamento, valorPago: existente.valorPago }
+        : nova;
     empresa.apuracoes = ordenar([...empresa.apuracoes.filter((a) => a.competencia !== nova.competencia), mesclada]);
   }
   return gravarCarteira(resultado);
