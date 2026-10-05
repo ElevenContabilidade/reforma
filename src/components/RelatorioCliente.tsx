@@ -590,10 +590,6 @@ export function RelatorioCliente({ cnpjSugerido }: { cnpjSugerido?: string }) {
                 </BarChart>
               </ResponsiveContainer>
             </div>
-            <p className="mt-1 text-xs text-stone-500">
-              Em cada barra: o valor do imposto pago no mês e quanto ele representa do faturamento (ex.: 6% = R$ 6,00 de imposto a
-              cada R$ 100,00 faturados).
-            </p>
           </Secao>
         </div>
 
