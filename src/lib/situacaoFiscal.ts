@@ -23,22 +23,25 @@ function limparReceita(bruto: string): string {
 }
 
 function debitosSief(texto: string): PendenciaFiscal[] {
-  const bloco = recortarBloco(texto, /Pend[êe]ncia ?- ?D[ée]bito \(SIEF\)/i);
+  const bloco = recortarBloco(texto, /Pend[êe]ncia ?- ?D[ée]bito ?\(SIEF\)/i);
   if (!bloco) return [];
-  const re = new RegExp(`(.+?) ${PA} ${DATA} ${NUM} ${NUM} ${NUM} ${NUM} ${NUM} ${SITUACAO}(?= |$)`, 'g');
+  // Colunas: Vl. Original, Sdo. Devedor, Multa, Juros, Sdo. Dev. Cons. (aceita linhas com menos colunas).
+  const re = new RegExp(`(.+?) ${PA} ${DATA}((?: ${NUM}){1,6}) ${SITUACAO}(?= |$)`, 'gi');
   const pendencias: PendenciaFiscal[] = [];
   for (const m of bloco.matchAll(re)) {
+    const v = m[6].trim().split(' ').map(paraNumero);
+    const cinco = v.length >= 5;
     pendencias.push({
       origem: 'receita',
       receita: limparReceita(m[1]),
       competencia: m[2],
       vencimento: `${m[5]}-${m[4]}-${m[3]}`,
-      valorOriginal: paraNumero(m[6]),
-      saldoDevedor: paraNumero(m[7]),
-      multa: paraNumero(m[8]),
-      juros: paraNumero(m[9]),
-      total: paraNumero(m[10]),
-      situacao: m[11],
+      valorOriginal: v[0],
+      saldoDevedor: v.length >= 2 ? v[1] : v[0],
+      multa: cinco ? v[2] : undefined,
+      juros: cinco ? v[3] : undefined,
+      total: v[v.length - 1],
+      situacao: m[m.length - 1].toUpperCase(),
     });
   }
   return pendencias;
@@ -71,17 +74,27 @@ function inscricoesPgfn(texto: string): PendenciaFiscal[] {
  * undefined quando o PDF não é esse relatório.
  */
 export function interpretarSituacaoFiscal(texto: string, hoje = new Date()): SituacaoFiscal | undefined {
-  if (!/Diagn[óo]stico Fiscal|Situa[çc][ãa]o Fiscal/i.test(texto)) return undefined;
-  const cnpj = texto.match(/CNPJ:? (\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2})/)?.[1] ?? texto.match(/CNPJ:? (\d{2}\.\d{3}\.\d{3})/)?.[1];
+  if (!/Diagn[óo]stico Fiscal|Situa[çc][ãa]o Fiscal|Pend[êe]ncia ?- ?D[ée]bito/i.test(texto)) return undefined;
+  // Prioriza o CNPJ da empresa consultada (cabeçalho "CNPJ: 47.507.147 - NOME" e
+  // "Dados Cadastrais da Matriz"); o primeiro CNPJ do PDF pode ser o do certificado.
+  const cnpj =
+    texto.match(/Dados Cadastrais da Matriz[ _]*CNPJ:? (\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2})/i)?.[1] ??
+    texto.match(/CNPJ:? (\d{2}\.\d{3}\.\d{3}) - /)?.[1] ??
+    texto.match(/CNPJ:? (\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2})/)?.[1];
   if (!cnpj) return undefined;
   const emissao = texto.match(new RegExp(`(?:Data da consulta|Data de emiss[ãa]o|Emitido em|Data):? ${DATA}`, 'i'));
   const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   return {
     cnpj,
-    razaoSocial: texto.match(/CNPJ:? \d{2}\.\d{3}\.\d{3} - (.+?) Dados Cadastrais/i)?.[1]?.trim() ?? '',
+    razaoSocial: texto.match(/CNPJ:? \d{2}\.\d{3}\.\d{3} - (.+?) Dados Cadastrais/i)?.[1]?.replace(/[ _]+$/, '').trim() ?? '',
     dataReferencia: emissao ? `${emissao[3]}-${emissao[2]}-${emissao[1]}` : iso(hoje),
     pendencias: [...debitosSief(texto), ...inscricoesPgfn(texto)],
   };
+}
+
+/** Indica débitos no texto que a leitura da tabela não conseguiu extrair. */
+export function pareceTerDebitos(texto: string): boolean {
+  return /Pend[êe]ncia ?- ?(?:D[ée]bito|Inscri[çc][ãa]o)/i.test(texto);
 }
 
 /** Competências (MM/AAAA) de DAS que a Receita aponta como devedoras. */

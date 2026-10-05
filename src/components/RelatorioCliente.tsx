@@ -20,7 +20,7 @@ import type { ApuracaoPgdas, CarteiraEmpresa, PendenciaFiscal, StatusPagamento }
 import { TRIBUTOS_DAS } from '../lib/types';
 import { lerTextoPdf } from '../lib/pgdasParser';
 import { interpretarDeclaracao, chaveCompetencia } from '../lib/apuracaoPgdas';
-import { competenciasDasDevedoras, interpretarSituacaoFiscal } from '../lib/situacaoFiscal';
+import { competenciasDasDevedoras, interpretarSituacaoFiscal, pareceTerDebitos } from '../lib/situacaoFiscal';
 import {
   atualizarApuracao,
   atualizarEmpresa,
@@ -250,7 +250,13 @@ export function RelatorioCliente({ cnpjSugerido }: { cnpjSugerido?: string }) {
         if (situacao) {
           carteiraAtual = incluirSituacaoFiscal(carteiraAtual, situacao);
           cnpjSituacao = situacao.cnpj;
-          if (situacao.pendencias.length === 0) problemas.push(`${arquivo.name}: nenhuma pendência de débito encontrada no Relatório de Situação Fiscal.`);
+          if (situacao.pendencias.length === 0) {
+            problemas.push(
+              pareceTerDebitos(texto)
+                ? `${arquivo.name}: o relatório tem pendências, mas a tabela de débitos não pôde ser lida. Envie este PDF para ajuste do leitor.`
+                : `${arquivo.name}: Relatório de Situação Fiscal lido, sem débitos em aberto.`,
+            );
+          }
           continue;
         }
         const declaracao = interpretarDeclaracao(texto);
@@ -430,6 +436,17 @@ export function RelatorioCliente({ cnpjSugerido }: { cnpjSugerido?: string }) {
 
       {empresa && (
         <>
+          <p
+            className={`rounded-lg px-3 py-2 text-xs ${
+              situacaoFiscal ? (pendenciasFiscais.length > 0 ? 'bg-rose-50 text-rose-800' : 'bg-emerald-50 text-emerald-800') : 'bg-stone-100 text-stone-600'
+            }`}
+          >
+            {situacaoFiscal
+              ? `Situação fiscal (e-CAC) de ${isoParaBr(situacaoFiscal.dataReferencia)}: ${
+                  pendenciasFiscais.length > 0 ? `${pendenciasFiscais.length} débito(s) lido(s), total ${formatarMoeda(totalFiscal)}.` : 'nenhum débito em aberto.'
+                }`
+              : 'Débitos em aberto: suba também o PDF do Relatório de Situação Fiscal do e-CAC desta empresa. O PGDAS não informa débitos.'}
+          </p>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             <label className="flex flex-col gap-1 text-sm">
               <span className="font-medium text-stone-700">Empresa</span>
