@@ -4,7 +4,7 @@ import {
   BarChart,
   CartesianGrid,
   Cell,
-  ComposedChart,
+  LabelList,
   Line,
   LineChart,
   Pie,
@@ -44,7 +44,6 @@ import { EleveIcon } from './EleveLogo';
 
 // Paleta Eleven (bordô + dourado) para os gráficos.
 const BRAND = '#6b1013';
-const BRAND_CLARO = '#d17f80';
 const GOLD = '#c9922b';
 const GRADE = '#e7e5e4';
 const TEXTO_EIXO = '#78716c';
@@ -183,7 +182,7 @@ export function RelatorioCliente({ cnpjSugerido }: { cnpjSugerido?: string }) {
       '',
       `- Faturamento do mês: ${formatarMoeda(atual.receitaPA)}`,
       `- Imposto do Simples (DAS): ${formatarMoeda(atual.valorDas)} - vence em ${formatarData(vencimentoDas(atual.competencia))}`,
-      `- Alíquota efetiva: ${formatarPercentual(aliquota)} do faturamento`,
+      `- Percentual de imposto: ${formatarPercentual(aliquota)} do faturamento`,
       `- Faturamento dos últimos 12 meses (RBT12): ${formatarMoeda(atual.rbt12)}`,
       `- Impostos anteriores: ${situacao}`,
       '',
@@ -371,7 +370,7 @@ export function RelatorioCliente({ cnpjSugerido }: { cnpjSugerido?: string }) {
     alertas.push(`O faturamento acumulado no ano (${formatarMoeda(atual.rba ?? 0)}) se aproxima do sublimite de ${formatarMoeda(SUBLIMITE_ICMS_ISS)} para ICMS/ISS no DAS.`);
   }
   if (aliquotaAnterior !== undefined && aliquota - aliquotaAnterior >= 0.1) {
-    alertas.push(`A alíquota efetiva subiu de ${formatarPercentual(aliquotaAnterior)} para ${formatarPercentual(aliquota)} em relação ao mês anterior.`);
+    alertas.push(`O percentual de imposto sobre o faturamento subiu de ${formatarPercentual(aliquotaAnterior)} para ${formatarPercentual(aliquota)} em relação ao mês anterior.`);
   }
   if (pendentes.length > 0) {
     alertas.push(
@@ -421,9 +420,9 @@ export function RelatorioCliente({ cnpjSugerido }: { cnpjSugerido?: string }) {
           <Kpi rotulo="Faturamento do mês" valor={formatarMoeda(atual.receitaPA)} detalhe={`Competência ${atual.competencia}`} />
           <Kpi rotulo="Imposto (DAS)" valor={formatarMoeda(atual.valorDas)} detalhe={`Vence em ${formatarData(vencimento)}`} destaque />
           <Kpi
-            rotulo="Alíquota efetiva"
+            rotulo="Imposto sobre o faturamento"
             valor={formatarPercentual(aliquota)}
-            detalhe={aliquotaAnterior !== undefined ? `Mês anterior: ${formatarPercentual(aliquotaAnterior)}` : 'Imposto ÷ faturamento'}
+            detalhe={aliquotaAnterior !== undefined ? `Mês anterior: ${formatarPercentual(aliquotaAnterior)}` : 'Percentual do faturamento'}
           />
           <Kpi rotulo="RBT12" valor={formatarMoeda(atual.rbt12)} detalhe="Faturamento dos últimos 12 meses" />
         </div>
@@ -557,30 +556,44 @@ export function RelatorioCliente({ cnpjSugerido }: { cnpjSugerido?: string }) {
             </div>
           </Secao>
 
-          <Secao titulo="Imposto pago x alíquota efetiva">
-            {dadosImposto.length > 1 ? (
-              <>
-                <div className="h-44 w-full">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <ComposedChart data={dadosImposto} margin={{ top: 8, right: 0, left: 0, bottom: 0 }}>
-                      <CartesianGrid stroke={GRADE} vertical={false} />
-                      <XAxis dataKey="mes" tick={{ fontSize: 10, fill: TEXTO_EIXO }} tickLine={false} axisLine={false} />
-                      <YAxis yAxisId="das" tickFormatter={eixoMoeda} tick={{ fontSize: 10, fill: TEXTO_EIXO }} tickLine={false} axisLine={false} width={60} />
-                      <YAxis yAxisId="aliq" orientation="right" tickFormatter={(v) => `${v}%`} tick={{ fontSize: 10, fill: TEXTO_EIXO }} tickLine={false} axisLine={false} width={40} />
-                      <Tooltip formatter={(v, nome) => (nome === 'Alíquota efetiva' ? `${Number(v).toLocaleString('pt-BR')}%` : formatarMoeda(Number(v ?? 0)))} />
-                      <Bar yAxisId="das" dataKey="das" name="DAS" fill={BRAND_CLARO} radius={[4, 4, 0, 0]} isAnimationActive={false} />
-                      <Line yAxisId="aliq" dataKey="aliquota" name="Alíquota efetiva" stroke={BRAND} strokeWidth={2.5} dot={{ r: 3, fill: BRAND }} isAnimationActive={false} />
-                    </ComposedChart>
-                  </ResponsiveContainer>
-                </div>
-                <p className="mt-1 text-xs text-stone-500">Barras: valor do DAS. Linha: alíquota efetiva (eixo da direita).</p>
-              </>
-            ) : (
-              <p className="text-sm text-stone-500">
-                O gráfico de evolução do imposto aparece quando houver PGDAS de pelo menos dois meses.
-                <span className="no-print"> Envie as declarações dos meses anteriores no painel acima.</span>
-              </p>
-            )}
+          <Secao titulo="Imposto pago por mês">
+            <div className="h-48 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={dadosImposto} margin={{ top: 8, right: 0, left: 0, bottom: 0 }}>
+                  <CartesianGrid stroke={GRADE} vertical={false} />
+                  <XAxis dataKey="mes" tick={{ fontSize: 10, fill: TEXTO_EIXO }} tickLine={false} axisLine={false} />
+                  <YAxis hide domain={[0, (max: number) => max * 1.05]} />
+                  <Tooltip formatter={(v) => formatarMoeda(Number(v ?? 0))} cursor={{ fill: '#f5f5f4' }} />
+                  <Bar dataKey="das" name="Imposto pago" fill={BRAND} radius={[4, 4, 0, 0]} maxBarSize={90} isAnimationActive={false}>
+                    <LabelList
+                      dataKey="das"
+                      content={(props) => {
+                        const { x, y, width, height, index } = props as { x: number; y: number; width: number; height: number; index: number };
+                        const item = dadosImposto[index];
+                        if (!item || height < 30) return null;
+                        const cx = x + width / 2;
+                        const cy = y + height / 2;
+                        const compacto = width < 70;
+                        return (
+                          <g>
+                            <text x={cx} y={cy - 5} textAnchor="middle" fill="#ffffff" fontSize={compacto ? 10 : 13} fontWeight={700}>
+                              {formatarMoeda(item.das)}
+                            </text>
+                            <text x={cx} y={cy + 14} textAnchor="middle" fill="#f6dfa1" fontSize={compacto ? 10 : 12}>
+                              {formatarPercentual(item.aliquota)}
+                            </text>
+                          </g>
+                        );
+                      }}
+                    />
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+            <p className="mt-1 text-xs text-stone-500">
+              Em cada barra: o valor do imposto pago no mês e quanto ele representa do faturamento (ex.: 6% = R$ 6,00 de imposto a
+              cada R$ 100,00 faturados).
+            </p>
           </Secao>
         </div>
 
@@ -593,7 +606,7 @@ export function RelatorioCliente({ cnpjSugerido }: { cnpjSugerido?: string }) {
                   <th className="py-2 font-medium">Competência</th>
                   <th className="py-2 text-right font-medium">Faturamento</th>
                   <th className="py-2 text-right font-medium">DAS</th>
-                  <th className="py-2 text-right font-medium">Alíquota</th>
+                  <th className="py-2 text-right font-medium">% imposto</th>
                   <th className="py-2 pl-3 font-medium">Vencimento</th>
                   <th className="py-2 font-medium">Situação</th>
                   <th className="no-print py-2" />
