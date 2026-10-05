@@ -71,4 +71,18 @@ body {
   .print-avoid-break {
     break-inside: avoid;
   }
+
+  /* Os gráficos são clonados com a largura da tela; aqui encolhem para caber na folha. */
+  /* O Recharts 3 envolve o gráfico num div 0x0; aqui ele passa a ocupar o
+     container e o SVG (que tem viewBox) se ajusta à largura da folha. */
+  .print-area .recharts-responsive-container > div,
+  .print-area .recharts-wrapper {
+    width: 100% !important;
+    height: 100% !important;
+  }
+
+  @page {
+    size: A4;
+    margin: 10mm;
+  }
 }

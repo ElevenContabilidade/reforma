@@ -4,6 +4,7 @@ import * as pdfjsLib from 'pdfjs-dist';
 import pdfjsWorkerSource from 'pdfjs-dist/build/pdf.worker.min.mjs?raw';
 import type { AnexoSimples, DadosExtraidosPgdas } from './types';
 import { normalizar } from './text';
+import { interpretarDeclaracao } from './apuracaoPgdas';
 
 const workerBlob = new Blob([pdfjsWorkerSource], { type: 'text/javascript' });
 pdfjsLib.GlobalWorkerOptions.workerSrc = URL.createObjectURL(workerBlob);
@@ -57,16 +58,25 @@ function detectarRazaoSocial(textoOriginal: string): string | undefined {
   return match?.[1]?.replace(/\s+/g, ' ').trim();
 }
 
-export async function extrairDadosPgdas(arquivo: File): Promise<DadosExtraidosPgdas> {
+/** Lê todo o texto do PDF, com os espaços em branco colapsados num só. */
+export async function lerTextoPdf(arquivo: File): Promise<string> {
   const buffer = await arquivo.arrayBuffer();
   const pdf = await pdfjsLib.getDocument({ data: buffer }).promise;
 
-  let textoCompleto = '';
+  let texto = '';
   for (let i = 1; i <= pdf.numPages; i++) {
     const pagina = await pdf.getPage(i);
     const conteudo = await pagina.getTextContent();
-    textoCompleto += conteudo.items.map((item) => ('str' in item ? item.str : '')).join(' ') + '\n';
+    texto += conteudo.items.map((item) => ('str' in item ? item.str : '')).join(' ') + ' ';
   }
+  return texto.replace(/\s+/g, ' ').trim();
+}
+
+export async function extrairDadosPgdas(arquivo: File): Promise<DadosExtraidosPgdas> {
+  const textoCompleto = await lerTextoPdf(arquivo);
+  // Leitura estruturada da declaração completa (blocos 2.1 e 2.8); os rótulos
+  // soltos abaixo ficam como fallback para outros modelos de extrato.
+  const declaracao = interpretarDeclaracao(textoCompleto);
 
   const textoNormalizado = normalizar(textoCompleto);
 
@@ -94,12 +104,22 @@ export async function extrairDadosPgdas(arquivo: File): Promise<DadosExtraidosPg
     'Valor do DAS',
   ]);
 
-  const anexo = detectarAnexo(textoNormalizado);
-  const competencia = detectarCompetencia(textoCompleto);
-  const cnpj = detectarCnpj(textoCompleto);
-  const razaoSocial = detectarRazaoSocial(textoCompleto);
+  const anexo = declaracao?.anexos[0] ?? detectarAnexo(textoNormalizado);
+  const competencia = declaracao?.competencia ?? detectarCompetencia(textoCompleto);
+  const cnpj = detectarCnpj(textoCompleto) ?? (declaracao?.cnpj || undefined);
+  const razaoSocial = detectarRazaoSocial(textoCompleto) ?? (declaracao?.razaoSocial || undefined);
 
   const textoDetectado = Boolean(rbt12 || faturamentoMensal || folhaPagamento12m || valorDas || anexo || cnpj);
 
-  return { cnpj, razaoSocial, rbt12, faturamentoMensal, folhaPagamento12m, anexo, valorDas, competencia, textoDetectado };
+  return {
+    cnpj,
+    razaoSocial,
+    rbt12: declaracao?.rbt12 || rbt12,
+    faturamentoMensal: declaracao?.receitaPA ?? faturamentoMensal,
+    folhaPagamento12m,
+    anexo,
+    valorDas: declaracao?.valorDas || valorDas,
+    competencia,
+    textoDetectado,
+  };
 }

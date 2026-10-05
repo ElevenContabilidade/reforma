@@ -80,3 +80,47 @@ export interface DadosExtraidosPgdas {
   competencia?: string;
   textoDetectado: boolean;
 }
+
+// ---- Relatório mensal do cliente (apuração do Simples Nacional via PGDAS-D) ----
+
+export const TRIBUTOS_DAS = ['IRPJ', 'CSLL', 'COFINS', 'PIS/Pasep', 'INSS/CPP', 'ICMS', 'IPI', 'ISS'] as const;
+export type TributoDas = (typeof TRIBUTOS_DAS)[number];
+
+export type StatusPagamento = 'pago' | 'aberto' | 'parcelado' | 'nao-informado';
+
+export interface ReceitaMensal {
+  competencia: string; // MM/AAAA
+  valor: number;
+}
+
+/** Uma declaração do PGDAS-D (uma competência) já interpretada. */
+export interface ApuracaoPgdas {
+  competencia: string; // MM/AAAA
+  cnpj: string;
+  razaoSocial: string;
+  municipio?: string;
+  uf?: string;
+  anexos: AnexoSimples[];
+  receitaPA: number;
+  rbt12: number;
+  rba?: number;
+  rbaa?: number;
+  valorDas: number;
+  tributos: Partial<Record<TributoDas, number>>;
+  receitasAnteriores: ReceitaMensal[];
+  fatorR?: string;
+  numeroDeclaracao?: string;
+  retificadora: boolean;
+  dataTransmissao?: string; // DD/MM/AAAA
+  status: StatusPagamento;
+  dataPagamento?: string; // AAAA-MM-DD
+}
+
+/** Histórico de apurações de uma empresa, agrupado pelo CNPJ. */
+export interface CarteiraEmpresa {
+  cnpj: string;
+  razaoSocial: string;
+  telefoneWhatsapp?: string;
+  observacoes?: string;
+  apuracoes: ApuracaoPgdas[];
+}

@@ -10,11 +10,12 @@ import {
   Briefcase,
   LayoutDashboard,
   Scale,
+  FileChartColumn,
 } from 'lucide-react';
 import type { SimulacaoSalva } from '../lib/types';
 import { EleveLogo } from './EleveLogo';
 
-export type Pagina = 'empresa' | 'itens' | 'upload' | 'ncm' | 'nbs' | 'dashboard' | 'comparacao';
+export type Pagina = 'empresa' | 'itens' | 'upload' | 'ncm' | 'nbs' | 'dashboard' | 'comparacao' | 'relatorio';
 
 interface GrupoNav {
   titulo: string;
@@ -43,6 +44,10 @@ const GRUPOS: GrupoNav[] = [
       { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
       { id: 'comparacao', label: 'Comparação', icon: Scale },
     ],
+  },
+  {
+    titulo: 'Cliente',
+    itens: [{ id: 'relatorio', label: 'Relatório mensal', icon: FileChartColumn }],
   },
 ];
 

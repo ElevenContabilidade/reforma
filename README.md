@@ -18,6 +18,12 @@ híbrido** (CBS/IBS apurados por fora do DAS), **Lucro Presumido** ou **Lucro Re
   revisão manual antes de aplicar ao formulário.
 - **Dashboard**: comparação da carga tributária mensal/anual dos quatro regimes, recomendação do
   mais vantajoso, gráfico comparativo e detalhamento tributo a tributo.
+- **Relatório mensal do cliente**: upload de um ou mais PDFs da declaração do PGDAS-D (um por
+  competência) e geração de um relatório com a identidade da Eleven: faturamento do mês, DAS,
+  alíquota efetiva, RBT12, faixa do Simples e margem até a próxima, gráficos de faturamento,
+  evolução da RBT12, composição do DAS por tributo e imposto x alíquota, histórico de guias com
+  situação de pagamento (marcada pela contabilidade) e pontos de atenção automáticos. Imprime/salva
+  em PDF e envia o resumo em texto pelo WhatsApp. O histórico fica salvo no navegador, por CNPJ.
 - **Múltiplos clientes**: cada simulação é salva automaticamente no navegador (localStorage),
   permitindo alternar entre clientes na barra lateral.
 

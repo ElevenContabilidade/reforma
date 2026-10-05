@@ -9,6 +9,7 @@ import { UploadPgdas } from './components/UploadPgdas';
 import { Dashboard } from './components/Dashboard';
 import { Comparacao } from './components/Comparacao';
 import { ConsultaOficial } from './components/ConsultaOficial';
+import { RelatorioCliente } from './components/RelatorioCliente';
 
 export default function App() {
   const [simulacoes, setSimulacoes] = useState<SimulacaoSalva[]>([]);
@@ -102,6 +103,7 @@ export default function App() {
           )}
           {pagina === 'dashboard' && <Dashboard dados={dados} />}
           {pagina === 'comparacao' && <Comparacao dados={dados} />}
+          {pagina === 'relatorio' && <RelatorioCliente cnpjSugerido={dados.cnpj} />}
         </div>
       </main>
     </div>
