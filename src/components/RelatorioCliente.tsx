@@ -222,10 +222,12 @@ export function RelatorioCliente({ cnpjSugerido }: { cnpjSugerido?: string }) {
     ].join('\n');
   }
 
-  function enviarWhatsapp() {
+  // Link real (e não window.open), pois o visualizador de Artifacts bloqueia
+  // window.open para boa parte dos usuários.
+  function linkWhatsapp(): string {
     const digitos = (empresa?.telefoneWhatsapp ?? '').replace(/\D/g, '');
     const numero = digitos.length >= 10 && !digitos.startsWith('55') ? `55${digitos}` : digitos;
-    window.open(`https://wa.me/${numero}?text=${encodeURIComponent(textoResumo())}`, '_blank');
+    return `https://wa.me/${numero}?text=${encodeURIComponent(textoResumo())}`;
   }
 
   async function copiarResumo() {
@@ -347,13 +349,15 @@ export function RelatorioCliente({ cnpjSugerido }: { cnpjSugerido?: string }) {
               <Printer className="h-4 w-4" />
               Imprimir / salvar PDF
             </button>
-            <button
-              onClick={enviarWhatsapp}
+            <a
+              href={linkWhatsapp()}
+              target="_blank"
+              rel="noopener noreferrer"
               className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-emerald-700"
             >
               <MessageCircle className="h-4 w-4" />
               Enviar resumo no WhatsApp
-            </button>
+            </a>
             <button
               onClick={copiarResumo}
               className="inline-flex items-center gap-1.5 rounded-lg border border-stone-300 bg-white px-4 py-2 text-sm font-medium text-stone-700 shadow-sm transition hover:bg-stone-50"
