@@ -27,7 +27,6 @@ import {
   incluirApuracoes,
   infoFaixa,
   isoParaBr,
-  LIMITE_SIMPLES_NACIONAL,
   listarCarteira,
   nomeMes,
   raizCnpj,
@@ -61,12 +60,6 @@ const ESTILO_SITUACAO: Record<SituacaoDas, string> = {
   'nao-confirmado': 'bg-stone-200 text-stone-700',
 };
 
-function moedaCurta(v: number): string {
-  if (v >= 1_000_000) return `R$ ${(v / 1_000_000).toLocaleString('pt-BR', { maximumFractionDigits: 1 })} mi`;
-  if (v >= 1_000) return `R$ ${(v / 1_000).toLocaleString('pt-BR', { maximumFractionDigits: 0 })} mil`;
-  return formatarMoeda(v);
-}
-
 /** Rótulo curto para eixos de gráfico (sem "R$" para não quebrar linha). */
 function eixoMoeda(v: number): string {
   if (v >= 1_000_000) return `${(v / 1_000_000).toLocaleString('pt-BR', { maximumFractionDigits: 1 })} mi`;
@@ -90,23 +83,6 @@ function Secao({ titulo, children, className }: { titulo: string; children: Reac
       <h3 className="mb-3 border-l-4 border-gold-400 pl-2 text-sm font-semibold uppercase tracking-wide text-brand-800">{titulo}</h3>
       {children}
     </section>
-  );
-}
-
-function BarraLimite({ rotulo, valor, limite }: { rotulo: string; valor: number; limite: number }) {
-  const pct = Math.min((valor / limite) * 100, 100);
-  return (
-    <div>
-      <div className="mb-1 flex justify-between gap-2 text-xs">
-        <span className="text-stone-600">{rotulo}</span>
-        <span className="font-medium tabular-nums text-stone-800">
-          {formatarMoeda(valor)} de {moedaCurta(limite)} ({formatarPercentual(pct, 1)})
-        </span>
-      </div>
-      <div className="h-2.5 overflow-hidden rounded-full bg-stone-100">
-        <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: pct >= 80 ? '#b3494b' : GOLD }} />
-      </div>
-    </div>
   );
 }
 
@@ -488,39 +464,6 @@ export function RelatorioCliente({ cnpjSugerido }: { cnpjSugerido?: string }) {
             </p>
           </div>
         </div>
-
-        {/* Faixa e limites */}
-        <Secao titulo="Sua faixa no Simples Nacional">
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-            <div className="space-y-1 text-sm">
-              <p className="text-stone-600">
-                Anexo <strong className="text-stone-900">{faixa.anexo}</strong> · <strong className="text-stone-900">{faixa.numero}ª faixa</strong>{' '}
-                ({faixa.limiteAnterior > 0 ? `RBT12 de ${moedaCurta(faixa.limiteAnterior)} até ${moedaCurta(faixa.limite)}` : `RBT12 até ${moedaCurta(faixa.limite)}`})
-              </p>
-              <p className="text-stone-600">
-                Alíquota nominal da faixa: <strong className="text-stone-900">{formatarPercentual(faixa.aliquotaNominal, 1)}</strong>
-              </p>
-              <p className="text-stone-600">
-                Margem até a próxima faixa: <strong className="text-stone-900">{formatarMoeda(faixa.faltaParaProxima)}</strong>
-              </p>
-              {proximaRbt12 !== undefined && (
-                <p className="text-stone-600">
-                  RBT12 projetada para o próximo mês: <strong className="text-stone-900">{formatarMoeda(proximaRbt12)}</strong>
-                </p>
-              )}
-              {atual.fatorR && atual.fatorR !== 'Não se aplica' && (
-                <p className="text-stone-600">
-                  Fator R: <strong className="text-stone-900">{atual.fatorR}</strong>
-                </p>
-              )}
-            </div>
-            <div className="space-y-3">
-              <BarraLimite rotulo={`RBT12 x limite da ${faixa.numero}ª faixa`} valor={atual.rbt12} limite={faixa.limite} />
-              {atual.rba !== undefined && <BarraLimite rotulo="Faturamento no ano x sublimite ICMS/ISS" valor={atual.rba} limite={SUBLIMITE_ICMS_ISS} />}
-              {atual.rba !== undefined && <BarraLimite rotulo="Faturamento no ano x limite do Simples" valor={atual.rba} limite={LIMITE_SIMPLES_NACIONAL} />}
-            </div>
-          </div>
-        </Secao>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Secao titulo="Faturamento mensal">
