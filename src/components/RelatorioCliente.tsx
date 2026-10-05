@@ -36,7 +36,6 @@ import {
   ROTULO_SITUACAO,
   ROTULO_STATUS,
   serieFaturamento,
-  serieRbt12,
   situacaoDas,
   SUBLIMITE_ICMS_ISS,
   vencimentoDas,
@@ -167,7 +166,7 @@ export function RelatorioCliente({ cnpjSugerido }: { cnpjSugerido?: string }) {
     const serie = serieFaturamento(apuracoes).filter((r) => ateAtual(r.competencia));
     const ultimos13 = serie.slice(-13);
     const mediaFaturamento = ultimos13.length > 1 ? ultimos13.slice(0, -1).reduce((s, r) => s + r.valor, 0) / (ultimos13.length - 1) : 0;
-    const rbt12s = serieRbt12(serie).slice(-12);
+    const ultimos12 = serie.slice(-12);
     const anteriores = apuracoes.filter((a) => ateAtual(a.competencia));
     const anexo = atual.anexos[0] ?? 'III';
     const faixa = infoFaixa(anexo, atual.rbt12);
@@ -179,7 +178,7 @@ export function RelatorioCliente({ cnpjSugerido }: { cnpjSugerido?: string }) {
       const s = situacaoDas(a);
       return s === 'aberto' || s === 'nao-confirmado';
     });
-    return { serie, ultimos13, mediaFaturamento, rbt12s, anteriores, faixa, proximaRbt12, aliquota, aliquotaAnterior, pendentes };
+    return { serie, ultimos13, mediaFaturamento, ultimos12, anteriores, faixa, proximaRbt12, aliquota, aliquotaAnterior, pendentes };
   }, [apuracoes, atual]);
 
   function alterarStatus(competencia: string, status: StatusPagamento) {
@@ -378,11 +377,15 @@ export function RelatorioCliente({ cnpjSugerido }: { cnpjSugerido?: string }) {
     return <div className="space-y-6">{painel}</div>;
   }
 
-  const { ultimos13, mediaFaturamento, rbt12s, anteriores, faixa, proximaRbt12, aliquota, aliquotaAnterior, pendentes } = indicadores;
+  const { ultimos13, mediaFaturamento, ultimos12, anteriores, faixa, proximaRbt12, aliquota, aliquotaAnterior, pendentes } = indicadores;
   const vencimento = vencimentoDas(atual.competencia);
   const dadosTributos = TRIBUTOS_DAS.filter((t) => (atual.tributos[t] ?? 0) > 0).map((t) => ({ nome: t, valor: atual.tributos[t] ?? 0 }));
   const dadosFaturamento = ultimos13.map((r) => ({ mes: nomeMes(r.competencia), valor: r.valor, atual: r.competencia === atual.competencia }));
-  const dadosRbt12 = rbt12s.map((r) => ({ mes: nomeMes(r.competencia), valor: r.valor }));
+  const dados12m = ultimos12.map((r) => ({ mes: nomeMes(r.competencia), valor: r.valor }));
+  const total12m = ultimos12.reduce((s, r) => s + r.valor, 0);
+  const media12m = ultimos12.length > 0 ? total12m / ultimos12.length : 0;
+  const primeiro12m = ultimos12[0];
+  const variacao12m = primeiro12m && primeiro12m.valor > 0 ? (atual.receitaPA / primeiro12m.valor - 1) * 100 : undefined;
   const dadosImposto = anteriores.slice(-12).map((a) => ({
     mes: nomeMes(a.competencia),
     das: a.valorDas,
@@ -542,12 +545,12 @@ export function RelatorioCliente({ cnpjSugerido }: { cnpjSugerido?: string }) {
             </p>
           </Secao>
 
-          <Secao titulo="Evolução da RBT12">
-            {dadosRbt12.length > 1 ? (
+          <Secao titulo="Evolução do faturamento nos últimos 12 meses">
+            {dados12m.length > 1 ? (
               <>
                 <div className="h-56 w-full">
                   <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={dadosRbt12} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+                    <LineChart data={dados12m} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
                       <CartesianGrid stroke={GRADE} vertical={false} />
                       <XAxis dataKey="mes" tick={{ fontSize: 10, fill: TEXTO_EIXO }} tickLine={false} axisLine={false} interval={0} angle={-35} textAnchor="end" height={40} />
                       <YAxis
@@ -556,20 +559,32 @@ export function RelatorioCliente({ cnpjSugerido }: { cnpjSugerido?: string }) {
                         tickLine={false}
                         axisLine={false}
                         width={48}
-                        domain={[(min: number) => Math.floor(min * 0.95), (max: number) => Math.max(max, faixa.limite) * 1.02]}
+                        domain={[(min: number) => Math.floor(min * 0.9), (max: number) => Math.ceil(max * 1.05)]}
                       />
                       <Tooltip formatter={(v) => formatarMoeda(Number(v ?? 0))} />
-                      <ReferenceLine y={faixa.limite} stroke={GOLD} strokeDasharray="4 4" />
-                      <Line type="monotone" dataKey="valor" name="RBT12" stroke={BRAND} strokeWidth={2.5} dot={{ r: 3, fill: BRAND }} isAnimationActive={false} />
+                      <ReferenceLine y={media12m} stroke={GOLD} strokeDasharray="4 4" />
+                      <Line
+                        type="monotone"
+                        dataKey="valor"
+                        name="Faturamento"
+                        stroke={BRAND}
+                        strokeWidth={2.5}
+                        dot={{ r: 3, fill: BRAND }}
+                        activeDot={{ r: 5, fill: GOLD }}
+                        isAnimationActive={false}
+                      />
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
                 <p className="mt-1 text-xs text-stone-500">
-                  Linha tracejada: limite da {faixa.numero}ª faixa ({formatarMoeda(faixa.limite)}).
+                  Total dos 12 meses: <strong className="text-stone-700">{formatarMoeda(total12m)}</strong>. Linha tracejada: média mensal (
+                  {formatarMoeda(media12m)}).
+                  {variacao12m !== undefined &&
+                    ` Variação de ${nomeMes(primeiro12m.competencia)} para ${nomeMes(atual.competencia)}: ${variacao12m >= 0 ? '+' : ''}${formatarPercentual(variacao12m, 1)}.`}
                 </p>
               </>
             ) : (
-              <p className="text-sm text-stone-500">Histórico de receitas insuficiente para calcular a evolução.</p>
+              <p className="text-sm text-stone-500">Histórico de receitas insuficiente para mostrar a evolução.</p>
             )}
           </Secao>
         </div>
