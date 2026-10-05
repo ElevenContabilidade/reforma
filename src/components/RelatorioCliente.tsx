@@ -136,6 +136,31 @@ function BannerSituacao({ ok, titulo, texto }: { ok: boolean; titulo: string; te
   );
 }
 
+function hojeIso(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+/** Débito já vencido (os "a vencer" do relatório da Receita não contam como pendência). */
+function pendenciaVencida(p: PendenciaFiscal): boolean {
+  return p.origem === 'pgfn' || !p.vencimento || p.vencimento < hojeIso();
+}
+
+/** Nome do tributo em linguagem do cliente. */
+function nomeTributo(p: PendenciaFiscal): string {
+  const r = p.receita.toUpperCase();
+  let nome = p.receita;
+  if (/SIMPLES/.test(r)) nome = 'DAS - Simples Nacional';
+  else if (/CP-SEGUR/.test(r)) nome = 'INSS - pró-labore/segurado';
+  else if (/CP-PATRONAL|CP PATRONAL/.test(r)) nome = 'INSS - patronal';
+  else if (/IRRF/.test(r)) nome = 'IRRF';
+  return p.origem === 'pgfn' ? `Dívida ativa - ${nome}` : nome;
+}
+
+function situacaoPendencia(p: PendenciaFiscal): SituacaoDas {
+  return pendenciaVencida(p) ? 'aberto' : 'a-vencer';
+}
+
 function totalPendencia(p: PendenciaFiscal): number {
   return p.total ?? p.saldoDevedor ?? p.valorOriginal ?? 0;
 }
@@ -149,7 +174,6 @@ function TabelaPendencias({ pendencias, dataReferencia, onRemover }: { pendencia
         <table className="w-full min-w-[640px] text-xs">
           <thead>
             <tr className="border-b border-stone-200 text-left text-stone-500">
-              <th className="py-2 impresso:py-1 font-medium">Órgão</th>
               <th className="py-2 impresso:py-1 font-medium">Tributo</th>
               <th className="py-2 impresso:py-1 font-medium">Competência</th>
               <th className="py-2 impresso:py-1 font-medium">Vencimento</th>
@@ -163,9 +187,8 @@ function TabelaPendencias({ pendencias, dataReferencia, onRemover }: { pendencia
           <tbody>
             {pendencias.map((p, i) => (
               <tr key={`${p.origem}-${p.competencia ?? p.inscricao}-${i}`} className="border-b border-stone-100 last:border-0">
-                <td className="py-2 impresso:py-1">{p.origem === 'receita' ? 'Receita Federal' : 'Dívida Ativa (PGFN)'}</td>
                 <td className="py-2 impresso:py-1 font-medium text-stone-800">
-                  {p.receita}
+                  {nomeTributo(p)}
                   {p.inscricao && <span className="block text-[10px] font-normal text-stone-400">Inscrição {p.inscricao}</span>}
                 </td>
                 <td className="py-2 impresso:py-1">{p.competencia ?? '—'}</td>
@@ -175,8 +198,8 @@ function TabelaPendencias({ pendencias, dataReferencia, onRemover }: { pendencia
                 <td className="py-2 impresso:py-1 text-right tabular-nums">{valor(p.juros)}</td>
                 <td className="py-2 impresso:py-1 text-right font-semibold tabular-nums text-rose-800">{valor(p.total ?? p.saldoDevedor)}</td>
                 <td className="py-2 impresso:py-1 pl-3">
-                  <span className="inline-block rounded-full bg-rose-100 px-2 py-0.5 text-[11px] font-semibold capitalize text-rose-800">
-                    {p.situacao.toLowerCase()}
+                  <span className={`inline-block rounded-full px-2 py-0.5 text-[11px] font-semibold ${ESTILO_SITUACAO[situacaoPendencia(p)]}`}>
+                    {p.origem === 'pgfn' ? 'Dívida ativa' : ROTULO_SITUACAO[situacaoPendencia(p)]}
                   </span>
                 </td>
               </tr>
@@ -184,7 +207,7 @@ function TabelaPendencias({ pendencias, dataReferencia, onRemover }: { pendencia
           </tbody>
           <tfoot>
             <tr className="border-t-2 border-stone-200 font-semibold text-stone-900">
-              <td className="py-2" colSpan={4}>
+              <td className="py-2" colSpan={3}>
                 Total
               </td>
               <td className="py-2 text-right tabular-nums">{formatarMoeda(soma((p) => p.valorOriginal))}</td>
@@ -227,7 +250,9 @@ export function RelatorioCliente({ cnpjSugerido }: { cnpjSugerido?: string }) {
   const apuracoes = useMemo(() => empresa?.apuracoes ?? [], [empresa]);
   const atual = apuracoes.find((a) => a.competencia === compSel) ?? apuracoes[apuracoes.length - 1];
   const situacaoFiscal = empresa?.situacaoFiscal;
-  const pendenciasFiscais = situacaoFiscal?.pendencias ?? [];
+  const todasPendencias = situacaoFiscal?.pendencias ?? [];
+  // Pendências = débitos vencidos; os "a vencer" aparecem só no histórico.
+  const pendenciasFiscais = todasPendencias.filter(pendenciaVencida);
   const totalFiscal = pendenciasFiscais.reduce((s, p) => s + totalPendencia(p), 0);
   const devedoras = useMemo(() => competenciasDasDevedoras(situacaoFiscal), [situacaoFiscal]);
 
@@ -549,7 +574,7 @@ export function RelatorioCliente({ cnpjSugerido }: { cnpjSugerido?: string }) {
             }
           />
           <BannerSituacao ok={pendenciasFiscais.length === 0} titulo={pendenciasFiscais.length === 0 ? 'Nenhuma pendência de débito na Receita Federal' : `${pendenciasFiscais.length} pendência(s) fiscal(is): ${formatarMoeda(totalFiscal)} atualizados`} texto={pendenciasFiscais.length === 0 ? 'Não constam débitos em aberto no Relatório de Situação Fiscal.' : 'Detalhamento abaixo. Regularize o quanto antes para evitar o aumento de multa e juros e o risco de exclusão do Simples Nacional.'} />
-          {pendenciasFiscais.length > 0 && <TabelaPendencias pendencias={pendenciasFiscais} dataReferencia={sf.dataReferencia} onRemover={removerSituacao} />}
+          {todasPendencias.length > 0 && <TabelaPendencias pendencias={todasPendencias} dataReferencia={sf.dataReferencia} onRemover={removerSituacao} />}
           <RodapeDocumento fonte="Relatório de Situação Fiscal (e-CAC)" />
         </article>
       </div>
@@ -572,6 +597,59 @@ export function RelatorioCliente({ cnpjSugerido }: { cnpjSugerido?: string }) {
   }));
   const totalPendente = pendentes.reduce((s, a) => s + a.valorDas, 0);
   const historico = [...anteriores].reverse().slice(0, 12);
+
+  // Linhas do histórico: DAS das declarações + débitos da Situação Fiscal (mesma
+  // competência de DAS vira uma linha só, com multa e juros da Receita).
+  interface LinhaHistorico {
+    chave: string;
+    competencia: string;
+    tributo: string;
+    imposto?: number;
+    multa?: number;
+    juros?: number;
+    total: number;
+    vencimento?: string;
+    situacao: SituacaoDas;
+    apuracao?: ApuracaoPgdas;
+    pendencia?: PendenciaFiscal;
+  }
+  const usadas = new Set<PendenciaFiscal>();
+  const linhasHistorico: LinhaHistorico[] = historico.map((a) => {
+    const p = todasPendencias.find((x) => x.origem === 'receita' && /SIMPLES/i.test(x.receita) && x.competencia === a.competencia);
+    if (p) usadas.add(p);
+    return {
+      chave: `das-${a.competencia}`,
+      competencia: a.competencia,
+      tributo: 'DAS - Simples Nacional',
+      imposto: p?.valorOriginal ?? a.valorDas,
+      multa: p?.multa,
+      juros: p?.juros,
+      total: p ? totalPendencia(p) : a.valorDas,
+      vencimento: formatarData(vencimentoDas(a.competencia)),
+      situacao: p ? situacaoPendencia(p) : situacaoDas(a),
+      apuracao: a,
+      pendencia: p,
+    };
+  });
+  todasPendencias
+    .filter((p) => !usadas.has(p))
+    .forEach((p, i) =>
+      linhasHistorico.push({
+        chave: `rf-${i}`,
+        competencia: p.competencia ?? '—',
+        tributo: nomeTributo(p),
+        imposto: p.valorOriginal,
+        multa: p.multa,
+        juros: p.juros,
+        total: totalPendencia(p),
+        vencimento: p.vencimento ? isoParaBr(p.vencimento) : undefined,
+        situacao: situacaoPendencia(p),
+        pendencia: p,
+      }),
+    );
+  const ordem = (c: string) => (/^\d{2}\/\d{4}$/.test(c) ? chaveCompetencia(c) : '0000');
+  linhasHistorico.sort((x, y) => ordem(y.competencia).localeCompare(ordem(x.competencia)) || x.tributo.localeCompare(y.tributo));
+  const totalEmAberto = linhasHistorico.filter((l) => l.situacao === 'aberto' || l.situacao === 'nao-confirmado').reduce((s2, l) => s2 + l.total, 0);
 
   const alertas: string[] = [];
   if ((atual.rba ?? 0) > SUBLIMITE_ICMS_ISS * 0.8) {
@@ -627,23 +705,19 @@ export function RelatorioCliente({ cnpjSugerido }: { cnpjSugerido?: string }) {
           ok={pendentes.length === 0 && pendenciasFiscais.length === 0}
           titulo={
             pendenciasFiscais.length > 0
-              ? `Pendências na Receita Federal: ${formatarMoeda(totalFiscal)} atualizados`
+              ? `Débitos em aberto na Receita Federal: ${formatarMoeda(totalFiscal)} atualizados`
               : pendentes.length === 0
                 ? 'Impostos anteriores em dia'
                 : `${pendentes.length} guia(s) vencida(s) sem pagamento confirmado: ${formatarMoeda(totalPendente)}`
           }
           texto={
             pendenciasFiscais.length > 0
-              ? `${pendenciasFiscais.length} débito(s) em aberto, detalhados abaixo.${pendentes.length > 0 ? ` Além disso, ${pendentes.length} guia(s) sem pagamento confirmado (${pendentes.map((a) => a.competencia).join(', ')}).` : ''} Regularize o quanto antes para evitar o aumento de multa e juros.`
+              ? `${pendenciasFiscais.length} débito(s) vencido(s), detalhados no histórico abaixo.${pendentes.length > 0 ? ` Além disso, ${pendentes.length} guia(s) sem pagamento confirmado (${pendentes.map((a) => a.competencia).join(', ')}).` : ''} Regularize o quanto antes para evitar o aumento de multa e juros.`
               : pendentes.length === 0
                 ? `Todas as guias vencidas das competências enviadas constam como pagas ou parceladas. O DAS de ${atual.competencia} vence em ${formatarData(vencimento)}.`
                 : `Competências: ${pendentes.map((a) => a.competencia).join(', ')}. Regularize o quanto antes para evitar multa, juros e risco de exclusão do Simples.`
           }
         />
-
-        {situacaoFiscal && pendenciasFiscais.length > 0 && (
-          <TabelaPendencias pendencias={pendenciasFiscais} dataReferencia={situacaoFiscal.dataReferencia} onRemover={removerSituacao} />
-        )}
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Secao titulo="Faturamento mensal">
@@ -786,83 +860,122 @@ export function RelatorioCliente({ cnpjSugerido }: { cnpjSugerido?: string }) {
           </Secao>
         </div>
 
-        {/* Histórico de guias */}
+        {/* Histórico de guias: PGDAS + débitos da Situação Fiscal num só lugar */}
         <Secao titulo="Histórico de apurações e pagamentos">
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[560px] text-xs">
+            <table className="w-full min-w-[720px] text-xs">
               <thead>
                 <tr className="border-b border-stone-200 text-left text-stone-500">
                   <th className="py-2 impresso:py-1 font-medium">Competência</th>
+                  <th className="py-2 impresso:py-1 font-medium">Tributo</th>
                   <th className="py-2 impresso:py-1 text-right font-medium">Faturamento</th>
-                  <th className="py-2 impresso:py-1 text-right font-medium">DAS</th>
-                  <th className="py-2 impresso:py-1 text-right font-medium">% imposto</th>
+                  <th className="py-2 impresso:py-1 text-right font-medium">Imposto</th>
+                  <th className="py-2 impresso:py-1 text-right font-medium">Multa</th>
+                  <th className="py-2 impresso:py-1 text-right font-medium">Juros</th>
+                  <th className="py-2 impresso:py-1 text-right font-medium">Total</th>
                   <th className="py-2 impresso:py-1 pl-3 font-medium">Vencimento</th>
                   <th className="py-2 impresso:py-1 font-medium">Situação</th>
                   <th className="no-print py-2" />
                 </tr>
               </thead>
               <tbody>
-                {historico.map((a) => {
-                  const situacao = situacaoDas(a, devedoras);
+                {linhasHistorico.map((l) => {
+                  const a = l.apuracao;
                   return (
-                    <tr key={a.competencia} className={`border-b border-stone-100 last:border-0 ${a.competencia === atual.competencia ? 'bg-gold-50' : ''}`}>
+                    <tr key={l.chave} className={`border-b border-stone-100 last:border-0 ${l.competencia === atual.competencia && a ? 'bg-gold-50' : ''}`}>
                       <td className="py-2 impresso:py-1 font-medium text-stone-800">
-                        {a.competencia}
-                        {a.retificadora && <span className="ml-1 text-[10px] text-stone-400">(retificada)</span>}
+                        {l.competencia}
+                        {a?.retificadora && <span className="ml-1 text-[10px] text-stone-400">(retificada)</span>}
                       </td>
-                      <td className="py-2 impresso:py-1 text-right tabular-nums">{formatarMoeda(a.receitaPA)}</td>
-                      <td className="py-2 impresso:py-1 text-right tabular-nums">{formatarMoeda(a.valorDas)}</td>
-                      <td className="py-2 impresso:py-1 text-right tabular-nums">{a.receitaPA > 0 ? formatarPercentual((a.valorDas / a.receitaPA) * 100) : '—'}</td>
-                      <td className="py-2 impresso:py-1 pl-3 tabular-nums">{formatarData(vencimentoDas(a.competencia))}</td>
                       <td className="py-2 impresso:py-1">
-                        <span className={`inline-block rounded-full px-2 py-0.5 text-[11px] font-semibold ${ESTILO_SITUACAO[situacao]}`}>
-                          {ROTULO_SITUACAO[situacao]}
-                          {situacao === 'pago' && a.dataPagamento ? ` em ${isoParaBr(a.dataPagamento)}` : ''}
+                        {l.tributo}
+                        {l.pendencia?.inscricao && <span className="block text-[10px] text-stone-400">Inscrição {l.pendencia.inscricao}</span>}
+                      </td>
+                      <td className="py-2 impresso:py-1 text-right tabular-nums">{a ? formatarMoeda(a.receitaPA) : '—'}</td>
+                      <td className="py-2 impresso:py-1 text-right tabular-nums">{l.imposto !== undefined ? formatarMoeda(l.imposto) : '—'}</td>
+                      <td className="py-2 impresso:py-1 text-right tabular-nums">{l.multa ? formatarMoeda(l.multa) : '—'}</td>
+                      <td className="py-2 impresso:py-1 text-right tabular-nums">{l.juros ? formatarMoeda(l.juros) : '—'}</td>
+                      <td className={`py-2 impresso:py-1 text-right font-semibold tabular-nums ${l.situacao === 'aberto' ? 'text-rose-800' : 'text-stone-800'}`}>
+                        {formatarMoeda(l.total)}
+                      </td>
+                      <td className="py-2 impresso:py-1 pl-3 tabular-nums">{l.vencimento ?? '—'}</td>
+                      <td className="py-2 impresso:py-1">
+                        <span className={`inline-block whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-semibold ${ESTILO_SITUACAO[l.situacao]}`}>
+                          {l.pendencia?.origem === 'pgfn' ? 'Dívida ativa' : ROTULO_SITUACAO[l.situacao]}
+                          {l.situacao === 'pago' && a?.dataPagamento ? ` em ${isoParaBr(a.dataPagamento)}` : ''}
                         </span>
-                        {a.valorPago !== undefined && a.valorPago < a.valorDas - 0.05 && (
+                        {a?.valorPago !== undefined && a.valorPago < a.valorDas - 0.05 && (
                           <span className="ml-1 text-[11px] text-stone-500">pago parcial: {formatarMoeda(a.valorPago)}</span>
                         )}
                       </td>
                       <td className="no-print py-2">
-                        <div className="flex items-center justify-end gap-1.5">
-                          <select
-                            className="rounded border border-stone-300 bg-white px-1.5 py-1 text-xs"
-                            value={a.status}
-                            onChange={(e) => alterarStatus(a.competencia, e.target.value as StatusPagamento)}
-                            title="Situação do pagamento"
-                          >
-                            {(Object.keys(ROTULO_STATUS) as StatusPagamento[]).map((s) => (
-                              <option key={s} value={s}>
-                                {ROTULO_STATUS[s]}
-                              </option>
-                            ))}
-                          </select>
-                          <input
-                            type="date"
-                            className="rounded border border-stone-300 bg-white px-1.5 py-0.5 text-xs"
-                            value={a.dataPagamento ?? ''}
-                            onChange={(e) => alterarDataPagamento(a.competencia, e.target.value)}
-                            title="Data do pagamento"
-                          />
+                        {a && !l.pendencia && (
+                          <div className="flex items-center justify-end gap-1.5">
+                            <select
+                              className="rounded border border-stone-300 bg-white px-1.5 py-1 text-xs"
+                              value={a.status}
+                              onChange={(e) => alterarStatus(a.competencia, e.target.value as StatusPagamento)}
+                              title="Situação do pagamento"
+                            >
+                              {(Object.keys(ROTULO_STATUS) as StatusPagamento[]).map((st) => (
+                                <option key={st} value={st}>
+                                  {ROTULO_STATUS[st]}
+                                </option>
+                              ))}
+                            </select>
+                            <input
+                              type="date"
+                              className="rounded border border-stone-300 bg-white px-1.5 py-0.5 text-xs"
+                              value={a.dataPagamento ?? ''}
+                              onChange={(e) => alterarDataPagamento(a.competencia, e.target.value)}
+                              title="Data do pagamento"
+                            />
+                          </div>
+                        )}
+                        {a && (
                           <button
                             onClick={() => excluirCompetencia(a.competencia)}
-                            className="rounded p-1 text-stone-400 transition hover:bg-rose-50 hover:text-rose-600"
+                            className="float-right rounded p-1 text-stone-400 transition hover:bg-rose-50 hover:text-rose-600"
                             title="Remover esta competência"
                           >
                             <Trash2 className="h-3.5 w-3.5" />
                           </button>
-                        </div>
+                        )}
                       </td>
                     </tr>
                   );
                 })}
               </tbody>
+              {totalEmAberto > 0 && (
+                <tfoot>
+                  <tr className="border-t-2 border-stone-200 font-semibold text-stone-900">
+                    <td className="py-2" colSpan={6}>
+                      Total em aberto (vencido)
+                    </td>
+                    <td className="py-2 text-right tabular-nums text-rose-800">{formatarMoeda(totalEmAberto)}</td>
+                    <td colSpan={3} />
+                  </tr>
+                </tfoot>
+              )}
             </table>
           </div>
-          <p className="mt-2 text-[11px] text-stone-500">
-            A situação do pagamento vem do extrato do PGDAS-D ou é conferida pela contabilidade no e-CAC. "Não confirmado" indica guia vencida cujo pagamento ainda não
-            foi verificado.
-          </p>
+          <div className="mt-2 flex items-start justify-between gap-3">
+            <p className="text-[11px] text-stone-500">
+              {situacaoFiscal
+                ? `Débitos conforme o Relatório de Situação Fiscal da Receita Federal, com multa e juros atualizados até ${isoParaBr(situacaoFiscal.dataReferencia)}; eles continuam correndo até o pagamento. `
+                : ''}
+              Pagamentos conferidos pelo extrato do PGDAS-D e pelo e-CAC.
+            </p>
+            {situacaoFiscal && (
+              <button
+                onClick={removerSituacao}
+                className="no-print shrink-0 rounded px-2 py-1 text-[11px] text-stone-400 transition hover:bg-rose-50 hover:text-rose-600"
+                title="Remove os débitos lidos do Relatório de Situação Fiscal"
+              >
+                Remover situação fiscal
+              </button>
+            )}
+          </div>
         </Secao>
 
         {alertas.length > 0 && (
