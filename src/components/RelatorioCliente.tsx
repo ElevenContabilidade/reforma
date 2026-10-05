@@ -16,15 +16,17 @@ import {
   YAxis,
 } from 'recharts';
 import { AlertTriangle, CircleCheck, Copy, FileUp, Loader2, MessageCircle, Printer, Trash2 } from 'lucide-react';
-import type { ApuracaoPgdas, CarteiraEmpresa, StatusPagamento } from '../lib/types';
+import type { ApuracaoPgdas, CarteiraEmpresa, PendenciaFiscal, StatusPagamento } from '../lib/types';
 import { TRIBUTOS_DAS } from '../lib/types';
 import { lerTextoPdf } from '../lib/pgdasParser';
 import { interpretarDeclaracao, chaveCompetencia } from '../lib/apuracaoPgdas';
+import { competenciasDasDevedoras, interpretarSituacaoFiscal } from '../lib/situacaoFiscal';
 import {
   atualizarApuracao,
   atualizarEmpresa,
   formatarData,
   incluirApuracoes,
+  incluirSituacaoFiscal,
   isoParaBr,
   listarCarteira,
   nomeMes,
@@ -83,6 +85,130 @@ function Secao({ titulo, children, className }: { titulo: string; children: Reac
   );
 }
 
+function CabecalhoDocumento({ titulo, empresa, linha }: { titulo: string; empresa: string; linha: ReactNode }) {
+  return (
+    <header className="print-avoid-break overflow-hidden rounded-xl bg-brand-900 text-white">
+      <div className="flex flex-col gap-4 px-5 py-5 impresso:py-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-3">
+          <EleveIcon className="h-12 w-12 shrink-0" />
+          <div>
+            <p className="text-lg font-semibold leading-tight text-gold-100">
+              eleven<span className="text-gold-400">.</span>
+            </p>
+            <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-stone-400">Contabilidade &amp; Consultoria</p>
+          </div>
+        </div>
+        <div className="sm:text-right">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-gold-300">Relatório Fiscal Mensal · Simples Nacional</p>
+          <p className="text-xl font-semibold first-letter:uppercase">{titulo}</p>
+        </div>
+      </div>
+      <div className="flex flex-wrap gap-x-6 gap-y-1 bg-brand-800 px-5 py-2.5 text-xs text-brand-100">
+        <span className="font-semibold text-white">{empresa}</span>
+        {linha}
+      </div>
+    </header>
+  );
+}
+
+function RodapeDocumento({ fonte }: { fonte: string }) {
+  return (
+    <footer className="print-avoid-break overflow-hidden rounded-xl">
+      <p className="bg-white py-2 text-center text-[11px] italic text-stone-500">Contador(a) responsável: Kauane Gomes · Fonte: {fonte}</p>
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 bg-brand-800 px-4 py-2 text-[11px] text-white">
+        <span>Tel: (85) 99427-6469</span>
+        <span>Email: contabilidade@somoseleven.com</span>
+        <span>@eleven.contabilidade</span>
+      </div>
+    </footer>
+  );
+}
+
+function BannerSituacao({ ok, titulo, texto }: { ok: boolean; titulo: string; texto: string }) {
+  return (
+    <div className={`print-avoid-break flex items-start gap-3 rounded-xl border p-4 ${ok ? 'border-emerald-200 bg-emerald-50' : 'border-rose-200 bg-rose-50'}`}>
+      {ok ? <CircleCheck className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" /> : <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-rose-600" />}
+      <div>
+        <p className={`text-sm font-semibold ${ok ? 'text-emerald-800' : 'text-rose-800'}`}>{titulo}</p>
+        <p className="text-xs text-stone-600">{texto}</p>
+      </div>
+    </div>
+  );
+}
+
+function totalPendencia(p: PendenciaFiscal): number {
+  return p.total ?? p.saldoDevedor ?? p.valorOriginal ?? 0;
+}
+
+function TabelaPendencias({ pendencias, dataReferencia, onRemover }: { pendencias: PendenciaFiscal[]; dataReferencia: string; onRemover: () => void }) {
+  const soma = (f: (p: PendenciaFiscal) => number | undefined) => pendencias.reduce((s, p) => s + (f(p) ?? 0), 0);
+  const valor = (v?: number) => (v === undefined ? '—' : formatarMoeda(v));
+  return (
+    <Secao titulo="Pendências na Receita Federal e Dívida Ativa">
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[640px] text-xs">
+          <thead>
+            <tr className="border-b border-stone-200 text-left text-stone-500">
+              <th className="py-2 impresso:py-1 font-medium">Órgão</th>
+              <th className="py-2 impresso:py-1 font-medium">Tributo</th>
+              <th className="py-2 impresso:py-1 font-medium">Competência</th>
+              <th className="py-2 impresso:py-1 font-medium">Vencimento</th>
+              <th className="py-2 impresso:py-1 text-right font-medium">Valor original</th>
+              <th className="py-2 impresso:py-1 text-right font-medium">Multa</th>
+              <th className="py-2 impresso:py-1 text-right font-medium">Juros</th>
+              <th className="py-2 impresso:py-1 text-right font-medium">Total a pagar</th>
+              <th className="py-2 impresso:py-1 pl-3 font-medium">Situação</th>
+            </tr>
+          </thead>
+          <tbody>
+            {pendencias.map((p, i) => (
+              <tr key={`${p.origem}-${p.competencia ?? p.inscricao}-${i}`} className="border-b border-stone-100 last:border-0">
+                <td className="py-2 impresso:py-1">{p.origem === 'receita' ? 'Receita Federal' : 'Dívida Ativa (PGFN)'}</td>
+                <td className="py-2 impresso:py-1 font-medium text-stone-800">
+                  {p.receita}
+                  {p.inscricao && <span className="block text-[10px] font-normal text-stone-400">Inscrição {p.inscricao}</span>}
+                </td>
+                <td className="py-2 impresso:py-1">{p.competencia ?? '—'}</td>
+                <td className="py-2 impresso:py-1 tabular-nums">{p.vencimento ? isoParaBr(p.vencimento) : '—'}</td>
+                <td className="py-2 impresso:py-1 text-right tabular-nums">{valor(p.valorOriginal)}</td>
+                <td className="py-2 impresso:py-1 text-right tabular-nums">{valor(p.multa)}</td>
+                <td className="py-2 impresso:py-1 text-right tabular-nums">{valor(p.juros)}</td>
+                <td className="py-2 impresso:py-1 text-right font-semibold tabular-nums text-rose-800">{valor(p.total ?? p.saldoDevedor)}</td>
+                <td className="py-2 impresso:py-1 pl-3">
+                  <span className="inline-block rounded-full bg-rose-100 px-2 py-0.5 text-[11px] font-semibold capitalize text-rose-800">
+                    {p.situacao.toLowerCase()}
+                  </span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+          <tfoot>
+            <tr className="border-t-2 border-stone-200 font-semibold text-stone-900">
+              <td className="py-2" colSpan={4}>
+                Total
+              </td>
+              <td className="py-2 text-right tabular-nums">{formatarMoeda(soma((p) => p.valorOriginal))}</td>
+              <td className="py-2 text-right tabular-nums">{formatarMoeda(soma((p) => p.multa))}</td>
+              <td className="py-2 text-right tabular-nums">{formatarMoeda(soma((p) => p.juros))}</td>
+              <td className="py-2 text-right tabular-nums text-rose-800">{formatarMoeda(soma(totalPendencia))}</td>
+              <td />
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+      <div className="mt-2 flex items-start justify-between gap-3">
+        <p className="text-[11px] text-stone-500">
+          Valores atualizados até {isoParaBr(dataReferencia)}, conforme o Relatório de Situação Fiscal da Receita Federal. Multa e juros continuam
+          correndo até o pagamento.
+        </p>
+        <button onClick={onRemover} className="no-print shrink-0 rounded p-1 text-stone-400 transition hover:bg-rose-50 hover:text-rose-600" title="Remover relatório de situação fiscal">
+          <Trash2 className="h-3.5 w-3.5" />
+        </button>
+      </div>
+    </Secao>
+  );
+}
+
 export function RelatorioCliente({ cnpjSugerido }: { cnpjSugerido?: string }) {
   const [carteira, setCarteira] = useState<CarteiraEmpresa[]>(() => listarCarteira());
   const [cnpjSel, setCnpjSel] = useState<string | null>(() => {
@@ -100,6 +226,10 @@ export function RelatorioCliente({ cnpjSugerido }: { cnpjSugerido?: string }) {
   const empresa = carteira.find((e) => e.cnpj === cnpjSel) ?? carteira[0];
   const apuracoes = useMemo(() => empresa?.apuracoes ?? [], [empresa]);
   const atual = apuracoes.find((a) => a.competencia === compSel) ?? apuracoes[apuracoes.length - 1];
+  const situacaoFiscal = empresa?.situacaoFiscal;
+  const pendenciasFiscais = situacaoFiscal?.pendencias ?? [];
+  const totalFiscal = pendenciasFiscais.reduce((s, p) => s + totalPendencia(p), 0);
+  const devedoras = useMemo(() => competenciasDasDevedoras(situacaoFiscal), [situacaoFiscal]);
 
   async function processarArquivos(arquivos: FileList | null | undefined) {
     if (!arquivos || arquivos.length === 0) return;
@@ -107,22 +237,36 @@ export function RelatorioCliente({ cnpjSugerido }: { cnpjSugerido?: string }) {
     setAvisos([]);
     const lidas: ApuracaoPgdas[] = [];
     const problemas: string[] = [];
+    let carteiraAtual = carteira;
+    let cnpjSituacao: string | undefined;
     for (const arquivo of Array.from(arquivos)) {
       if (arquivo.type !== 'application/pdf') {
-        problemas.push(`${arquivo.name}: envie o PDF da declaração do PGDAS-D.`);
+        problemas.push(`${arquivo.name}: envie em PDF.`);
         continue;
       }
       try {
-        const declaracao = interpretarDeclaracao(await lerTextoPdf(arquivo));
+        const texto = await lerTextoPdf(arquivo);
+        const situacao = interpretarSituacaoFiscal(texto);
+        if (situacao) {
+          carteiraAtual = incluirSituacaoFiscal(carteiraAtual, situacao);
+          cnpjSituacao = situacao.cnpj;
+          if (situacao.pendencias.length === 0) problemas.push(`${arquivo.name}: nenhuma pendência de débito encontrada no Relatório de Situação Fiscal.`);
+          continue;
+        }
+        const declaracao = interpretarDeclaracao(texto);
         if (declaracao) lidas.push(declaracao);
-        else problemas.push(`${arquivo.name}: não parece ser a declaração completa do PGDAS-D (faltam competência ou receita do PA).`);
+        else problemas.push(`${arquivo.name}: não é a declaração/extrato do PGDAS-D nem o Relatório de Situação Fiscal.`);
       } catch (e) {
         console.error(e);
         problemas.push(`${arquivo.name}: falha ao ler o PDF (corrompido ou protegido por senha?).`);
       }
     }
+    if (lidas.length === 0 && cnpjSituacao) {
+      setCarteira(carteiraAtual);
+      setCnpjSel(carteiraAtual.find((e) => raizCnpj(e.cnpj) === raizCnpj(cnpjSituacao))?.cnpj ?? null);
+    }
     if (lidas.length > 0) {
-      const nova = incluirApuracoes(carteira, lidas);
+      const nova = incluirApuracoes(carteiraAtual, lidas);
       setCarteira(nova);
       const ultima = lidas.reduce((a, b) => (chaveCompetencia(b.competencia) > chaveCompetencia(a.competencia) ? b : a));
       setCnpjSel(nova.find((e) => raizCnpj(e.cnpj) === raizCnpj(ultima.cnpj))?.cnpj ?? null);
@@ -144,12 +288,13 @@ export function RelatorioCliente({ cnpjSugerido }: { cnpjSugerido?: string }) {
     const aliquota = atual.receitaPA > 0 ? (atual.valorDas / atual.receitaPA) * 100 : 0;
     const anterior = anteriores[anteriores.length - 2];
     const aliquotaAnterior = anterior && anterior.receitaPA > 0 ? (anterior.valorDas / anterior.receitaPA) * 100 : undefined;
+    // Guias já listadas como devedoras pela Receita entram na tabela de pendências, não aqui.
     const pendentes = anteriores.filter((a) => {
-      const s = situacaoDas(a);
-      return s === 'aberto' || s === 'nao-confirmado';
+      const s = situacaoDas(a, devedoras);
+      return !devedoras.has(a.competencia) && (s === 'aberto' || s === 'nao-confirmado');
     });
     return { serie, ultimos13, mediaFaturamento, ultimos12, anteriores, aliquota, aliquotaAnterior, pendentes };
-  }, [apuracoes, atual]);
+  }, [apuracoes, atual, devedoras]);
 
   function alterarStatus(competencia: string, status: StatusPagamento) {
     if (!empresa) return;
@@ -170,12 +315,28 @@ export function RelatorioCliente({ cnpjSugerido }: { cnpjSugerido?: string }) {
   }
 
   function textoResumo(): string {
-    if (!atual || !indicadores || !empresa) return '';
+    if (!empresa) return '';
+    const linhaFiscal =
+      pendenciasFiscais.length > 0
+        ? `- Pendências na Receita Federal/Dívida Ativa: ${pendenciasFiscais.length} débito(s), total atualizado de ${formatarMoeda(totalFiscal)}`
+        : undefined;
+    if (!atual || !indicadores) {
+      return [
+        `Olá! Segue a situação fiscal da *${empresa.razaoSocial}*:`,
+        '',
+        linhaFiscal ?? '- Nenhuma pendência de débito na Receita Federal.',
+        '',
+        'O relatório completo segue em PDF. Qualquer dúvida, estou à disposição.',
+        'Eleven Contabilidade & Consultoria',
+      ].join('\n');
+    }
     const { pendentes, aliquota } = indicadores;
     const totalPendente = pendentes.reduce((s, a) => s + a.valorDas, 0);
     const situacao =
       pendentes.length === 0
-        ? 'em dia'
+        ? pendenciasFiscais.length > 0
+          ? 'ver pendências abaixo'
+          : 'em dia'
         : `${pendentes.length} guia(s) sem pagamento confirmado, total de ${formatarMoeda(totalPendente)} (${pendentes.map((a) => a.competencia).join(', ')})`;
     return [
       `Olá! Segue o resumo fiscal da *${empresa.razaoSocial}* - competência ${atual.competencia}:`,
@@ -185,6 +346,7 @@ export function RelatorioCliente({ cnpjSugerido }: { cnpjSugerido?: string }) {
       `- Percentual de imposto: ${formatarPercentual(aliquota)} do faturamento`,
       `- Faturamento dos últimos 12 meses (RBT12): ${formatarMoeda(atual.rbt12)}`,
       `- Impostos anteriores: ${situacao}`,
+      ...(linhaFiscal ? [linhaFiscal] : []),
       '',
       'O relatório completo segue em PDF. Qualquer dúvida, estou à disposição.',
       'Eleven Contabilidade & Consultoria',
@@ -215,7 +377,8 @@ export function RelatorioCliente({ cnpjSugerido }: { cnpjSugerido?: string }) {
         <h2 className="text-base font-semibold text-stone-900">Relatório mensal do cliente</h2>
         <p className="text-sm text-stone-500">
           Envie um ou mais PDFs da declaração ou do extrato do PGDAS-D (um por competência). Pelo extrato, a data e o valor
-          pagos do DAS são preenchidos automaticamente. Quanto mais meses enviar, mais completo fica o
+          pagos do DAS são preenchidos automaticamente. Também aceita o Relatório de Situação Fiscal do e-CAC, que mostra as
+          pendências na Receita e na Dívida Ativa. Quanto mais meses enviar, mais completo fica o
           histórico de impostos. Os dados ficam salvos neste navegador, separados por CNPJ.
         </p>
       </div>
@@ -236,7 +399,7 @@ export function RelatorioCliente({ cnpjSugerido }: { cnpjSugerido?: string }) {
         }}
       >
         {carregando ? <Loader2 className="h-7 w-7 animate-spin text-brand-600" /> : <FileUp className="h-7 w-7 text-stone-400" />}
-        <p className="text-sm font-medium text-stone-700">Arraste os PDFs do PGDAS-D aqui</p>
+        <p className="text-sm font-medium text-stone-700">Arraste os PDFs do PGDAS-D ou da Situação Fiscal aqui</p>
         <button
           type="button"
           onClick={() => inputRef.current?.click()}
@@ -265,7 +428,7 @@ export function RelatorioCliente({ cnpjSugerido }: { cnpjSugerido?: string }) {
         </div>
       )}
 
-      {empresa && atual && (
+      {empresa && (
         <>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             <label className="flex flex-col gap-1 text-sm">
@@ -289,9 +452,11 @@ export function RelatorioCliente({ cnpjSugerido }: { cnpjSugerido?: string }) {
               <span className="font-medium text-stone-700">Competência do relatório</span>
               <select
                 className="rounded-lg border border-stone-300 bg-white px-3 py-2"
-                value={atual.competencia}
+                value={atual?.competencia ?? ''}
                 onChange={(e) => setCompSel(e.target.value)}
+                disabled={!atual}
               >
+                {!atual && <option value="">Sem PGDAS enviado</option>}
                 {[...apuracoes].reverse().map((a) => (
                   <option key={a.competencia} value={a.competencia}>
                     {a.competencia}
@@ -313,7 +478,7 @@ export function RelatorioCliente({ cnpjSugerido }: { cnpjSugerido?: string }) {
 
           <div className="flex flex-wrap gap-2">
             <button
-              onClick={() => imprimirAreaImpressao(`Relatório ${atual.competencia} - ${empresa.razaoSocial}`, { umaPagina: true })}
+              onClick={() => imprimirAreaImpressao(`Relatório ${atual?.competencia ?? 'situação fiscal'} - ${empresa.razaoSocial}`, { umaPagina: true })}
               className="inline-flex items-center gap-1.5 rounded-lg bg-brand-700 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-brand-800"
             >
               <Printer className="h-4 w-4" />
@@ -344,8 +509,34 @@ export function RelatorioCliente({ cnpjSugerido }: { cnpjSugerido?: string }) {
     </div>
   );
 
-  if (!empresa || !atual || !indicadores) {
+  const removerSituacao = () => empresa && setCarteira(atualizarEmpresa(carteira, empresa.cnpj, { situacaoFiscal: undefined }));
+
+  if (!empresa || ((!atual || !indicadores) && !situacaoFiscal)) {
     return <div className="space-y-6">{painel}</div>;
+  }
+
+  if (!atual || !indicadores) {
+    const sf = situacaoFiscal!;
+    return (
+      <div className="space-y-6">
+        {painel}
+        <article className="space-y-4 impresso:space-y-2.5 rounded-2xl border border-stone-200 bg-stone-50 p-4 sm:p-6 impresso:border-0 impresso:bg-white impresso:p-0">
+          <CabecalhoDocumento
+            titulo="Situação fiscal"
+            empresa={empresa.razaoSocial}
+            linha={
+              <>
+                <span>CNPJ {sf.cnpj}</span>
+                <span>Posição em {isoParaBr(sf.dataReferencia)}</span>
+              </>
+            }
+          />
+          <BannerSituacao ok={pendenciasFiscais.length === 0} titulo={pendenciasFiscais.length === 0 ? 'Nenhuma pendência de débito na Receita Federal' : `${pendenciasFiscais.length} pendência(s) fiscal(is): ${formatarMoeda(totalFiscal)} atualizados`} texto={pendenciasFiscais.length === 0 ? 'Não constam débitos em aberto no Relatório de Situação Fiscal.' : 'Detalhamento abaixo. Regularize o quanto antes para evitar o aumento de multa e juros e o risco de exclusão do Simples Nacional.'} />
+          {pendenciasFiscais.length > 0 && <TabelaPendencias pendencias={pendenciasFiscais} dataReferencia={sf.dataReferencia} onRemover={removerSituacao} />}
+          <RodapeDocumento fonte="Relatório de Situação Fiscal (e-CAC)" />
+        </article>
+      </div>
+    );
   }
 
   const { ultimos13, mediaFaturamento, ultimos12, anteriores, aliquota, aliquotaAnterior, pendentes } = indicadores;
@@ -385,35 +576,22 @@ export function RelatorioCliente({ cnpjSugerido }: { cnpjSugerido?: string }) {
       {painel}
 
       <article className="space-y-4 impresso:space-y-2.5 rounded-2xl border border-stone-200 bg-stone-50 p-4 sm:p-6 impresso:border-0 impresso:bg-white impresso:p-0">
-        {/* Cabeçalho do documento */}
-        <header className="print-avoid-break overflow-hidden rounded-xl bg-brand-900 text-white">
-          <div className="flex flex-col gap-4 px-5 py-5 impresso:py-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-3">
-              <EleveIcon className="h-12 w-12 shrink-0" />
-              <div>
-                <p className="text-lg font-semibold leading-tight text-gold-100">
-                  eleven<span className="text-gold-400">.</span>
-                </p>
-                <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-stone-400">Contabilidade &amp; Consultoria</p>
-              </div>
-            </div>
-            <div className="sm:text-right">
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-gold-300">Relatório Fiscal Mensal · Simples Nacional</p>
-              <p className="text-xl font-semibold first-letter:uppercase">{nomeMes(atual.competencia, false)}</p>
-            </div>
-          </div>
-          <div className="flex flex-wrap gap-x-6 gap-y-1 bg-brand-800 px-5 py-2.5 text-xs text-brand-100">
-            <span className="font-semibold text-white">{empresa.razaoSocial}</span>
-            <span>CNPJ {atual.cnpj}</span>
-            {atual.municipio && (
-              <span>
-                {atual.municipio}/{atual.uf}
-              </span>
-            )}
-            <span>Anexo {atual.anexos.join(', ') || '—'}</span>
-            <span>Emitido em {dataHoje}</span>
-          </div>
-        </header>
+        <CabecalhoDocumento
+          titulo={nomeMes(atual.competencia, false)}
+          empresa={empresa.razaoSocial}
+          linha={
+            <>
+              <span>CNPJ {atual.cnpj}</span>
+              {atual.municipio && (
+                <span>
+                  {atual.municipio}/{atual.uf}
+                </span>
+              )}
+              <span>Anexo {atual.anexos.join(', ') || '—'}</span>
+              <span>Emitido em {dataHoje}</span>
+            </>
+          }
+        />
 
         {/* Indicadores */}
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -428,29 +606,27 @@ export function RelatorioCliente({ cnpjSugerido }: { cnpjSugerido?: string }) {
         </div>
 
         {/* Situação dos impostos */}
-        <div
-          className={`print-avoid-break flex items-start gap-3 rounded-xl border p-4 ${
-            pendentes.length === 0 ? 'border-emerald-200 bg-emerald-50' : 'border-rose-200 bg-rose-50'
-          }`}
-        >
-          {pendentes.length === 0 ? (
-            <CircleCheck className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
-          ) : (
-            <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-rose-600" />
-          )}
-          <div>
-            <p className={`text-sm font-semibold ${pendentes.length === 0 ? 'text-emerald-800' : 'text-rose-800'}`}>
-              {pendentes.length === 0
+        <BannerSituacao
+          ok={pendentes.length === 0 && pendenciasFiscais.length === 0}
+          titulo={
+            pendenciasFiscais.length > 0
+              ? `Pendências na Receita Federal: ${formatarMoeda(totalFiscal)} atualizados`
+              : pendentes.length === 0
                 ? 'Impostos anteriores em dia'
-                : `${pendentes.length} guia(s) vencida(s) sem pagamento confirmado: ${formatarMoeda(totalPendente)}`}
-            </p>
-            <p className="text-xs text-stone-600">
-              {pendentes.length === 0
+                : `${pendentes.length} guia(s) vencida(s) sem pagamento confirmado: ${formatarMoeda(totalPendente)}`
+          }
+          texto={
+            pendenciasFiscais.length > 0
+              ? `${pendenciasFiscais.length} débito(s) em aberto, detalhados abaixo.${pendentes.length > 0 ? ` Além disso, ${pendentes.length} guia(s) sem pagamento confirmado (${pendentes.map((a) => a.competencia).join(', ')}).` : ''} Regularize o quanto antes para evitar o aumento de multa e juros.`
+              : pendentes.length === 0
                 ? `Todas as guias vencidas das competências enviadas constam como pagas ou parceladas. O DAS de ${atual.competencia} vence em ${formatarData(vencimento)}.`
-                : `Competências: ${pendentes.map((a) => a.competencia).join(', ')}. Regularize o quanto antes para evitar multa, juros e risco de exclusão do Simples.`}
-            </p>
-          </div>
-        </div>
+                : `Competências: ${pendentes.map((a) => a.competencia).join(', ')}. Regularize o quanto antes para evitar multa, juros e risco de exclusão do Simples.`
+          }
+        />
+
+        {situacaoFiscal && pendenciasFiscais.length > 0 && (
+          <TabelaPendencias pendencias={pendenciasFiscais} dataReferencia={situacaoFiscal.dataReferencia} onRemover={removerSituacao} />
+        )}
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Secao titulo="Faturamento mensal">
@@ -610,7 +786,7 @@ export function RelatorioCliente({ cnpjSugerido }: { cnpjSugerido?: string }) {
               </thead>
               <tbody>
                 {historico.map((a) => {
-                  const situacao = situacaoDas(a);
+                  const situacao = situacaoDas(a, devedoras);
                   return (
                     <tr key={a.competencia} className={`border-b border-stone-100 last:border-0 ${a.competencia === atual.competencia ? 'bg-gold-50' : ''}`}>
                       <td className="py-2 impresso:py-1 font-medium text-stone-800">
@@ -697,17 +873,9 @@ export function RelatorioCliente({ cnpjSugerido }: { cnpjSugerido?: string }) {
           </p>
         </Secao>
 
-        <footer className="print-avoid-break overflow-hidden rounded-xl">
-          <p className="bg-white py-2 text-center text-[11px] italic text-stone-500">
-            Contador(a) responsável: Kauane Gomes · Fonte: declaração do PGDAS-D nº {atual.numeroDeclaracao ?? '—'}
-            {atual.dataTransmissao ? `, transmitida em ${atual.dataTransmissao}` : ''}
-          </p>
-          <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 bg-brand-800 px-4 py-2 text-[11px] text-white">
-            <span>Tel: (85) 99427-6469</span>
-            <span>Email: contabilidade@somoseleven.com</span>
-            <span>@eleven.contabilidade</span>
-          </div>
-        </footer>
+        <RodapeDocumento
+          fonte={`declaração do PGDAS-D nº ${atual.numeroDeclaracao ?? '—'}${atual.dataTransmissao ? `, transmitida em ${atual.dataTransmissao}` : ''}${situacaoFiscal ? ' e Relatório de Situação Fiscal (e-CAC)' : ''}`}
+        />
       </article>
     </div>
   );

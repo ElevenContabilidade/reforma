@@ -1,4 +1,4 @@
-import type { AnexoSimples, ApuracaoPgdas, CarteiraEmpresa, ReceitaMensal, StatusPagamento } from './types';
+import type { AnexoSimples, ApuracaoPgdas, CarteiraEmpresa, ReceitaMensal, SituacaoFiscal, StatusPagamento } from './types';
 import { chaveCompetencia } from './apuracaoPgdas';
 import { encontrarFaixa, LIMITE_SIMPLES_NACIONAL, TABELAS_SIMPLES } from './simplesTables';
 
@@ -59,6 +59,18 @@ export function incluirApuracoes(lista: CarteiraEmpresa[], novas: ApuracaoPgdas[
   return gravarCarteira(resultado);
 }
 
+/** Guarda o Relatório de Situação Fiscal mais recente da empresa (substitui o anterior). */
+export function incluirSituacaoFiscal(lista: CarteiraEmpresa[], sf: SituacaoFiscal): CarteiraEmpresa[] {
+  const raiz = raizCnpj(sf.cnpj);
+  const existe = lista.some((e) => raizCnpj(e.cnpj) === raiz);
+  const resultado = existe
+    ? lista.map((e) =>
+        raizCnpj(e.cnpj) === raiz ? { ...e, razaoSocial: e.razaoSocial || sf.razaoSocial, situacaoFiscal: sf } : e,
+      )
+    : [...lista, { cnpj: sf.cnpj, razaoSocial: sf.razaoSocial, apuracoes: [], situacaoFiscal: sf }];
+  return gravarCarteira(resultado);
+}
+
 export function atualizarEmpresa(lista: CarteiraEmpresa[], cnpj: string, mudancas: Partial<CarteiraEmpresa>): CarteiraEmpresa[] {
   return gravarCarteira(lista.map((e) => (e.cnpj === cnpj ? { ...e, ...mudancas } : e)));
 }
@@ -82,7 +94,7 @@ export function removerApuracao(lista: CarteiraEmpresa[], cnpj: string, competen
   return gravarCarteira(
     lista
       .map((e) => (e.cnpj === cnpj ? { ...e, apuracoes: e.apuracoes.filter((a) => a.competencia !== competencia) } : e))
-      .filter((e) => e.apuracoes.length > 0),
+      .filter((e) => e.apuracoes.length > 0 || e.situacaoFiscal),
   );
 }
 
@@ -134,7 +146,9 @@ export const ROTULO_STATUS: Record<StatusPagamento, string> = {
 };
 
 /** Situação exibida ao cliente, combinando o status marcado com o vencimento. */
-export function situacaoDas(apuracao: ApuracaoPgdas, hoje = new Date()): SituacaoDas {
+export function situacaoDas(apuracao: ApuracaoPgdas, devedoras?: Set<string>, hoje = new Date()): SituacaoDas {
+  // O Relatório de Situação Fiscal da Receita prevalece sobre a marcação manual.
+  if (devedoras?.has(apuracao.competencia)) return 'aberto';
   if (apuracao.valorDas <= 0 || apuracao.status === 'pago') return 'pago';
   if (apuracao.status === 'parcelado') return 'parcelado';
   const vencido = vencimentoDas(apuracao.competencia) < new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());

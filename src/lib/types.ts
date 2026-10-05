@@ -124,4 +124,27 @@ export interface CarteiraEmpresa {
   telefoneWhatsapp?: string;
   observacoes?: string;
   apuracoes: ApuracaoPgdas[];
+  situacaoFiscal?: SituacaoFiscal;
+}
+
+/** Débito listado no Relatório de Situação Fiscal (e-CAC). */
+export interface PendenciaFiscal {
+  origem: 'receita' | 'pgfn';
+  receita: string; // ex.: "SIMPLES NAC."
+  competencia?: string; // PA no formato MM/AAAA (ou exercício)
+  vencimento?: string; // AAAA-MM-DD
+  valorOriginal?: number;
+  saldoDevedor?: number;
+  multa?: number;
+  juros?: number;
+  total?: number; // saldo devedor consolidado
+  situacao: string;
+  inscricao?: string; // nº da inscrição em dívida ativa
+}
+
+export interface SituacaoFiscal {
+  cnpj: string;
+  razaoSocial: string;
+  dataReferencia: string; // AAAA-MM-DD (emissão do relatório ou data da leitura)
+  pendencias: PendenciaFiscal[];
 }
