@@ -25,12 +25,10 @@ import {
   atualizarEmpresa,
   formatarData,
   incluirApuracoes,
-  infoFaixa,
   isoParaBr,
   listarCarteira,
   nomeMes,
   raizCnpj,
-  rbt12ProximoMes,
   removerApuracao,
   ROTULO_SITUACAO,
   ROTULO_STATUS,
@@ -144,9 +142,6 @@ export function RelatorioCliente({ cnpjSugerido }: { cnpjSugerido?: string }) {
     const mediaFaturamento = ultimos13.length > 1 ? ultimos13.slice(0, -1).reduce((s, r) => s + r.valor, 0) / (ultimos13.length - 1) : 0;
     const ultimos12 = serie.slice(-12);
     const anteriores = apuracoes.filter((a) => ateAtual(a.competencia));
-    const anexo = atual.anexos[0] ?? 'III';
-    const faixa = infoFaixa(anexo, atual.rbt12);
-    const proximaRbt12 = rbt12ProximoMes(serie, atual.competencia);
     const aliquota = atual.receitaPA > 0 ? (atual.valorDas / atual.receitaPA) * 100 : 0;
     const anterior = anteriores[anteriores.length - 2];
     const aliquotaAnterior = anterior && anterior.receitaPA > 0 ? (anterior.valorDas / anterior.receitaPA) * 100 : undefined;
@@ -154,7 +149,7 @@ export function RelatorioCliente({ cnpjSugerido }: { cnpjSugerido?: string }) {
       const s = situacaoDas(a);
       return s === 'aberto' || s === 'nao-confirmado';
     });
-    return { serie, ultimos13, mediaFaturamento, ultimos12, anteriores, faixa, proximaRbt12, aliquota, aliquotaAnterior, pendentes };
+    return { serie, ultimos13, mediaFaturamento, ultimos12, anteriores, aliquota, aliquotaAnterior, pendentes };
   }, [apuracoes, atual]);
 
   function alterarStatus(competencia: string, status: StatusPagamento) {
@@ -354,7 +349,7 @@ export function RelatorioCliente({ cnpjSugerido }: { cnpjSugerido?: string }) {
     return <div className="space-y-6">{painel}</div>;
   }
 
-  const { ultimos13, mediaFaturamento, ultimos12, anteriores, faixa, proximaRbt12, aliquota, aliquotaAnterior, pendentes } = indicadores;
+  const { ultimos13, mediaFaturamento, ultimos12, anteriores, aliquota, aliquotaAnterior, pendentes } = indicadores;
   const vencimento = vencimentoDas(atual.competencia);
   const dadosTributos = TRIBUTOS_DAS.filter((t) => (atual.tributos[t] ?? 0) > 0).map((t) => ({ nome: t, valor: atual.tributos[t] ?? 0 }));
   const dadosFaturamento = ultimos13.map((r) => ({ mes: nomeMes(r.competencia), valor: r.valor, atual: r.competencia === atual.competencia }));
@@ -372,14 +367,6 @@ export function RelatorioCliente({ cnpjSugerido }: { cnpjSugerido?: string }) {
   const historico = [...anteriores].reverse().slice(0, 12);
 
   const alertas: string[] = [];
-  if (faixa.aliquotaNominalProxima !== undefined && faixa.faltaParaProxima < faixa.limite * 0.1) {
-    alertas.push(
-      `A receita dos últimos 12 meses está a ${formatarMoeda(faixa.faltaParaProxima)} do limite da ${faixa.numero}ª faixa (${formatarMoeda(faixa.limite)}). Ao ultrapassar, a alíquota nominal sobe de ${formatarPercentual(faixa.aliquotaNominal, 1)} para ${formatarPercentual(faixa.aliquotaNominalProxima, 1)} e o imposto efetivo aumenta gradualmente.`,
-    );
-  }
-  if (proximaRbt12 !== undefined && proximaRbt12 > faixa.limite) {
-    alertas.push(`Com o faturamento deste mês, a RBT12 do próximo mês será de ${formatarMoeda(proximaRbt12)}, já acima do limite da faixa atual.`);
-  }
   if ((atual.rba ?? 0) > SUBLIMITE_ICMS_ISS * 0.8) {
     alertas.push(`O faturamento acumulado no ano (${formatarMoeda(atual.rba ?? 0)}) se aproxima do sublimite de ${formatarMoeda(SUBLIMITE_ICMS_ISS)} para ICMS/ISS no DAS.`);
   }
