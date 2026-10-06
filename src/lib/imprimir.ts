@@ -13,13 +13,23 @@ const SCRIPT_UMA_PAGINA = `
     var area = document.querySelector('.print-area');
     if (!area) return;
     var largura = 718, altura = 1040; // 190 x 277 mm a 96 dpi, com folga
+    // Busca binária pelo maior zoom em que a área cabe na folha (altura e largura).
+    function cabe(z) {
+      area.style.width = (largura / z) + 'px';
+      var excesso = 0;
+      area.querySelectorAll('table').forEach(function (t) {
+        excesso = Math.max(excesso, t.scrollWidth - t.parentElement.clientWidth);
+      });
+      return excesso <= 0 && area.scrollWidth <= largura / z + 1 && area.scrollHeight * z <= altura;
+    }
     var zoom = 1;
-    for (var i = 0; i < 5; i++) {
-      area.style.width = (largura / zoom) + 'px';
-      // Considera também conteúdo mais largo que a folha (ex.: tabelas).
-      var novo = Math.min(1, altura / area.scrollHeight, largura / Math.max(area.scrollWidth * zoom, 1) * zoom);
-      if (Math.abs(novo - zoom) < 0.003) { zoom = novo; break; }
-      zoom = novo;
+    if (!cabe(1)) {
+      var min = 0.3, max = 1;
+      for (var i = 0; i < 14; i++) {
+        var meio = (min + max) / 2;
+        if (cabe(meio)) min = meio; else max = meio;
+      }
+      zoom = min;
     }
     area.style.width = (largura / zoom) + 'px';
     area.style.zoom = zoom;
