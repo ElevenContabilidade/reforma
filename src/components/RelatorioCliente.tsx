@@ -16,7 +16,7 @@ import {
   YAxis,
 } from 'recharts';
 import { AlertTriangle, CircleCheck, Copy, FileUp, Loader2, MessageCircle, Printer, Trash2 } from 'lucide-react';
-import type { ApuracaoPgdas, CarteiraEmpresa, PendenciaFiscal, StatusPagamento } from '../lib/types';
+import type { AnexoSimples, ApuracaoPgdas, CarteiraEmpresa, PendenciaFiscal, StatusPagamento } from '../lib/types';
 import { TRIBUTOS_DAS } from '../lib/types';
 import { lerTextoPdf } from '../lib/pgdasParser';
 import { interpretarDeclaracao, chaveCompetencia } from '../lib/apuracaoPgdas';
@@ -517,6 +517,32 @@ export function RelatorioCliente({ cnpjSugerido }: { cnpjSugerido?: string }) {
               />
             </label>
           </div>
+
+          {atual && atual.anexos.length === 0 && (
+            <label className="flex flex-wrap items-center gap-2 rounded-lg bg-gold-50 px-3 py-2 text-sm text-brand-800">
+              O anexo não foi identificado no PGDAS. Informe o anexo desta empresa:
+              <select
+                className="rounded border border-stone-300 bg-white px-2 py-1 text-sm"
+                value=""
+                onChange={(e) => {
+                  const anexo = e.target.value as AnexoSimples;
+                  if (!anexo) return;
+                  setCarteira(
+                    atualizarEmpresa(carteira, empresa.cnpj, {
+                      apuracoes: empresa.apuracoes.map((a) => (a.anexos.length === 0 ? { ...a, anexos: [anexo] } : a)),
+                    }),
+                  );
+                }}
+              >
+                <option value="">Selecione</option>
+                {(['I', 'II', 'III', 'IV', 'V'] as AnexoSimples[]).map((x) => (
+                  <option key={x} value={x}>
+                    Anexo {x}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
 
           <div className="flex flex-wrap gap-2">
             <button
