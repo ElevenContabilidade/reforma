@@ -1030,7 +1030,7 @@ export function RelatorioCliente({ cnpjSugerido }: { cnpjSugerido?: string }) {
         </Secao>
 
         <RodapeDocumento
-          fonte={`declaração do PGDAS-D nº ${atual.numeroDeclaracao ?? '—'}${atual.dataTransmissao ? `, transmitida em ${atual.dataTransmissao}` : ''}${situacaoFiscal ? ' e Relatório de Situação Fiscal (e-CAC)' : ''}`}
+          fonte={`declaração do PGDAS-D${atual.numeroDeclaracao ? ` nº ${atual.numeroDeclaracao}` : ''}${atual.dataTransmissao ? `, transmitida em ${atual.dataTransmissao}` : ''}${situacaoFiscal ? ' e Relatório de Situação Fiscal (e-CAC)' : ''}`}
         />
       </article>
     </div>

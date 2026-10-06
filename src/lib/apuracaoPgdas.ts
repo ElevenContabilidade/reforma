@@ -130,9 +130,15 @@ export function interpretarDeclaracao(texto: string): ApuracaoPgdas | undefined 
     tributos,
     receitasAnteriores: receitasAnteriores(texto),
     fatorR: texto.match(/Fator r = (.+?) 2\.5\)/i)?.[1]?.trim(),
-    numeroDeclaracao: texto.match(/N[ºo°] da Declara[çc][ãa]o:? (\d+)/i)?.[1],
-    retificadora: /Declara[çc][ãa]o Retificadora/i.test(texto),
-    dataTransmissao: texto.match(/transmiss[ãa]o da Declara[çc][ãa]o:? (\d{2}\/\d{2}\/\d{4})/i)?.[1],
+    // Declaração: "Nº da Declaração"; extrato: "Informações da Apuração <nº>" ou
+    // "Informações sobre DAS Gerado na apuração: <nº>".
+    numeroDeclaracao:
+      texto.match(/N[ºo°] da Declara[çc][ãa]o:? (\d+)/i)?.[1] ??
+      texto.match(/Informa[çc][õo]es (?:da Apura[çc][ãa]o|sobre DAS Gerado na apura[çc][ãa]o:?) (\d{14,})/i)?.[1],
+    retificadora: /(?:Declara[çc][ãa]o|Apura[çc][ãa]o) Retificadora/i.test(texto),
+    dataTransmissao:
+      texto.match(/transmiss[ãa]o da Declara[çc][ãa]o:? (\d{2}\/\d{2}\/\d{4})/i)?.[1] ??
+      texto.match(/Apurado em:? (\d{2}\/\d{2}\/\d{4})/i)?.[1],
     status: quitado ? 'pago' : pagamentos.length > 0 ? 'aberto' : 'nao-informado',
     dataPagamento: pagamentos.length > 0 ? pagamentos.map((p) => p.data).sort().at(-1) : undefined,
     valorPago: pagamentos.length > 0 ? valorPago : undefined,
