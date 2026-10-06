@@ -42,6 +42,22 @@ html {
   color-scheme: light;
 }
 
+/* O Recharts 3 envolve o gráfico num div 0x0 com a largura da tela; na
+   impressão (e na página de impressão gerada) ele passa a ocupar o container
+   e o SVG (que tem viewBox) se ajusta à largura da folha. */
+@media print {
+  .print-area .recharts-responsive-container > div,
+  .print-area .recharts-wrapper {
+    width: 100% !important;
+    height: 100% !important;
+  }
+}
+.modo-impressao .print-area .recharts-responsive-container > div,
+.modo-impressao .print-area .recharts-wrapper {
+  width: 100% !important;
+  height: 100% !important;
+}
+
 body {
   @apply bg-stone-50 text-stone-900 antialiased;
 }
@@ -87,13 +103,6 @@ body {
   }
 
   /* Os gráficos são clonados com a largura da tela; aqui encolhem para caber na folha. */
-  /* O Recharts 3 envolve o gráfico num div 0x0; aqui ele passa a ocupar o
-     container e o SVG (que tem viewBox) se ajusta à largura da folha. */
-  .print-area .recharts-responsive-container > div,
-  .print-area .recharts-wrapper {
-    width: 100% !important;
-    height: 100% !important;
-  }
 
   @page {
     size: A4;

@@ -170,8 +170,8 @@ function TabelaPendencias({ pendencias, dataReferencia, onRemover }: { pendencia
   const valor = (v?: number) => (v === undefined ? '—' : formatarMoeda(v));
   return (
     <Secao titulo="Pendências na Receita Federal e Dívida Ativa">
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[640px] text-xs">
+      <div className="overflow-x-auto impresso:overflow-visible">
+        <table className="w-full min-w-[640px] text-xs impresso:min-w-0">
           <thead>
             <tr className="border-b border-stone-200 text-left text-stone-500">
               <th className="py-2 impresso:py-1 font-medium">Tributo</th>
@@ -888,8 +888,8 @@ export function RelatorioCliente({ cnpjSugerido }: { cnpjSugerido?: string }) {
 
         {/* Histórico de guias: PGDAS + débitos da Situação Fiscal num só lugar */}
         <Secao titulo="Histórico de apurações e pagamentos">
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[720px] text-xs">
+          <div className="overflow-x-auto impresso:overflow-visible">
+            <table className="w-full min-w-[720px] text-xs impresso:min-w-0 impresso:whitespace-nowrap [&_td]:px-1.5 [&_th]:px-1.5 [&_td:first-child]:pl-0 [&_th:first-child]:pl-0">
               <thead>
                 <tr className="border-b border-stone-200 text-left text-stone-500">
                   <th className="py-2 impresso:py-1 font-medium">Competência</th>

@@ -16,7 +16,8 @@ const SCRIPT_UMA_PAGINA = `
     var zoom = 1;
     for (var i = 0; i < 5; i++) {
       area.style.width = (largura / zoom) + 'px';
-      var novo = Math.min(1, altura / area.scrollHeight);
+      // Considera também conteúdo mais largo que a folha (ex.: tabelas).
+      var novo = Math.min(1, altura / area.scrollHeight, largura / Math.max(area.scrollWidth * zoom, 1) * zoom);
       if (Math.abs(novo - zoom) < 0.003) { zoom = novo; break; }
       zoom = novo;
     }
