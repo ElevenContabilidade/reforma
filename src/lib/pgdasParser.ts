@@ -32,7 +32,7 @@ function buscarValorAposRotulo(textoNormalizado: string, textoOriginal: string, 
 function detectarAnexo(textoNormalizado: string): AnexoSimples | undefined {
   // Prioriza a frase "tributados pelo Anexo X", que indica o anexo efetivamente
   // aplicado à atividade nessa apuração (evita pegar menções soltas à palavra "anexo").
-  const especifico = textoNormalizado.match(/tributados pelo anexo\s*(i{1,3}v?|v)\b/);
+  const especifico = textoNormalizado.match(/(?:tributad[ao]s pelo|sujeit[ao]s ao) anexo\s*(i{1,3}v?|v)\b/);
   if (especifico) return especifico[1].toUpperCase() as AnexoSimples;
 
   const generico = textoNormalizado.match(/anexo\s*(i{1,3}v?|v)\b/);

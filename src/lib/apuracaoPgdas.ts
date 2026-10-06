@@ -80,7 +80,7 @@ function pagamentosDoTexto(texto: string): { data: string; valor: number }[] {
 
 function anexosDoTexto(textoNormalizado: string): AnexoSimples[] {
   const encontrados = new Set<AnexoSimples>();
-  for (const m of textoNormalizado.matchAll(/tributad[ao]s pelo anexo (i{1,3}v?|v)\b/g)) {
+  for (const m of textoNormalizado.matchAll(/(?:tributad[ao]s pelo|sujeit[ao]s ao) anexo (i{1,3}v?|v)\b/g)) {
     encontrados.add(m[1].toUpperCase() as AnexoSimples);
   }
   return [...encontrados];
