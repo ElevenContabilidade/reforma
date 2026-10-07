@@ -825,7 +825,11 @@ export function RelatorioCliente({ cnpjSugerido }: { cnpjSugerido?: string }) {
   if (!atual || !indicadores) {
     // Empresa sem PGDAS enviado: só guias e/ou Situação Fiscal.
     const linhas = montarLinhas([], guiasEmpresa, todasPendencias);
-    const competenciaRef = guiasEmpresa.map((g) => g.competencia).sort((x, y) => chaveCompetencia(y).localeCompare(chaveCompetencia(x)))[0] ?? '';
+    const competenciaRef =
+      linhas
+        .map((l) => l.competencia)
+        .filter((c) => /^\d{2}\/\d{4}$/.test(c))
+        .sort((x, y) => chaveCompetencia(y).localeCompare(chaveCompetencia(x)))[0] ?? '';
     const atrasadas = linhas.filter(emAtraso);
     return (
       <div className="space-y-6">
