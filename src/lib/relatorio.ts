@@ -1,4 +1,4 @@
-import type { AnexoSimples, ApuracaoPgdas, CarteiraEmpresa, ReceitaMensal, SituacaoFiscal, StatusPagamento } from './types';
+import type { AnexoSimples, ApuracaoPgdas, CarteiraEmpresa, GuiaMensal, ReceitaMensal, SituacaoFiscal, StatusPagamento } from './types';
 import { chaveCompetencia } from './apuracaoPgdas';
 import { encontrarFaixa, LIMITE_SIMPLES_NACIONAL, TABELAS_SIMPLES } from './simplesTables';
 
@@ -71,6 +71,36 @@ export function incluirSituacaoFiscal(lista: CarteiraEmpresa[], sf: SituacaoFisc
   return gravarCarteira(resultado);
 }
 
+/** Inclui guias (DCTFWeb/FGTS). A mesma guia (mesmo nº) é substituída, mantendo o pagamento marcado. */
+export function incluirGuias(lista: CarteiraEmpresa[], guias: GuiaMensal[]): CarteiraEmpresa[] {
+  let resultado = lista.map((e) => ({ ...e, guias: [...(e.guias ?? [])] }));
+  for (const g of guias) {
+    const raiz = raizCnpj(g.cnpj);
+    if (!resultado.some((e) => raizCnpj(e.cnpj) === raiz)) {
+      resultado = [...resultado, { cnpj: g.cnpj, razaoSocial: g.razaoSocial, apuracoes: [], guias: [] }];
+    }
+    resultado = resultado.map((e) => {
+      if (raizCnpj(e.cnpj) !== raiz) return e;
+      const lista2 = e.guias ?? [];
+      // Mesma guia, ou guia do mesmo tipo e competência gerada de novo.
+      const existente = lista2.find((x) => x.id === g.id || (x.tipo === g.tipo && x.competencia === g.competencia));
+      const nova = existente ? { ...g, status: existente.status, dataPagamento: existente.dataPagamento } : g;
+      return { ...e, guias: [...lista2.filter((x) => x !== existente), nova] };
+    });
+  }
+  return gravarCarteira(resultado);
+}
+
+export function atualizarGuia(lista: CarteiraEmpresa[], cnpj: string, id: string, mudancas: Partial<GuiaMensal>): CarteiraEmpresa[] {
+  return gravarCarteira(
+    lista.map((e) => (e.cnpj === cnpj ? { ...e, guias: (e.guias ?? []).map((g) => (g.id === id ? { ...g, ...mudancas } : g)) } : e)),
+  );
+}
+
+export function removerGuia(lista: CarteiraEmpresa[], cnpj: string, id: string): CarteiraEmpresa[] {
+  return gravarCarteira(lista.map((e) => (e.cnpj === cnpj ? { ...e, guias: (e.guias ?? []).filter((g) => g.id !== id) } : e)));
+}
+
 export function atualizarEmpresa(lista: CarteiraEmpresa[], cnpj: string, mudancas: Partial<CarteiraEmpresa>): CarteiraEmpresa[] {
   return gravarCarteira(lista.map((e) => (e.cnpj === cnpj ? { ...e, ...mudancas } : e)));
 }
@@ -94,7 +124,7 @@ export function removerApuracao(lista: CarteiraEmpresa[], cnpj: string, competen
   return gravarCarteira(
     lista
       .map((e) => (e.cnpj === cnpj ? { ...e, apuracoes: e.apuracoes.filter((a) => a.competencia !== competencia) } : e))
-      .filter((e) => e.apuracoes.length > 0 || e.situacaoFiscal),
+      .filter((e) => e.apuracoes.length > 0 || e.situacaoFiscal || (e.guias ?? []).length > 0),
   );
 }
 

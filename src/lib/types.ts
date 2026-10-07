@@ -125,6 +125,7 @@ export interface CarteiraEmpresa {
   observacoes?: string;
   apuracoes: ApuracaoPgdas[];
   situacaoFiscal?: SituacaoFiscal;
+  guias?: GuiaMensal[];
 }
 
 /** Débito listado no Relatório de Situação Fiscal (e-CAC). */
@@ -147,4 +148,20 @@ export interface SituacaoFiscal {
   razaoSocial: string;
   dataReferencia: string; // AAAA-MM-DD (emissão do relatório ou data da leitura)
   pendencias: PendenciaFiscal[];
+}
+
+/** Guia mensal fora do DAS: DARF da DCTFWeb (INSS/IRRF) ou guia do FGTS Digital. */
+export interface GuiaMensal {
+  id: string; // nº do documento / identificador da guia
+  tipo: 'dctfweb' | 'fgts';
+  cnpj: string;
+  razaoSocial: string;
+  descricao: string; // ex.: "INSS - empregados e pró-labore"
+  competencia: string; // MM/AAAA
+  vencimento: string; // AAAA-MM-DD
+  valor: number;
+  composicao: { codigo: string; denominacao: string; valor: number }[];
+  trabalhadores?: number;
+  status: StatusPagamento;
+  dataPagamento?: string; // AAAA-MM-DD
 }
