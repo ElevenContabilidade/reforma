@@ -327,6 +327,15 @@ tr.total td { font-weight: 800; border-bottom: 0; }
 .or-list .ck:last-child { border-bottom: 0; }
 .or-list .ck .t small { display: block; color: var(--muted); font-size: 12px; margin-top: 2px; }
 .or-list .ck.on .t small { text-decoration: none; }
+.mon-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.mon-card { border: 1px solid var(--line); border-radius: 14px; background: var(--surface); padding: 12px 14px; display: grid; gap: 8px; align-content: start; }
+.mon-h b { font-size: 16px; } .mon-h span { display: block; font-size: 12px; color: var(--muted); }
+.mon-v { display: grid; gap: 6px; }
+.mon-v div { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; border-bottom: 1px dashed var(--line); padding-bottom: 4px; }
+.mon-v small { color: var(--muted); font-size: 12px; } .mon-v b { text-align: right; }
+.mon-r { margin: 0; font-size: 12.5px; color: var(--muted); }
+.mon-total { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 6px; background: var(--wine-soft); border-radius: 12px; padding: 12px 14px; margin: 10px 0 8px; }
+@media (max-width: 760px) { .mon-grid { grid-template-columns: 1fr; } }
 .or-note { font-size: 13px; color: var(--muted); max-width: 70ch; }
 .or-src a { color: var(--wine); }
 @media (max-width: 760px) { .or-grid, .or-money { grid-template-columns: 1fr; } }
@@ -1548,14 +1557,22 @@ a.btn-primary { color: var(--on-wine); }
   function viewOrient(trip) {
     var fx = trip.cambio || {}, pax = +trip.viajantes || 2;
     var brl = function (v, c) { var r = +fx[c]; return r ? " (≈ " + money(v * r, "BRL") + ")" : ""; };
-    var esp = Math.max(1098.90, 122.10 * 6), fra = 65 * 5;
+    // Dias em cada país contando chegada e saída (regra de cálculo da imigração)
+    var DIAS_ESP = 7, DIAS_UK = 5, DIAS_FRA = 5;
+    var espDia = 122.10, espMin = 1098.90, esp = Math.max(espMin, espDia * DIAS_ESP), fra = 65 * DIAS_FRA, ukMin = 70 * DIAS_UK, ukMax = 100 * DIAS_UK;
+    var reais = function (v, c) { var r = +fx[c]; return r ? money(v * r, "BRL") : "—"; };
+    var totMin = (esp * pax) * (+fx.EUR || 0) + (fra * pax) * (+fx.EUR || 0) + (ukMin * pax) * (+fx.GBP || 0);
+    var totMax = (esp * pax) * (+fx.EUR || 0) + (fra * pax) * (+fx.EUR || 0) + (ukMax * pax) * (+fx.GBP || 0);
+    var linha = function (pais, dias, regra, pp, casal, brl) { return '<div class="mon-card"><div class="mon-h"><b>' + pais + "</b><span>" + dias + '</span></div><div class="mon-v"><div><small>Por pessoa</small><b>' + pp + '</b></div><div><small>Casal</small><b>' + casal + '</b></div><div><small>Casal em reais</small><b>' + brl + '</b></div></div><p class="mon-r">' + regra + "</p></div>"; };
     var html = seguroCard(trip) + '<div class="section-head"><div><h2>Orientações da viagem</h2><p>O que cada país pede para brasileiros, quanto comprovar e o que fazer antes de embarcar. Regras conferidas em outubro de 2026; revise 15 dias antes.</p></div></div>';
-    html += '<div class="group-label">Quanto comprovar na imigração (para ' + pax + " pessoas)</div>" +
-      '<div class="or-money">' +
-      '<div class="stat"><div class="k">Espanha</div><div class="v">' + esc(money(esp * pax, "EUR")) + '</div><div class="s">' + esc(money(esp, "EUR")) + " por pessoa. Mínimo legal de € 1.098,90 por pessoa (estadias até 9 dias)" + esc(brl(esp * pax, "EUR")) + "</div></div>" +
-      '<div class="stat"><div class="k">França</div><div class="v">' + esc(money(fra * pax, "EUR")) + '</div><div class="s">€ 65 por pessoa por dia com hotel reservado (5 dias em Paris). Sem hotel: € 120 por dia' + esc(brl(fra * pax, "EUR")) + "</div></div>" +
-      '<div class="stat"><div class="k">Reino Unido</div><div class="v">Sem valor fixo</div><div class="s">Mostrar que consegue se manter os 4 dias: hotel pago, passagem de saída (Eurostar) e cartão/saldo.</div></div></div>' +
-      '<p class="or-note">Vale cartão de crédito com limite, cartão de débito ou conta global com saldo, extrato bancário recente ou dinheiro em espécie. Na prática, a imigração costuma pedir só se desconfiar, mas tenham à mão. Preencha a cotação na aba Custos para ver os valores em reais.</p>';
+    html += '<div class="group-label">Quanto comprovar na imigração</div>' +
+      '<div class="mon-grid">' +
+      linha("Espanha", DIAS_ESP + " dias: 16 a 20/11 (5) e 28 a 29/11 (2)", "€ 122,10 por dia (10% do salário mínimo espanhol de 2026), com <b>mínimo de € 1.098,90</b> por pessoa. " + DIAS_ESP + " x € 122,10 = " + esc(money(espDia * DIAS_ESP, "EUR")) + ", abaixo do mínimo, então vale o mínimo.", esc(money(esp, "EUR")), esc(money(esp * pax, "EUR")), esc(reais(esp * pax, "EUR"))) +
+      linha("Reino Unido", DIAS_UK + " dias: 20 a 24/11", "Sem valor oficial. Referência usada: £ 70 a £ 100 por dia.", esc(money(ukMin, "GBP")) + " a " + esc(money(ukMax, "GBP")), esc(money(ukMin * pax, "GBP")) + " a " + esc(money(ukMax * pax, "GBP")), esc(reais(ukMin * pax, "GBP")) + " a " + esc(reais(ukMax * pax, "GBP"))) +
+      linha("França", DIAS_FRA + " dias: 24 a 28/11", "€ 65 por dia com hotel reservado (é o caso de vocês). Sem hotel seria € 120; com carta-convite, € 32,50.", esc(money(fra, "EUR")), esc(money(fra * pax, "EUR")), esc(reais(fra * pax, "EUR"))) +
+      '</div><div class="mon-total"><span>Soma dos 3 países (casal, ' + (DIAS_ESP + DIAS_UK + DIAS_FRA) + ' dias contados)</span><b>' + (fx.EUR && fx.GBP ? esc(money(totMin, "BRL")) + " a " + esc(money(totMax, "BRL")) : "Preencha a cotação na aba Custos") + "</b></div>" +
+      '<p class="or-note"><b>Não precisa ter a soma toda de uma vez:</b> cada fronteira olha só o trecho dela, e o mesmo cartão ou saldo serve nas três. O maior valor é o da Espanha, cobrado na entrada em Madri (16/11): ' + esc(money(esp * pax, "EUR")) + " para o casal" + esc(brl(esp * pax, "EUR")) + ". A França confere em St Pancras (24/11).</p>" +
+      '<p class="or-note">Vale cartão de crédito com limite (leve a fatura ou o print do limite disponível), cartão de débito ou conta global com saldo, extrato bancário recente ou dinheiro em espécie. Na prática, a imigração costuma pedir só se desconfiar, mas tenham à mão junto com hotel, passagem de volta e seguro.</p>';
 
     html += '<div class="group-label" style="margin-top:18px">Exigências por país</div><div class="or-grid">' +
       orCard("Espanha", "Barcelona e Madri", [
@@ -1564,7 +1581,7 @@ a.btn-primary { color: var(--on-wine); }
         ["Registro na fronteira", "Sistema EES: na primeira entrada (Madri, 16/11) tiram foto e digitais. Não carimbam mais o passaporte."],
         ["Passaporte", "Válido por 3 meses após sair do Schengen (até 01/03/2027) e emitido há menos de 10 anos."],
         ["Seguro viagem", '<span class="or-tag sim">Exigido na prática</span> Cobertura mínima de € 30.000. A imigração pode pedir.'],
-        ["Dinheiro", "€ 122,10 por pessoa/dia, mínimo de € 1.098,90 por pessoa."],
+        ["Dinheiro", "€ 122,10 por pessoa/dia, mínimo de € 1.098,90 por pessoa. Para vocês: € 1.098,90 cada, € 2.197,80 o casal."],
         ["Também levar", "Reservas dos hotéis e passagem de volta (29/11)."],
         ["Tax Free", "Sem valor mínimo. Peça o formulário DIVA na loja e valide no aeroporto na saída."],
         ["Tomada / emergência", "Tipo C/F, 230 V · Emergência: 112"]
@@ -1574,7 +1591,7 @@ a.btn-primary { color: var(--on-wine); }
         ["Autorização eletrônica", '<span class="or-tag sim">ETA obrigatória</span> £ 20 por pessoa, pelo app UK ETA. Vale 2 anos.'],
         ["Passaporte", "Válido durante toda a estadia (20 a 24/11)."],
         ["Seguro viagem", '<span class="or-tag atencao">Não é exigido, mas leve</span> Atendimento no NHS é cobrado de turistas, e caro.'],
-        ["Dinheiro", "Sem valor fixo. Mostrar hotel, Eurostar de saída e cartão."],
+        ["Dinheiro", "Sem valor fixo. Referência de £ 70 a £ 100 por dia: £ 350 a £ 500 cada, £ 700 a £ 1.000 o casal. Mostrar também hotel e Eurostar de saída."],
         ["Também levar", "Endereço do hotel em Londres e motivo da viagem (turismo)."],
         ["Tax Free", '<span class="or-tag sim">Não existe</span> O Reino Unido acabou com a devolução de imposto para turistas em 2021.'],
         ["Moeda", "Libra (£). Quase tudo aceita cartão por aproximação, inclusive metrô e ônibus."],
@@ -1586,7 +1603,7 @@ a.btn-primary { color: var(--on-wine); }
         ["Registro na fronteira", "A imigração francesa fica em Londres, na estação St Pancras, antes do Eurostar (24/11). Lá fazem o registro EES de novo."],
         ["Passaporte", "Mesma regra do Schengen: válido até 01/03/2027."],
         ["Seguro viagem", '<span class="or-tag sim">Exigido na prática</span> Cobertura mínima de € 30.000.'],
-        ["Dinheiro", "€ 65 por pessoa/dia com hotel reservado; € 120 sem hotel."],
+        ["Dinheiro", "€ 65 por pessoa/dia com hotel reservado; € 120 sem hotel. Para vocês (5 dias): € 325 cada, € 650 o casal."],
         ["Também levar", "Reserva do Hôtel Montmartre e passagem para Barcelona (28/11)."],
         ["Tax Free", "A partir de € 100,01 na mesma loja e no mesmo dia. Valide no quiosque PABLO antes de sair da UE."],
         ["Tomada / emergência", "Tipo C/E, 230 V · Emergência: 112"]
