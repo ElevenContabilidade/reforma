@@ -1157,7 +1157,11 @@ export function RelatorioCliente({ cnpjSugerido }: { cnpjSugerido?: string }) {
             valor={formatarPercentual(aliquota)}
             detalhe={aliquotaAnterior !== undefined ? `Mês anterior: ${formatarPercentual(aliquotaAnterior)}` : 'Percentual do faturamento'}
           />
-          <Kpi rotulo="RBT12" valor={formatarMoeda(atual.rbt12)} detalhe="Faturamento dos últimos 12 meses" />
+          <Kpi
+            rotulo="RBT12"
+            valor={formatarMoeda(atual.rbt12)}
+            detalhe={`Faturamento dos 12 meses antes de ${nomeMes(atual.competencia)} (base do cálculo do DAS)`}
+          />
         </div>
 
         {/* Situação dos impostos */}
@@ -1236,7 +1240,8 @@ export function RelatorioCliente({ cnpjSugerido }: { cnpjSugerido?: string }) {
                   )}
                 />
                 <p className="mt-1 text-xs text-stone-500">
-                  Total dos 12 meses: <strong className="text-stone-700">{formatarMoeda(total12m)}</strong>. Linha tracejada: média mensal (
+                  Total de {primeiro12m ? `${nomeMes(primeiro12m.competencia)} a ${nomeMes(atual.competencia)}` : '12 meses'}, já com o mês do relatório:{' '}
+                  <strong className="text-stone-700">{formatarMoeda(total12m)}</strong>. Linha tracejada: média mensal (
                   {formatarMoeda(media12m)}).
                   {variacao12m !== undefined &&
                     ` Variação de ${nomeMes(primeiro12m.competencia)} para ${nomeMes(atual.competencia)}: ${variacao12m >= 0 ? '+' : ''}${formatarPercentual(variacao12m, 1)}.`}
