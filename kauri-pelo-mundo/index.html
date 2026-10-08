@@ -78,15 +78,14 @@ svg.i { width: 18px; height: 18px; flex: none; }
 
 /* Cartão da viagem */
 .trip-card { margin-top: -48px; background: var(--surface); border-radius: 20px; box-shadow: var(--shadow); overflow: hidden; position: relative; }
-.trip-banner { position: relative; height: 190px; background: linear-gradient(160deg, var(--band-2), var(--band)); overflow: hidden; }
-.trip-banner img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.trip-banner::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0,0,0,0) 55%, rgba(0,0,0,.25)); pointer-events: none; }
+.trip-banner { position: relative; background: var(--surface-2); overflow: hidden; }
+.trip-banner img { width: 100%; height: auto; max-height: 420px; object-fit: cover; display: block; }
 .banner-acts { position: absolute; top: 10px; right: 10px; display: flex; gap: 6px; z-index: 1; }
 .banner-acts button { border: 0; background: rgba(42, 18, 20, .62); color: #fff; font-size: 12px; font-weight: 700; border-radius: 999px; padding: 6px 12px; backdrop-filter: blur(4px); }
 .banner-acts button:hover { background: rgba(42, 18, 20, .8); }
 .trip-addcover { border: 1px dashed var(--line); background: var(--surface); border-radius: 10px; padding: 7px 10px; color: var(--muted); font-size: 12px; font-weight: 700; display: flex; align-items: center; gap: 6px; }
 .trip-acts { display: flex; gap: 6px; align-items: center; }
-@media (max-width: 640px) { .trip-banner { height: 130px; } .trip-addcover span { display: none; } .trip-acts { flex-direction: column; } }
+@media (max-width: 640px) { .trip-addcover span { display: none; } .trip-acts { flex-direction: column; } }
 .trip-top { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 14px; align-items: center; padding: 16px; border-bottom: 1px solid var(--line); }
 .trip-cover.has-photo { width: 84px; height: 84px; position: relative; border: 3px solid var(--gold); border-radius: 50%; padding: 0; overflow: hidden; background: var(--surface-2); }
 .trip-cover.has-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
@@ -1041,10 +1040,11 @@ a.btn-primary { color: var(--on-wine); }
     var cover = trip.fotoCapa ? '<button type="button" class="trip-cover has-photo" data-action="cover" aria-label="Trocar foto"><img src="' + esc(trip.fotoCapa) + '" alt="Kauane e Iuri"><span class="cover-edit">Trocar foto</span></button>' : "";
     var hasB = !!trip.fotoBanner;
     el.classList.toggle("with-banner", hasB);
-    var banner = hasB ? '<div class="trip-banner"><img src="' + esc(trip.fotoBanner) + '" alt="" style="object-position:center ' + esc(trip.bannerPos || "center") + '"><div class="banner-acts"><button type="button" data-action="banner-pos">Ajustar posição</button><button type="button" data-action="banner">Trocar capa</button></div></div>' : "";
+    // A capa aparece inteira, na proporção da própria imagem (sem cortar)
+    var banner = hasB ? '<div class="trip-banner"><img src="' + esc(trip.fotoBanner) + '" alt="Capa da viagem"></div>' : "";
     el.innerHTML = banner + '<div class="trip-top">' + (cover || '<div class="trip-cover"><svg width="40" height="40" viewBox="0 0 36 36" aria-hidden="true"><circle cx="18" cy="18" r="15" fill="none" stroke="#e0ad42" stroke-width="2"/><ellipse cx="18" cy="18" rx="6.5" ry="15" fill="none" stroke="#e0ad42" stroke-width="1.5"/><path d="M4 13h28M4 23h28" stroke="#e0ad42" stroke-width="1.5"/></svg></div>') +
       '<div style="min-width:0"><div class="eyebrow">' + esc(trip.nome) + "</div><h1>" + esc(trip.destino || trip.nome) + '</h1><div class="trip-dates">' + ic("cal") + esc(fmtLong(trip.inicio)) + " – " + esc(fmtLong(trip.fim)) + "</div></div>" +
-      '<div class="trip-acts">' + (hasB ? "" : '<button class="trip-addcover" type="button" data-action="banner" aria-label="Adicionar capa">' + ic("img") + "<span>Adicionar capa</span></button>") + '<button class="trip-edit" type="button" id="btn-edit-trip" aria-label="Editar viagem">' + ic("pen") + "</button></div></div>" +
+      '<div class="trip-acts">' + '<button class="trip-addcover" type="button" data-action="banner" aria-label="' + (hasB ? "Trocar capa" : "Adicionar capa") + '">' + ic("img") + "<span>" + (hasB ? "Trocar capa" : "Adicionar capa") + "</span></button>" + '<button class="trip-edit" type="button" id="btn-edit-trip" aria-label="Editar viagem">' + ic("pen") + "</button></div></div>" +
       (state.tab === "geral" ? '<div class="trip-bottom"><div id="countdown">' + countdownHTML(trip) + "</div>" + ILLUS + "</div>" : "");
   }
 
