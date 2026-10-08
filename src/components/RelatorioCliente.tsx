@@ -16,7 +16,7 @@ import {
   YAxis,
 } from 'recharts';
 import { AlertTriangle, CircleCheck, Copy, FileUp, Loader2, MessageCircle, Printer, Trash2 } from 'lucide-react';
-import type { AnexoSimples, ApuracaoPgdas, CarteiraEmpresa, GuiaMensal, PendenciaFiscal, SituacaoFiscal, StatusPagamento } from '../lib/types';
+import type { AnexoSimples, ApuracaoPgdas, CarteiraEmpresa, GuiaMensal, ParcelamentoFiscal, PendenciaFiscal, SituacaoFiscal, StatusPagamento } from '../lib/types';
 import { TRIBUTOS_DAS } from '../lib/types';
 import { lerTextoPdf } from '../lib/pgdasParser';
 import { interpretarDeclaracao, chaveCompetencia, paraNumero } from '../lib/apuracaoPgdas';
@@ -212,6 +212,7 @@ function totalPendencia(p: PendenciaFiscal): number {
 
 interface LinhaHistorico {
   chave: string;
+  informativo?: boolean; // linha sem valor (ex.: parcelamento em andamento)
   competencia: string;
   tributo: string;
   detalhe?: string;
@@ -250,7 +251,12 @@ function codigoReceita(p: PendenciaFiscal): string | undefined {
  * Situação Fiscal. O débito da Receita que corresponde a um DAS ou a uma guia
  * enviada (mesma competência e código) vira uma linha só, com multa e juros.
  */
-function montarLinhas(apuracoes: ApuracaoPgdas[], guias: GuiaMensal[], pendencias: PendenciaFiscal[]): LinhaHistorico[] {
+function montarLinhas(
+  apuracoes: ApuracaoPgdas[],
+  guias: GuiaMensal[],
+  pendencias: PendenciaFiscal[],
+  parcelamentos: ParcelamentoFiscal[] = [],
+): LinhaHistorico[] {
   const usadas = new Set<PendenciaFiscal>();
   const linhas: LinhaHistorico[] = apuracoes.map((a) => {
     const p = pendencias.find((x) => x.origem === 'receita' && /SIMPLES/i.test(x.receita) && x.competencia === a.competencia);
@@ -333,6 +339,22 @@ function montarLinhas(apuracoes: ApuracaoPgdas[], guias: GuiaMensal[], pendencia
         pendencia: p,
       }),
     );
+  // Parcelamento em andamento (a Situação Fiscal não traz o valor da parcela):
+  // linha informativa, só enquanto nenhuma parcela foi enviada ou lançada.
+  if (!guias.some((g) => g.tipo === 'parcelamento')) {
+    parcelamentos.forEach((pc, i) => {
+      const nome = pc.descricao.replace(/ - EM PARCELAMENTO$/i, '').toLowerCase().replace(/(^|\s)\S/g, (c) => c.toUpperCase());
+      linhas.push({
+        chave: `parc-${i}`,
+        informativo: true,
+        competencia: '—',
+        tributo: `Parcelamento - ${nome === 'Em Parcelamento' ? pc.sistema : nome} (${pc.sistema})`,
+        detalhe: pc.orgao === 'pgfn' ? 'Na Dívida Ativa (PGFN)' : 'Parcela mensal paga por DAS próprio do parcelamento',
+        total: 0,
+        situacao: 'parcelado',
+      });
+    });
+  }
   const ordem = (c: string) => (/^\d{2}\/\d{4}$/.test(c) ? chaveCompetencia(c) : '0000');
   // DAS primeiro dentro da competência, depois INSS/IRRF, FGTS e demais.
   const peso = (l: LinhaHistorico) => (l.apuracao || /^DAS/.test(l.tributo) ? 0 : l.guia?.tipo === 'fgts' ? 2 : 1);
@@ -427,12 +449,12 @@ function SecaoHistorico({
                   <td className="py-2 impresso:py-1 text-right tabular-nums">{l.multa ? formatarMoeda(l.multa) : '—'}</td>
                   <td className="py-2 impresso:py-1 text-right tabular-nums">{l.juros ? formatarMoeda(l.juros) : '—'}</td>
                   <td className={`py-2 impresso:py-1 text-right font-semibold tabular-nums ${l.situacao === 'aberto' ? 'text-rose-800' : 'text-stone-800'}`}>
-                    {formatarMoeda(l.total)}
+                    {l.informativo ? '—' : formatarMoeda(l.total)}
                   </td>
                   <td className="py-2 impresso:py-1 pl-3 tabular-nums">{l.vencimento ?? '—'}</td>
                   <td className="py-2 impresso:py-1">
                     <span className={`inline-block whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-semibold ${ESTILO_SITUACAO[l.situacao]}`}>
-                      {l.pendencia?.origem === 'pgfn' ? 'Dívida ativa' : ROTULO_SITUACAO[l.situacao]}
+                      {l.pendencia?.origem === 'pgfn' ? 'Dívida ativa' : l.informativo ? 'Em parcelamento' : ROTULO_SITUACAO[l.situacao]}
                       {l.situacao === 'pago' && a?.dataPagamento ? ` em ${isoParaBr(a.dataPagamento)}` : ''}
                     </span>
                     {a?.valorPago !== undefined && a.valorPago < a.valorDas - 0.05 && (
@@ -519,6 +541,7 @@ const OPCOES_GUIA_MANUAL = [
   { id: 'patronal', tipo: 'dctfweb', descricao: 'INSS - patronal', codigo: '1138', denominacao: 'INSS patronal' },
   { id: 'irrf', tipo: 'dctfweb', descricao: 'IRRF', codigo: '0561', denominacao: 'IRRF' },
   { id: 'fgts', tipo: 'fgts', descricao: 'FGTS', codigo: 'FGTS', denominacao: 'FGTS mensal' },
+  { id: 'parcsn', tipo: 'parcelamento', descricao: 'Parcela - parcelamento do Simples Nacional', codigo: 'PARC', denominacao: 'Parcela do parcelamento' },
 ] as const;
 
 /** Inclusão manual de uma guia (ex.: débito visto na tela da DCTFWeb ou do FGTS Digital, sem PDF). */
@@ -559,7 +582,7 @@ function FormGuiaManual({ cnpjPadrao, razaoPadrao, onIncluir }: { cnpjPadrao: st
 
   return (
     <details className="rounded-lg border border-stone-200 px-3 py-2 text-sm">
-      <summary className="cursor-pointer font-medium text-stone-700">Adicionar guia manualmente (INSS, IRRF ou FGTS sem PDF)</summary>
+      <summary className="cursor-pointer font-medium text-stone-700">Adicionar guia manualmente (INSS, IRRF, FGTS ou parcela de parcelamento sem PDF)</summary>
       <form onSubmit={incluir} className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-4">
         <label className="flex flex-col gap-1 sm:col-span-1">
           <span className="text-xs text-stone-500">CNPJ</span>
@@ -1034,7 +1057,7 @@ export function RelatorioCliente({ cnpjSugerido }: { cnpjSugerido?: string }) {
 
   if (!atual || !indicadores) {
     // Empresa sem PGDAS enviado: só guias e/ou Situação Fiscal.
-    const linhas = montarLinhas([], guiasEmpresa, todasPendencias);
+    const linhas = montarLinhas([], guiasEmpresa, todasPendencias, situacaoFiscal?.parcelamentos);
     const competenciaRef =
       linhas
         .map((l) => l.competencia)
@@ -1085,7 +1108,7 @@ export function RelatorioCliente({ cnpjSugerido }: { cnpjSugerido?: string }) {
   const totalPendente = pendentes.reduce((s, a) => s + a.valorDas, 0);
   const historico = [...anteriores].reverse().slice(0, 12);
 
-  const linhasHistorico = montarLinhas(historico, guiasEmpresa.filter((g) => chaveCompetencia(g.competencia) <= chaveCompetencia(atual.competencia)), todasPendencias);
+  const linhasHistorico = montarLinhas(historico, guiasEmpresa.filter((g) => chaveCompetencia(g.competencia) <= chaveCompetencia(atual.competencia)), todasPendencias, situacaoFiscal?.parcelamentos);
   const atrasadasHistorico = linhasHistorico.filter(emAtraso);
 
   const alertas: string[] = [];

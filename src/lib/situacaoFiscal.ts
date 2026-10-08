@@ -1,4 +1,4 @@
-import type { PendenciaFiscal, SituacaoFiscal } from './types';
+import type { ParcelamentoFiscal, PendenciaFiscal, SituacaoFiscal } from './types';
 import { paraNumero } from './apuracaoPgdas';
 
 const NUM = '(\\d{1,3}(?:\\.\\d{3})*,\\d{2})';
@@ -99,7 +99,25 @@ export function interpretarSituacaoFiscal(texto: string, hoje = new Date()): Sit
     razaoSocial: texto.match(/CNPJ:? \d{2}\.\d{3}\.\d{3} - (.+?) Dados Cadastrais/i)?.[1]?.replace(/[ _]+$/, '').trim() ?? '',
     dataReferencia: emissao ? `${emissao[3]}-${emissao[2]}-${emissao[1]}` : iso(hoje),
     pendencias: [...debitosSief(texto), ...inscricoesPgfn(texto)],
+    parcelamentos: parcelamentos(texto),
   };
+}
+
+/**
+ * Parcelamentos ("Parcelamento com Exigibilidade Suspensa (PARCSN/PARCMEI)" e
+ * afins). O relatório só informa que existe o parcelamento, sem parcelas.
+ */
+function parcelamentos(texto: string): ParcelamentoFiscal[] {
+  const lista: ParcelamentoFiscal[] = [];
+  const re = /Parcelamento(?: com Exigibilidade Suspensa)? \(([^)]+)\)[ _]*(.*?)(?= Pend[êe]ncia ?- | Parcelamento(?: com Exigibilidade Suspensa)? \(| Diagn[óo]stico Fiscal| Final do Relat[óo]rio|$)/gi;
+  for (const m of texto.matchAll(re)) {
+    const pgfn = texto.slice(0, m.index).search(/Diagn[óo]stico Fiscal na Procuradoria/i) >= 0;
+    const itens = [...m[2].matchAll(/([A-ZÀ-Ú][A-ZÀ-Ú0-9 .\/]+? - EM PARCELAMENTO)/g)].map((x) => x[1].trim());
+    for (const descricao of itens.length > 0 ? itens : ['EM PARCELAMENTO']) {
+      lista.push({ sistema: m[1].trim(), descricao, orgao: pgfn ? 'pgfn' : 'receita' });
+    }
+  }
+  return lista;
 }
 
 /** Indica débitos no texto que a leitura da tabela não conseguiu extrair. */

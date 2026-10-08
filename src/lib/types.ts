@@ -148,12 +148,13 @@ export interface SituacaoFiscal {
   razaoSocial: string;
   dataReferencia: string; // AAAA-MM-DD (emissão do relatório ou data da leitura)
   pendencias: PendenciaFiscal[];
+  parcelamentos?: ParcelamentoFiscal[];
 }
 
 /** Guia mensal fora do DAS: DARF da DCTFWeb (INSS/IRRF) ou guia do FGTS Digital. */
 export interface GuiaMensal {
   id: string; // nº do documento / identificador da guia
-  tipo: 'dctfweb' | 'fgts';
+  tipo: 'dctfweb' | 'fgts' | 'parcelamento';
   cnpj: string;
   razaoSocial: string;
   descricao: string; // ex.: "INSS - empregados e pró-labore"
@@ -164,4 +165,11 @@ export interface GuiaMensal {
   trabalhadores?: number;
   status: StatusPagamento;
   dataPagamento?: string; // AAAA-MM-DD
+}
+
+/** Parcelamento informado no Relatório de Situação Fiscal (sem valores de parcela). */
+export interface ParcelamentoFiscal {
+  sistema: string; // ex.: "PARCSN/PARCMEI"
+  descricao: string; // ex.: "SIMPLES NACIONAL - EM PARCELAMENTO"
+  orgao: 'receita' | 'pgfn';
 }
