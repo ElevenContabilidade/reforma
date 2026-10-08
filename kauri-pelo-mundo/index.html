@@ -413,6 +413,17 @@ tr.total td { font-weight: 800; border-bottom: 0; }
 .ck-wrap { display: flex; gap: 8px; align-items: center; }
 .ck-wrap .ck { flex: 1; min-width: 0; }
 .ck-add { border: 1px dashed var(--line); background: transparent; border-radius: 12px; padding: 9px 12px; text-align: left; font-weight: 700; color: var(--wine); font-size: 14px; }
+.apps-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 10px; margin-bottom: 18px; }
+.app-card { display: grid; grid-template-columns: 56px minmax(0, 1fr); gap: 12px; border: 1px solid var(--line); border-radius: 14px; padding: 12px; background: var(--surface); }
+.app-card.on { border-color: var(--ok); background: var(--ok-soft); }
+.app-ic { width: 56px; height: 56px; border-radius: 13px; object-fit: cover; display: block; box-shadow: 0 0 0 1px var(--line); }
+.app-letra { display: grid; place-items: center; font-weight: 800; font-size: 26px; }
+.app-nome { font-weight: 800; }
+.app-sug { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--gold-ink); background: var(--gold-soft); border-radius: 999px; padding: 2px 7px; vertical-align: 2px; }
+.app-serve { font-size: 13px; color: var(--muted); margin-top: 2px; }
+.app-dica { font-size: 13px; margin-top: 6px; }
+.app-acts { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+@media (max-width: 420px) { .apps-grid { grid-template-columns: 1fr; } }
 .lang-chips { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 8px; margin-bottom: 12px; }
 .lang-chips button { border: 1px solid var(--line); background: var(--surface); border-radius: 12px; padding: 10px 12px; text-align: left; display: grid; gap: 2px; }
 .lang-chips button span { font-size: 12px; color: var(--muted); }
@@ -660,6 +671,7 @@ a.btn-primary { color: var(--on-wine); }
     { id: "caixa", label: "Caixa" },
     { id: "orientacoes", label: "Orientações" },
     { id: "idiomas", label: "Idiomas" },
+    { id: "apps", label: "Aplicativos" },
     { id: "documentos", label: "Documentos" }
   ];
   var TIPO_NOME = { voo: "Voo", hospedagem: "Hospedagem", passagem: "Passagem", roteiro: "Atividade", transporte: "Bilhete ou passe" };
@@ -1020,6 +1032,7 @@ a.btn-primary { color: var(--on-wine); }
       if (trip && t.tipo) n = tripItems(trip.id, t.tipo).length + (t.tipo === "voo" ? tripItems(trip.id, "passagem").length : 0);
       if (trip && t.id === "ingressos") n = tripItems(trip.id, "roteiro").filter(function (i) { return needsTicket(i) && !i.ingresso; }).length;
       if (trip && t.id === "documentos") n = tripDocs(trip.id).length;
+      if (trip && t.id === "apps") n = APPS.filter(function (a) { return !ckOn(trip, "app-" + a.id); }).length;
       return '<button class="tab" role="tab" type="button" data-tab="' + t.id + '" aria-selected="' + (state.tab === t.id) + '">' + t.label + (n ? '<span class="count">' + n + "</span>" : "") + "</button>";
     }).join("");
   }
@@ -1035,7 +1048,7 @@ a.btn-primary { color: var(--on-wine); }
     var keepScroll = null, board = main.querySelector(".board");
     if (board) keepScroll = board.scrollLeft;
     var v = {
-      geral: viewGeral, roteiro: viewBoard, mapas: viewMapas, orientacoes: viewOrient, idiomas: viewIdiomas, ingressos: viewIngressos, gastronomia: viewGastro, custos: viewCustos, caixa: viewCaixa, compras: viewCompras, checklist: viewChecklist, documentos: viewDocs,
+      geral: viewGeral, roteiro: viewBoard, mapas: viewMapas, orientacoes: viewOrient, idiomas: viewIdiomas, apps: viewApps, ingressos: viewIngressos, gastronomia: viewGastro, custos: viewCustos, caixa: viewCaixa, compras: viewCompras, checklist: viewChecklist, documentos: viewDocs,
       voo: viewTransporte,
       transporte: viewTransLocal,
       hospedagem: function (t) { return viewList(t, "hospedagem", "Hospedagens", cardHospedagem); }
@@ -1817,11 +1830,62 @@ a.btn-primary { color: var(--on-wine); }
     return html;
   }
 
+
+  // ---- Aplicativos úteis: ícone, para que serve, dica da viagem e "já instalei" (salvo no checklist) ----
+  var APP_GRUPOS = [
+    ["Para se locomover", "Transporte público em tempo real e comparação de passagens."],
+    ["Carro por aplicativo", "Compare o preço nos dois antes de chamar."],
+    ["Para economizar e se virar", "Água, banheiro, caixa eletrônico e onde deixar a mala."],
+    ["Da viagem de vocês", "Sugestões para os trechos e passeios que já estão no roteiro."]
+  ];
+  var APPS = [
+    { id: "gmaps", g: 0, nome: "Google Maps", icone: "/_blob/3b20e317ab4f210fcfd8878652dace9a", serve: "Rotas a pé, metrô e ônibus com horário em tempo real.", dica: "Antes de viajar, baixe o mapa offline de Barcelona, Madri, Londres e Paris: funciona sem internet para ver onde vocês estão." },
+    { id: "citymapper", g: 0, nome: "Citymapper", icone: "/_blob/d1ba5d05a609d4e3782ba05707d56430", serve: "Metrô, ônibus e trem em tempo real, com alerta de atraso e greve.", dica: "Funciona nas 4 cidades. Mostra em qual vagão entrar e qual saída usar, o que ajuda muito no metrô de Londres e de Paris." },
+    { id: "omio", g: 0, nome: "Omio", icone: "/_blob/08f73ddc9a6fe7d79f1e90b33dd6902b", serve: "Compara preço de trem, ônibus, avião e ferry.", dica: "Os trechos principais já estão comprados; use se precisar remarcar ou fazer um bate e volta. O cupom de 10 euros na primeira compra é pelo link da bio do perfil @roteirodaviajante." },
+    { id: "bolt", g: 1, nome: "Bolt", icone: "/_blob/dd821d0093edf599a71f469f03c312fe", serve: "Carro por aplicativo 24 horas.", dica: "Costuma sair mais barato que o Uber. Cadastre o cartão (Nomad ou Revolut) ainda no Brasil, para não depender de internet boa na chegada." },
+    { id: "uber", g: 1, nome: "Uber", icone: "/_blob/6186cbfac6490ceb720d70d720c110d2", serve: "Carro por aplicativo; usa a mesma conta do Brasil.", dica: "Em Barcelona, o Uber chama principalmente táxi oficial. À noite, saindo do jogo ou do barco, compare com o Bolt antes de pedir." },
+    { id: "cabify", g: 1, nome: "Cabify", cor: "#7145d6", serve: "Carro por aplicativo espanhol.", dica: "Forte em Madri e Barcelona: às vezes tem carro quando o Uber e o Bolt estão caros.", sugestao: true },
+    { id: "tapwater", g: 2, nome: "Tap Water Stations", icone: "/_blob/38139eb948a23f1b4450e582b2ee6be5", serve: "Mapa de fontes de água grátis pela Europa.", dica: "Leve garrafa vazia no raio-x e encha depois. Em Paris, as fontes Wallace (verdes) são grátis; em Madri a água da torneira é ótima." },
+    { id: "banheiro", g: 2, nome: "Onde tá o banheiro?", icone: "/_blob/cd86ac91751a2340d3bf983af3a35148", serve: "Localiza banheiros públicos.", dica: "Paris tem banheiros públicos grátis na rua. Em Londres, use os de museus (grátis) antes de sair; em várias estações se paga." },
+    { id: "atm", g: 2, nome: "ATM Fee Saver", icone: "/_blob/c5537f488b7ee0d56f9cc17c70e59cee", serve: "Encontra caixas eletrônicos sem tarifa ou com tarifa baixa.", dica: "Fuja dos caixas Euronet (azul e amarelo) dos pontos turísticos. No saque ou no cartão, sempre escolha pagar na moeda local (euro ou libra), nunca em reais." },
+    { id: "nannybag", g: 2, nome: "Nannybag", icone: "/_blob/4f85b54a978fe54967fa75e915db26ff", serve: "Guarda-volumes em lojas e hotéis parceiros.", dica: "Útil no dia 28/11: Versalhes não aceita mala. Deixe as malas guardadas em Paris e pegue antes de ir ao aeroporto." },
+    { id: "iberia", g: 3, nome: "Iberia", cor: "#d7192d", serve: "Check-in e cartão de embarque dos voos Iberia.", dica: "Faça o check-in pelo app assim que abrir e salve o cartão de embarque na Wallet.", sugestao: true },
+    { id: "vueling", g: 3, nome: "Vueling", cor: "#ffcc00", txt: "#222", serve: "Check-in e cartão de embarque dos voos Vueling.", dica: "O check-in da Vueling abre 7 dias antes: veja o lembrete no Checklist.", sugestao: true },
+    { id: "eurostar", g: 3, nome: "Eurostar", cor: "#0c2f5a", serve: "Bilhete do trem Londres para Paris (24/11).", dica: "O bilhete com QR code fica no app. Chegue 1 hora antes em St Pancras: tem imigração francesa antes do embarque.", sugestao: true },
+    { id: "tflgo", g: 3, nome: "TfL Go", cor: "#1c3f94", serve: "Metrô e ônibus de Londres em tempo real.", dica: "Em Londres vocês pagam encostando o cartão ou o celular na catraca; o app mostra a linha e o status.", sugestao: true },
+    { id: "ratp", g: 3, nome: "Bonjour RATP", cor: "#00a88f", serve: "Metrô, RER e ônibus de Paris.", dica: "Mostra greves e linhas fechadas no dia. Veja a aba Transporte local para os bilhetes de Paris.", sugestao: true },
+    { id: "disney", g: 3, nome: "Disneyland Paris", cor: "#1d4f91", serve: "Tempo de fila, mapa e horários dos shows.", dica: "No dia 26/11, abra o app para escolher a próxima atração pela fila mais curta.", sugestao: true },
+    { id: "tradutor", g: 3, nome: "Google Tradutor", cor: "#4285f4", serve: "Traduz texto, voz e foto.", dica: "Baixe espanhol e francês offline. A câmera traduz cardápio na hora.", sugestao: true }
+  ];
+  function appLoja(a) {
+    var ios = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+    return ios ? "itms-apps://search.itunes.apple.com/WebObjects/MZSearch.woa/wa/search?media=software&term=" + encodeURIComponent(a.nome) : "https://play.google.com/store/search?c=apps&q=" + encodeURIComponent(a.nome);
+  }
+  function appIcon(a) {
+    if (a.icone) return '<img class="app-ic" src="' + a.icone + '" alt="">';
+    return '<span class="app-ic app-letra" style="background:' + a.cor + ";color:" + (a.txt || "#fff") + '">' + esc(a.nome.charAt(0)) + "</span>";
+  }
+  function viewApps(trip) {
+    var feitos = APPS.filter(function (a) { return ckOn(trip, "app-" + a.id); }).length;
+    var html = '<div class="section-head"><div><h2>Aplicativos</h2><p>Os apps que vão salvar a viagem. Instale ainda no Brasil, faça login e cadastre o cartão. Marque cada um quando já estiver no celular. (' + feitos + "/" + APPS.length + " instalados)</p></div></div>";
+    APP_GRUPOS.forEach(function (g, gi) {
+      var list = APPS.filter(function (a) { return a.g === gi; });
+      html += '<div class="group-label">' + esc(g[0]) + '</div><p class="row-sub" style="margin:-4px 0 8px">' + esc(g[1]) + '</p><div class="apps-grid">' + list.map(function (a) {
+        var on = ckOn(trip, "app-" + a.id);
+        return '<div class="app-card' + (on ? " on" : "") + '">' + appIcon(a) +
+          '<div class="app-tx"><div class="app-nome">' + esc(a.nome) + (a.sugestao ? ' <span class="app-sug">sugestão</span>' : "") + '</div><div class="app-serve">' + esc(a.serve) + '</div><div class="app-dica">' + esc(a.dica) + "</div>" +
+          '<div class="app-acts"><a class="btn btn-small" href="' + esc(appLoja(a)) + '" target="_blank" rel="noopener">Baixar</a>' +
+          '<button type="button" class="btn btn-small' + (on ? " btn-primary" : "") + '" data-ck="app-' + a.id + '">' + (on ? "Instalado" : "Marcar instalado") + "</button></div></div></div>";
+      }).join("") + "</div>";
+    });
+    return html;
+  }
+
   // ---- Checklist final: o que falta fazer antes e durante a viagem ----
   var CK_EXTRA = {
     copias: { id: "copias", t: "Fotos dos passaportes salvas no celular e na nuvem", d: "Se perder o passaporte, a cópia agiliza o documento de emergência no consulado." },
     "guia-offline": { id: "guia-offline", t: "Baixar o guia offline no celular dos dois", d: "Aba Geral > Baixar guia offline. Gere de novo na véspera, com tudo atualizado." },
-    apps: { id: "apps", t: "Instalar os apps da viagem", d: "Iberia, Vueling, Eurostar, Google Maps, TfL Go (Londres), Bonjour RATP (Paris), Uber ou Cabify." },
+    apps: { id: "apps", t: "Instalar os apps da viagem", d: "Veja a aba Aplicativos: lá tem a lista completa, com o botão Baixar e onde marcar o que já está instalado." },
     "mapas-offline": { id: "mapas-offline", t: "Baixar mapas offline das 4 cidades no Google Maps", d: "Barcelona, Madri, Londres e Paris. Funciona sem internet para ver onde vocês estão." },
     "mala-mao": { id: "mala-mao", t: "Conferir a regra da mala de mão (vocês estão sem mala despachada)", d: "Iberia Basic: 1 mala de mão de até 10 kg (56x40x25 cm) por pessoa. Líquidos em frascos de até 100 ml, num saco transparente." },
     "mala-looks": { id: "mala-looks", t: "Montar a mala com os looks do Kauri Looks", d: "Confira a aba Mala do Kauri Looks e marque o que já foi para a mala." },
@@ -2330,6 +2394,8 @@ a.btn-primary { color: var(--on-wine); }
     if (pend.length) { sec("compras", "Compras pendentes"); pend.forEach(function (c) { H.push('<div class="row2"><span>' + e2(c.item) + ' <span class="muted">' + e2([c.cidade, c.loja, c.para].filter(Boolean).join(" · ")) + "</span></span><b>" + (num(c.precoEst) ? e2(money(num(c.precoEst), c.moeda)) : "") + "</b></div>"); }); }
     var lpend = tripLojas(trip.id).filter(function (l) { return !l.visitado; });
     if (lpend.length) { sec("lojas", "Lojas que quero ir"); lpend.forEach(function (l) { H.push('<div class="row2"><span>' + e2(l.nome) + ' <span class="muted">' + e2([lojaPais(l.cidade), l.cidade, l.endereco, l.comprar].filter(Boolean).join(" · ")) + "</span></span><b></b></div>"); }); }
+    sec("apps", "Aplicativos");
+    APPS.forEach(function (a) { H.push('<div class="row2"><span>' + e2(a.nome) + ' <span class="muted">' + e2(a.dica) + "</span></span><b>" + (ckOn(trip, "app-" + a.id) ? "ok" : "") + "</b></div>"); });
     sec("emergencia", "Emergência");
     if (trip.seguro) H.push('<div class="card"><b>Seguro viagem: ' + e2(trip.seguro.nome) + "</b><br>" + (trip.seguro.linhas || []).map(function (l) { return e2(l[0] + ": " + l[1]); }).join("<br>") + "<br>" + (trip.seguro.telefones || []).map(function (t) { return e2(t[0]) + ": <b>" + e2(t[1]) + "</b>"; }).join("<br>") + "</div>");
     H.push('<div class="card">Emergência na Espanha e na França: <b>112</b> · No Reino Unido: <b>999</b> ou <b>112</b>.<br>Guarde também o telefone do seguro viagem e do consulado do Brasil de cada cidade.</div>');
