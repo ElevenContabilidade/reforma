@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
   Bar,
   BarChart,
@@ -22,6 +22,7 @@ import { lerTextoPdf } from '../lib/pgdasParser';
 import { interpretarDeclaracao, chaveCompetencia, paraNumero } from '../lib/apuracaoPgdas';
 import { competenciasDasDevedoras, interpretarSituacaoFiscal, pareceTerDebitos } from '../lib/situacaoFiscal';
 import { interpretarGuia } from '../lib/guias';
+import { lerImagensDeGuias } from '../lib/leituraImagem';
 import {
   atualizarApuracao,
   atualizarEmpresa,
@@ -68,6 +69,34 @@ function eixoMoeda(v: number): string {
   if (v >= 1_000_000) return `${(v / 1_000_000).toLocaleString('pt-BR', { maximumFractionDigits: 1 })} mi`;
   if (v >= 1_000) return `${(v / 1_000).toLocaleString('pt-BR', { maximumFractionDigits: 0 })} mil`;
   return v.toLocaleString('pt-BR', { maximumFractionDigits: 0 });
+}
+
+/**
+ * Gráfico em duas versões: na tela, responsivo; na impressão, desenhado já no
+ * tamanho da folha (largura x altura fixas) e escalado pelo viewBox. Assim o
+ * PDF não herda o tamanho da tela e os gráficos não saem comprimidos.
+ */
+function GraficoDuplo({
+  classeTela,
+  largura,
+  altura,
+  render,
+}: {
+  classeTela: string;
+  largura: number;
+  altura: number;
+  render: (dim: { width?: number; height?: number }) => ReactNode;
+}) {
+  return (
+    <>
+      <div className={`w-full ${classeTela} impresso:hidden`}>
+        <ResponsiveContainer width="100%" height="100%">
+          {render({}) as React.ReactElement}
+        </ResponsiveContainer>
+      </div>
+      <div className="grafico-impressao hidden w-full impresso:block">{render({ width: largura, height: altura })}</div>
+    </>
+  );
 }
 
 function Kpi({ rotulo, valor, detalhe, destaque }: { rotulo: string; valor: string; detalhe?: string; destaque?: boolean }) {
@@ -558,6 +587,7 @@ export function RelatorioCliente({ cnpjSugerido }: { cnpjSugerido?: string }) {
   const [avisos, setAvisos] = useState<string[]>([]);
   const [copiado, setCopiado] = useState(false);
   const [arrastando, setArrastando] = useState(false);
+  const [lendoImagem, setLendoImagem] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const empresa = carteira.find((e) => e.cnpj === cnpjSel) ?? carteira[0];
@@ -571,10 +601,12 @@ export function RelatorioCliente({ cnpjSugerido }: { cnpjSugerido?: string }) {
   const devedoras = useMemo(() => competenciasDasDevedoras(situacaoFiscal), [situacaoFiscal]);
   const guiasEmpresa = useMemo(() => empresa?.guias ?? [], [empresa]);
 
-  async function processarArquivos(arquivos: FileList | null | undefined) {
+  async function processarArquivos(arquivos: FileList | File[] | null | undefined) {
     if (!arquivos || arquivos.length === 0) return;
     setCarregando(true);
     setAvisos([]);
+    const imagens = Array.from(arquivos).filter((f) => f.type.startsWith('image/'));
+    arquivos = Array.from(arquivos).filter((f) => !f.type.startsWith('image/'));
     const lidas: ApuracaoPgdas[] = [];
     const problemas: string[] = [];
     let carteiraAtual = carteira;
@@ -613,6 +645,14 @@ export function RelatorioCliente({ cnpjSugerido }: { cnpjSugerido?: string }) {
         problemas.push(`${arquivo.name}: falha ao ler o PDF (corrompido ou protegido por senha?).`);
       }
     }
+    if (imagens.length > 0) {
+      setLendoImagem(true);
+      const { guias, aviso } = await lerImagensDeGuias(imagens, { cnpj: empresa?.cnpj, razaoSocial: empresa?.razaoSocial });
+      setLendoImagem(false);
+      guiasLidas.push(...guias);
+      if (aviso) problemas.push(aviso);
+      else if (guias.length > 0) problemas.push(`Imagem lida: ${guias.map((g) => `${g.descricao} ${g.competencia} (${formatarMoeda(g.valor)})`).join('; ')}. Confira os valores no histórico.`);
+    }
     if (guiasLidas.length > 0) {
       carteiraAtual = incluirGuias(carteiraAtual, guiasLidas);
       cnpjSituacao = cnpjSituacao ?? guiasLidas[0].cnpj;
@@ -632,6 +672,24 @@ export function RelatorioCliente({ cnpjSugerido }: { cnpjSugerido?: string }) {
     setCarregando(false);
     if (inputRef.current) inputRef.current.value = '';
   }
+
+  // Ctrl+V de um print (ex.: tela da Dívida DCTFWeb) em qualquer lugar da página.
+  const processarRef = useRef(processarArquivos);
+  useEffect(() => {
+    processarRef.current = processarArquivos;
+  });
+  useEffect(() => {
+    function aoColar(e: ClipboardEvent) {
+      const alvo = e.target as HTMLElement | null;
+      if (alvo && (alvo.tagName === 'INPUT' || alvo.tagName === 'TEXTAREA')) return;
+      const imagens = Array.from(e.clipboardData?.files ?? []).filter((f) => f.type.startsWith('image/'));
+      if (imagens.length === 0) return;
+      e.preventDefault();
+      processarRef.current(imagens);
+    }
+    document.addEventListener('paste', aoColar);
+    return () => document.removeEventListener('paste', aoColar);
+  }, []);
 
   const indicadores = useMemo(() => {
     if (!atual) return null;
@@ -772,6 +830,9 @@ export function RelatorioCliente({ cnpjSugerido }: { cnpjSugerido?: string }) {
       >
         {carregando ? <Loader2 className="h-7 w-7 animate-spin text-brand-600" /> : <FileUp className="h-7 w-7 text-stone-400" />}
         <p className="text-sm font-medium text-stone-700">Arraste aqui PGDAS-D, Situação Fiscal, DARF do INSS ou guia do FGTS</p>
+        <p className="text-xs text-stone-500">
+          Também aceita print de tela (PNG/JPG): arraste a imagem ou cole com Ctrl+V. {lendoImagem && <strong className="text-brand-700">Lendo a imagem com o Claude…</strong>}
+        </p>
         <button
           type="button"
           onClick={() => inputRef.current?.click()}
@@ -782,7 +843,7 @@ export function RelatorioCliente({ cnpjSugerido }: { cnpjSugerido?: string }) {
         <input
           ref={inputRef}
           type="file"
-          accept="application/pdf"
+          accept="application/pdf,image/png,image/jpeg,image/webp"
           multiple
           className="hidden"
           onChange={(e) => processarArquivos(e.target.files)}
@@ -1055,12 +1116,15 @@ export function RelatorioCliente({ cnpjSugerido }: { cnpjSugerido?: string }) {
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Secao titulo="Faturamento mensal">
-            <div className="h-56 w-full impresso:h-40">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={dadosFaturamento} margin={{ top: 8, right: 4, left: 0, bottom: 0 }}>
+            <GraficoDuplo
+              classeTela="h-56"
+              largura={440}
+              altura={230}
+              render={(dim) => (
+                <BarChart {...dim} data={dadosFaturamento} margin={{ top: 8, right: 4, left: 0, bottom: 0 }}>
                   <CartesianGrid stroke={GRADE} vertical={false} />
-                  <XAxis dataKey="mes" tick={{ fontSize: 10, fill: TEXTO_EIXO }} tickLine={false} axisLine={false} interval={0} angle={-35} textAnchor="end" height={40} />
-                  <YAxis tickFormatter={eixoMoeda} tick={{ fontSize: 10, fill: TEXTO_EIXO }} tickLine={false} axisLine={false} width={48} />
+                  <XAxis dataKey="mes" tick={{ fontSize: dim.width ? 12 : 10, fill: TEXTO_EIXO }} tickLine={false} axisLine={false} interval={0} angle={-35} textAnchor="end" height={40} />
+                  <YAxis tickFormatter={eixoMoeda} tick={{ fontSize: dim.width ? 12 : 10, fill: TEXTO_EIXO }} tickLine={false} axisLine={false} width={dim.width ? 58 : 48} />
                   <Tooltip formatter={(v) => formatarMoeda(Number(v ?? 0))} cursor={{ fill: '#f5f5f4' }} />
                   {mediaFaturamento > 0 && <ReferenceLine y={mediaFaturamento} stroke={GOLD} strokeDasharray="4 4" />}
                   <Bar dataKey="valor" name="Faturamento" radius={[4, 4, 0, 0]} isAnimationActive={false}>
@@ -1069,8 +1133,8 @@ export function RelatorioCliente({ cnpjSugerido }: { cnpjSugerido?: string }) {
                     ))}
                   </Bar>
                 </BarChart>
-              </ResponsiveContainer>
-            </div>
+              )}
+            />
             <p className="mt-1 text-xs text-stone-500">
               Em dourado, o mês do relatório.{mediaFaturamento > 0 && ` Linha tracejada: média dos meses anteriores (${formatarMoeda(mediaFaturamento)}).`}
             </p>
@@ -1079,17 +1143,20 @@ export function RelatorioCliente({ cnpjSugerido }: { cnpjSugerido?: string }) {
           <Secao titulo="Evolução do faturamento nos últimos 12 meses">
             {dados12m.length > 1 ? (
               <>
-                <div className="h-56 w-full impresso:h-40">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={dados12m} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
+                <GraficoDuplo
+                  classeTela="h-56"
+                  largura={440}
+                  altura={230}
+                  render={(dim) => (
+                    <LineChart {...dim} data={dados12m} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
                       <CartesianGrid stroke={GRADE} vertical={false} />
-                      <XAxis dataKey="mes" tick={{ fontSize: 10, fill: TEXTO_EIXO }} tickLine={false} axisLine={false} interval={0} angle={-35} textAnchor="end" height={40} />
+                      <XAxis dataKey="mes" tick={{ fontSize: dim.width ? 12 : 10, fill: TEXTO_EIXO }} tickLine={false} axisLine={false} interval={0} angle={-35} textAnchor="end" height={40} />
                       <YAxis
                         tickFormatter={eixoMoeda}
-                        tick={{ fontSize: 10, fill: TEXTO_EIXO }}
+                        tick={{ fontSize: dim.width ? 12 : 10, fill: TEXTO_EIXO }}
                         tickLine={false}
                         axisLine={false}
-                        width={48}
+                        width={dim.width ? 58 : 48}
                         domain={[(min: number) => Math.floor(min * 0.9), (max: number) => Math.ceil(max * 1.05)]}
                       />
                       <Tooltip formatter={(v) => formatarMoeda(Number(v ?? 0))} />
@@ -1105,8 +1172,8 @@ export function RelatorioCliente({ cnpjSugerido }: { cnpjSugerido?: string }) {
                         isAnimationActive={false}
                       />
                     </LineChart>
-                  </ResponsiveContainer>
-                </div>
+                  )}
+                />
                 <p className="mt-1 text-xs text-stone-500">
                   Total dos 12 meses: <strong className="text-stone-700">{formatarMoeda(total12m)}</strong>. Linha tracejada: média mensal (
                   {formatarMoeda(media12m)}).
@@ -1158,11 +1225,14 @@ export function RelatorioCliente({ cnpjSugerido }: { cnpjSugerido?: string }) {
           </Secao>
 
           <Secao titulo="Imposto pago por mês">
-            <div className="h-48 w-full impresso:h-36">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={dadosImposto} margin={{ top: 8, right: 0, left: 0, bottom: 0 }}>
+            <GraficoDuplo
+              classeTela="h-48"
+              largura={440}
+              altura={200}
+              render={(dim) => (
+                <BarChart {...dim} data={dadosImposto} margin={{ top: 8, right: 0, left: 0, bottom: 0 }}>
                   <CartesianGrid stroke={GRADE} vertical={false} />
-                  <XAxis dataKey="mes" tick={{ fontSize: 10, fill: TEXTO_EIXO }} tickLine={false} axisLine={false} />
+                  <XAxis dataKey="mes" tick={{ fontSize: dim.width ? 12 : 10, fill: TEXTO_EIXO }} tickLine={false} axisLine={false} />
                   <YAxis hide domain={[0, (max: number) => max * 1.05]} />
                   <Tooltip formatter={(v) => formatarMoeda(Number(v ?? 0))} cursor={{ fill: '#f5f5f4' }} />
                   <Bar dataKey="das" name="Imposto pago" fill={BRAND} radius={[4, 4, 0, 0]} maxBarSize={90} isAnimationActive={false}>
@@ -1189,8 +1259,8 @@ export function RelatorioCliente({ cnpjSugerido }: { cnpjSugerido?: string }) {
                     />
                   </Bar>
                 </BarChart>
-              </ResponsiveContainer>
-            </div>
+              )}
+            />
           </Secao>
         </div>
 

@@ -52,6 +52,13 @@ html {
     height: 100% !important;
   }
 }
+/* Versão de impressão dos gráficos: tamanho fixo, escala pela largura do card. */
+.grafico-impressao .recharts-wrapper,
+.grafico-impressao svg.recharts-surface {
+  width: 100% !important;
+  height: auto !important;
+}
+
 .modo-impressao .print-area .recharts-responsive-container > div,
 .modo-impressao .print-area .recharts-wrapper {
   width: 100% !important;

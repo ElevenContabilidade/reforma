@@ -10,7 +10,7 @@ function dataIso(br: string | undefined): string | undefined {
 }
 
 /** Nome do tributo a partir do código de receita da DCTFWeb. */
-function rotuloCodigo(codigo: string, denominacao: string): string {
+export function rotuloCodigo(codigo: string, denominacao: string): string {
   const d = denominacao.toUpperCase();
   if (codigo === '1082' || /EMPREGADO/.test(d)) return 'INSS dos empregados';
   if (codigo === '1099' || /CONTRIB INDIVIDUAL/.test(d)) return 'INSS do pró-labore';
@@ -19,6 +19,20 @@ function rotuloCodigo(codigo: string, denominacao: string): string {
   if (/RAT|GILRAT|RISCO/.test(d)) return 'RAT';
   if (/PATRONAL|EMPRESA/.test(d)) return 'INSS patronal';
   return denominacao.trim();
+}
+
+/** Descrição da guia a partir dos tributos que a compõem (ex.: "INSS - empregados + pró-labore"). */
+export function descricaoComposicao(composicao: GuiaMensal['composicao']): string {
+  const nomes = [...new Set(composicao.map((c) => c.denominacao))];
+  const soInss = nomes.every((n) => n.startsWith('INSS') || n === 'Terceiros' || n === 'RAT');
+  const partes = nomes.map((n) => n.replace(/^INSS (?:dos |do )?/, '')).filter((n) => n !== 'INSS');
+  return nomes.length === 0
+      ? 'DARF - DCTFWeb'
+      : soInss
+        ? partes.length > 0 ? `INSS - ${partes.join(' + ')}` : 'INSS'
+        : nomes.includes('IRRF') && nomes.length === 1
+          ? 'IRRF'
+          : `INSS e IRRF - ${partes.filter((x) => x !== 'IRRF').join(' + ')}`;
 }
 
 /** DARF numerado gerado pela DCTFWeb (Sicalc/SENDA). */
@@ -41,17 +55,7 @@ function interpretarDarf(texto: string): GuiaMensal | undefined {
     const valores = m[3].trim().split(' ').map(paraNumero);
     composicao.push({ codigo: m[1], denominacao: rotuloCodigo(m[1], m[2]), valor: valores[valores.length - 1] });
   }
-  const nomes = [...new Set(composicao.map((c) => c.denominacao))];
-  const soInss = nomes.every((n) => n.startsWith('INSS') || n === 'Terceiros' || n === 'RAT');
-  const partes = nomes.map((n) => n.replace(/^INSS (?:dos |do )?/, ''));
-  const descricao =
-    nomes.length === 0
-      ? 'DARF - DCTFWeb'
-      : soInss
-        ? `INSS - ${partes.join(' + ')}`
-        : nomes.includes('IRRF') && nomes.length === 1
-          ? 'IRRF'
-          : `INSS e IRRF - ${partes.filter((x) => x !== 'IRRF').join(' + ')}`;
+  const descricao = descricaoComposicao(composicao);
 
   return {
     id: numero ?? `darf-${competencia}-${valor}`,

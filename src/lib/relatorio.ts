@@ -83,7 +83,8 @@ export function incluirGuias(lista: CarteiraEmpresa[], guias: GuiaMensal[]): Car
       if (raizCnpj(e.cnpj) !== raiz) return e;
       const lista2 = e.guias ?? [];
       // Mesma guia, ou guia do mesmo tipo e competência gerada de novo.
-      const existente = lista2.find((x) => x.id === g.id || (x.tipo === g.tipo && x.competencia === g.competencia));
+      const codigos = (x: GuiaMensal) => x.composicao.map((c) => c.codigo).sort().join(',');
+      const existente = lista2.find((x) => x.id === g.id || (x.tipo === g.tipo && x.competencia === g.competencia && codigos(x) === codigos(g)));
       const nova = existente ? { ...g, status: existente.status, dataPagamento: existente.dataPagamento } : g;
       return { ...e, guias: [...lista2.filter((x) => x !== existente), nova] };
     });
