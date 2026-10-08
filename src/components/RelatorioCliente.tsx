@@ -19,7 +19,7 @@ import { AlertTriangle, CircleCheck, Copy, FileUp, Loader2, MessageCircle, Print
 import type { AnexoSimples, ApuracaoPgdas, CarteiraEmpresa, GuiaMensal, PendenciaFiscal, SituacaoFiscal, StatusPagamento } from '../lib/types';
 import { TRIBUTOS_DAS } from '../lib/types';
 import { lerTextoPdf } from '../lib/pgdasParser';
-import { interpretarDeclaracao, chaveCompetencia } from '../lib/apuracaoPgdas';
+import { interpretarDeclaracao, chaveCompetencia, paraNumero } from '../lib/apuracaoPgdas';
 import { competenciasDasDevedoras, interpretarSituacaoFiscal, pareceTerDebitos } from '../lib/situacaoFiscal';
 import { interpretarGuia } from '../lib/guias';
 import {
@@ -446,6 +446,106 @@ function SecaoHistorico({
   );
 }
 
+const OPCOES_GUIA_MANUAL = [
+  { id: '1099', tipo: 'dctfweb', descricao: 'INSS - pró-labore', codigo: '1099', denominacao: 'INSS do pró-labore' },
+  { id: '1082', tipo: 'dctfweb', descricao: 'INSS - empregados', codigo: '1082', denominacao: 'INSS dos empregados' },
+  { id: 'patronal', tipo: 'dctfweb', descricao: 'INSS - patronal', codigo: '1138', denominacao: 'INSS patronal' },
+  { id: 'irrf', tipo: 'dctfweb', descricao: 'IRRF', codigo: '0561', denominacao: 'IRRF' },
+  { id: 'fgts', tipo: 'fgts', descricao: 'FGTS', codigo: 'FGTS', denominacao: 'FGTS mensal' },
+] as const;
+
+/** Inclusão manual de uma guia (ex.: débito visto na tela da DCTFWeb ou do FGTS Digital, sem PDF). */
+function FormGuiaManual({ cnpjPadrao, razaoPadrao, onIncluir }: { cnpjPadrao: string; razaoPadrao: string; onIncluir: (g: GuiaMensal) => void }) {
+  const [cnpj, setCnpj] = useState(cnpjPadrao);
+  const [razao, setRazao] = useState(razaoPadrao);
+  const [opcao, setOpcao] = useState<string>('1099');
+  const [competencia, setCompetencia] = useState('');
+  const [vencimento, setVencimento] = useState('');
+  const [valor, setValor] = useState('');
+  const [status, setStatus] = useState<StatusPagamento>('nao-informado');
+  const [erro, setErro] = useState('');
+  const campo = 'rounded-lg border border-stone-300 bg-white px-2.5 py-1.5 text-sm';
+
+  function incluir(e: React.FormEvent) {
+    e.preventDefault();
+    const o = OPCOES_GUIA_MANUAL.find((x) => x.id === opcao)!;
+    const v = paraNumero(valor.includes(',') ? valor : valor.replace('.', ','));
+    if (!/^\d{2}\.?\d{3}\.?\d{3}/.test(cnpj.trim())) return setErro('Informe o CNPJ (pode ser só a raiz, 8 dígitos).');
+    if (!/^\d{2}\/\d{4}$/.test(competencia.trim())) return setErro('Competência no formato MM/AAAA, ex.: 09/2026.');
+    if (!vencimento) return setErro('Informe o vencimento.');
+    if (!(v > 0)) return setErro('Informe o valor, ex.: 356,62.');
+    setErro('');
+    onIncluir({
+      id: `manual-${o.id}-${competencia.trim()}`,
+      tipo: o.tipo,
+      cnpj: cnpj.trim(),
+      razaoSocial: razao.trim(),
+      descricao: o.descricao,
+      competencia: competencia.trim(),
+      vencimento,
+      valor: v,
+      composicao: [{ codigo: o.codigo, denominacao: o.denominacao, valor: v }],
+      status,
+    });
+    setValor('');
+  }
+
+  return (
+    <details className="rounded-lg border border-stone-200 px-3 py-2 text-sm">
+      <summary className="cursor-pointer font-medium text-stone-700">Adicionar guia manualmente (INSS, IRRF ou FGTS sem PDF)</summary>
+      <form onSubmit={incluir} className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-4">
+        <label className="flex flex-col gap-1 sm:col-span-1">
+          <span className="text-xs text-stone-500">CNPJ</span>
+          <input id="gm-cnpj" className={campo} value={cnpj} onChange={(e) => setCnpj(e.target.value)} placeholder="49.231.816/0001-15" />
+        </label>
+        <label className="flex flex-col gap-1 sm:col-span-3">
+          <span className="text-xs text-stone-500">Razão social</span>
+          <input id="gm-razao" className={campo} value={razao} onChange={(e) => setRazao(e.target.value)} placeholder="Inova Quadros Ltda" />
+        </label>
+        <label className="flex flex-col gap-1">
+          <span className="text-xs text-stone-500">Tributo</span>
+          <select id="gm-tributo" className={campo} value={opcao} onChange={(e) => setOpcao(e.target.value)}>
+            {OPCOES_GUIA_MANUAL.map((o) => (
+              <option key={o.id} value={o.id}>
+                {o.descricao}
+                {o.tipo === 'dctfweb' ? ` (${o.codigo})` : ''}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="flex flex-col gap-1">
+          <span className="text-xs text-stone-500">Competência</span>
+          <input id="gm-comp" className={campo} value={competencia} onChange={(e) => setCompetencia(e.target.value)} placeholder="09/2026" />
+        </label>
+        <label className="flex flex-col gap-1">
+          <span className="text-xs text-stone-500">Vencimento</span>
+          <input id="gm-venc" type="date" className={campo} value={vencimento} onChange={(e) => setVencimento(e.target.value)} />
+        </label>
+        <label className="flex flex-col gap-1">
+          <span className="text-xs text-stone-500">Valor (R$)</span>
+          <input id="gm-valor" className={campo} value={valor} onChange={(e) => setValor(e.target.value)} placeholder="356,62" inputMode="decimal" />
+        </label>
+        <label className="flex flex-col gap-1">
+          <span className="text-xs text-stone-500">Situação</span>
+          <select id="gm-status" className={campo} value={status} onChange={(e) => setStatus(e.target.value as StatusPagamento)}>
+            {(Object.keys(ROTULO_STATUS) as StatusPagamento[]).map((st) => (
+              <option key={st} value={st}>
+                {st === 'nao-informado' ? 'A vencer / não informado' : ROTULO_STATUS[st]}
+              </option>
+            ))}
+          </select>
+        </label>
+        <div className="flex items-end sm:col-span-3">
+          <button type="submit" className="rounded-lg bg-brand-600 px-4 py-1.5 text-sm font-medium text-white transition hover:bg-brand-700">
+            Adicionar ao relatório
+          </button>
+          {erro && <span className="ml-3 text-xs text-rose-700">{erro}</span>}
+        </div>
+      </form>
+    </details>
+  );
+}
+
 export function RelatorioCliente({ cnpjSugerido }: { cnpjSugerido?: string }) {
   const [carteira, setCarteira] = useState<CarteiraEmpresa[]>(() => listarCarteira());
   const [cnpjSel, setCnpjSel] = useState<string | null>(() => {
@@ -699,6 +799,17 @@ export function RelatorioCliente({ cnpjSugerido }: { cnpjSugerido?: string }) {
           ))}
         </div>
       )}
+
+      <FormGuiaManual
+        key={empresa?.cnpj ?? 'nova'}
+        cnpjPadrao={empresa?.cnpj ?? ''}
+        razaoPadrao={empresa?.razaoSocial ?? ''}
+        onIncluir={(g) => {
+          const nova = incluirGuias(carteira, [g]);
+          setCarteira(nova);
+          setCnpjSel(nova.find((e) => raizCnpj(e.cnpj) === raizCnpj(g.cnpj))?.cnpj ?? null);
+        }}
+      />
 
       {empresa && (
         <>
