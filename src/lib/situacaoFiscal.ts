@@ -2,7 +2,8 @@ import type { PendenciaFiscal, SituacaoFiscal } from './types';
 import { paraNumero } from './apuracaoPgdas';
 
 const NUM = '(\\d{1,3}(?:\\.\\d{3})*,\\d{2})';
-const PA = '(\\d{2}\\/\\d{4}|\\d[ºo°]? ?TRIM\\/\\d{4}|\\d{4})';
+// PA: MM/AAAA, data completa (multas como a MAED trazem a data do lançamento), trimestre ou exercício.
+const PA = '(\\d{2}\\/\\d{2}\\/\\d{4}|\\d{2}\\/\\d{4}|\\d[ºo°]? ?TRIM\\/\\d{4}|\\d{4})';
 const DATA = '(\\d{2})\\/(\\d{2})\\/(\\d{4})';
 const SITUACAO = '(DEVEDOR(?: \\([A-Z]+\\))?|A VENCER|EXIG\\.? SUSP[A-Z.]*|SUSP[A-Z.]*(?: - [A-Z]+)?|EM PARCELAMENTO|[A-Z]+)';
 
@@ -17,6 +18,13 @@ function recortarBloco(texto: string, inicio: RegExp): string | undefined {
 
 /** Remove cabeçalhos de tabela/página que podem ficar grudados no nome da receita. */
 function limparReceita(bruto: string): string {
+  // O texto antes da receita pode trazer "Notificação de lançamento: nº" e o
+  // cabeçalho de página; o código da receita ("4406-01 - MAED...") marca o início.
+  const comCodigo = bruto.match(/(\d{4}-\d{2} - [^]*)$/);
+  if (comCodigo) {
+    const ultimo = comCodigo[1].split(/ (?=\d{4}-\d{2} - )/).pop()!;
+    return ultimo.replace(/\s+/g, ' ').trim();
+  }
   let r = bruto.replace(/.*Situa[çc][ãa]o /i, '').replace(/CNPJ: [\d./-]+/gi, '').replace(/\s+/g, ' ').trim();
   if (r.length > 40) r = r.slice(-40).replace(/^\S*\s/, '');
   return r;
@@ -82,7 +90,9 @@ export function interpretarSituacaoFiscal(texto: string, hoje = new Date()): Sit
     texto.match(/CNPJ:? (\d{2}\.\d{3}\.\d{3}) - /)?.[1] ??
     texto.match(/CNPJ:? (\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2})/)?.[1];
   if (!cnpj) return undefined;
-  const emissao = texto.match(new RegExp(`(?:Data da consulta|Data de emiss[ãa]o|Emitido em|Data):? ${DATA}`, 'i'));
+  const emissao =
+    texto.match(new RegExp(`(?:Data da consulta|Data de emiss[ãa]o|Emitido em):? ${DATA}`, 'i')) ??
+    texto.match(new RegExp(`PROCURADORIA-GERAL DA FAZENDA NACIONAL ${DATA} \\d{2}:\\d{2}`, 'i'));
   const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   return {
     cnpj,

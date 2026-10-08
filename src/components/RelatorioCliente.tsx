@@ -179,11 +179,22 @@ function pendenciaVencida(p: PendenciaFiscal): boolean {
   return p.origem === 'pgfn' || !p.vencimento || p.vencimento < hojeIso();
 }
 
+/** Multa lançada pela Receita (ex.: MAED, multa por atraso na entrega de declaração). */
+function ehMulta(p: PendenciaFiscal): boolean {
+  return p.origem === 'receita' && /MAED|MULTA/i.test(p.receita);
+}
+
+/** "21/02/2025" ou "02/2025" -> "02/2025". */
+function mesAno(pa?: string): string | undefined {
+  return pa?.match(/(\d{2}\/\d{4})$/)?.[1];
+}
+
 /** Nome do tributo em linguagem do cliente. */
 function nomeTributo(p: PendenciaFiscal): string {
   const r = p.receita.toUpperCase();
   let nome = p.receita;
-  if (/SIMPLES/.test(r)) nome = 'DAS - Simples Nacional';
+  if (ehMulta(p)) nome = /PGDAS/.test(r) ? 'Multa por atraso na entrega do PGDAS-D' : `Multa - ${p.receita.replace(/^\d{4}-\d{2} - /, '')}`;
+  else if (/SIMPLES/.test(r)) nome = 'DAS - Simples Nacional';
   else if (/CP-SEGUR/.test(r)) nome = 'INSS - pró-labore/segurado';
   else if (/CP-PATRONAL|CP PATRONAL/.test(r)) nome = 'INSS - patronal';
   else if (/IRRF/.test(r)) nome = 'IRRF';
@@ -279,6 +290,33 @@ function montarLinhas(apuracoes: ApuracaoPgdas[], guias: GuiaMensal[], pendencia
       pendencia: vencidas[0],
     });
   }
+  // Multas (ex.: MAED de cada PGDAS-D entregue em atraso) viram uma linha só por tipo de multa.
+  const multas = new Map<string, PendenciaFiscal[]>();
+  for (const p of pendencias) {
+    if (usadas.has(p) || !ehMulta(p)) continue;
+    const chave = codigoReceita(p) ?? p.receita;
+    multas.set(chave, [...(multas.get(chave) ?? []), p]);
+    usadas.add(p);
+  }
+  for (const [chave, grupo] of multas) {
+    const soma = (f: (x: PendenciaFiscal) => number | undefined) => grupo.reduce((t, x) => t + (f(x) ?? 0), 0);
+    const meses = grupo.map((x) => mesAno(x.competencia)).filter((x): x is string => Boolean(x)).sort((a, b) => chaveCompetencia(a).localeCompare(chaveCompetencia(b)));
+    const vencimentos = grupo.map((x) => x.vencimento).filter((x): x is string => Boolean(x)).sort();
+    const nome = nomeTributo(grupo[0]);
+    linhas.push({
+      chave: `multa-${chave}`,
+      competencia: meses.length > 1 && meses[0] !== meses[meses.length - 1] ? `${meses[0]} a ${meses[meses.length - 1]}` : (meses[0] ?? '—'),
+      tributo: grupo.length > 1 ? nome.replace(/^Multa/, 'Multas') : nome,
+      detalhe: grupo.length > 1 ? `${grupo.length} lançamentos somados` : undefined,
+      imposto: soma((x) => x.valorOriginal),
+      multa: soma((x) => x.multa) || undefined,
+      juros: soma((x) => x.juros) || undefined,
+      total: Math.round(soma(totalPendencia) * 100) / 100,
+      vencimento: vencimentos[0] ? isoParaBr(vencimentos[0]) : undefined,
+      situacao: grupo.some(pendenciaVencida) ? 'aberto' : 'a-vencer',
+      pendencia: grupo[0],
+    });
+  }
   pendencias
     .filter((p) => !usadas.has(p))
     .forEach((p, i) =>
@@ -312,7 +350,7 @@ function QuadroAPagar({ linhas, competencia }: { linhas: LinhaHistorico[]; compe
   const total = doMes.reduce((t, l) => t + l.total, 0) + totalAtraso;
   return (
     <div className="mb-4 impresso:mb-2 overflow-hidden rounded-lg border border-gold-300">
-      <p className="bg-gold-50 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-brand-800">Para pagar · competência {competencia}</p>
+      <p className="bg-gold-50 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-brand-800">Para pagar{competencia ? ` · competência ${competencia}` : ''}</p>
       <div className="flex flex-wrap">
         {doMes.map((l) => (
           <div key={l.chave} className="min-w-[140px] flex-1 border-r border-t border-gold-100 px-3 py-2">
@@ -331,7 +369,7 @@ function QuadroAPagar({ linhas, competencia }: { linhas: LinhaHistorico[]; compe
         <div className="min-w-[140px] flex-1 border-t border-gold-100 bg-brand-700 px-3 py-2 text-white">
           <p className="text-[11px] text-gold-200">Total</p>
           <p className="text-base font-semibold tabular-nums">{formatarMoeda(total)}</p>
-          <p className="text-[11px] text-brand-100">{doMes.length + atrasadas.length} guia(s)</p>
+          <p className="text-[11px] text-brand-100">{doMes.length + atrasadas.length} item(ns)</p>
         </div>
       </div>
     </div>
@@ -375,14 +413,14 @@ function SecaoHistorico({
               const a = l.apuracao;
               return (
                 <tr key={l.chave} className={`border-b border-stone-100 last:border-0 ${l.competencia === competenciaDestaque && (a || l.guia) ? 'bg-gold-50' : ''}`}>
-                  <td className="py-2 impresso:py-1 font-medium text-stone-800">
+                  <td className="py-2 impresso:py-1 font-medium text-stone-800 impresso:whitespace-normal">
                     {l.competencia}
                     {a?.retificadora && <span className="ml-1 text-[10px] text-stone-400">(retificada)</span>}
                   </td>
-                  <td className="py-2 impresso:py-1">
+                  <td className="py-2 impresso:py-1 impresso:min-w-[170px] impresso:whitespace-normal">
                     {l.tributo}
                     {l.pendencia?.inscricao && <span className="block text-[10px] text-stone-400">Inscrição {l.pendencia.inscricao}</span>}
-                    {l.detalhe && <span className="block text-[10px] text-stone-400 impresso:inline impresso:ml-1">{l.detalhe}</span>}
+                    {l.detalhe && <span className="block text-[10px] text-stone-400">{l.detalhe}</span>}
                   </td>
                   <td className="py-2 impresso:py-1 text-right tabular-nums">{a ? formatarMoeda(a.receitaPA) : '—'}</td>
                   <td className="py-2 impresso:py-1 text-right tabular-nums">{l.imposto !== undefined ? formatarMoeda(l.imposto) : '—'}</td>
