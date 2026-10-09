@@ -121,7 +121,8 @@ main { max-width: 960px; margin: 0 auto; padding: 20px 16px 120px; display: grid
 .card { border: 0; border-radius: 14px; overflow: hidden; background: #fff; padding: 0; text-align: left; display: grid; min-width: 0; align-content: start; }
 .card:hover .ph img { transform: translateY(-2px); }
 .card .ph { aspect-ratio: 3 / 4; background: #fff; position: relative; overflow: hidden; min-width: 0; }
-.card img { position: absolute; inset: 8px; width: calc(100% - 16px); height: calc(100% - 16px); object-fit: contain; display: block; filter: drop-shadow(0 6px 8px rgba(42, 18, 20, .14)); transition: transform .15s; }
+.card img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .15s; }
+.card .ph .mala-tag { position: absolute; left: 6px; top: 6px; z-index: 1; background: var(--ok, #2f7a4f); color: #fff; font-size: 10px; font-weight: 700; border-radius: 999px; padding: 2px 8px; }
 .card .tx { text-align: center; }
 .card .tx { padding: 8px 10px 10px; display: grid; gap: 2px; min-width: 0; }
 .card b { font-size: 14px; line-height: 1.3; }
@@ -137,7 +138,7 @@ main { max-width: 960px; margin: 0 auto; padding: 20px 16px 120px; display: grid
 .pack-group h3 { font-size: 13px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); font-family: var(--f-body); }
 .pack { display: grid; grid-template-columns: auto 52px 1fr; gap: 12px; align-items: center; border: 1px solid var(--line); border-radius: 14px; padding: 8px 12px; background: var(--surface); cursor: pointer; }
 .pack input { width: 20px; height: 20px; accent-color: var(--wine); }
-.pack img, .pack .ph { width: 52px; height: 52px; object-fit: contain; border-radius: 10px; background: #fff; }
+.pack img, .pack .ph { width: 52px; height: 52px; object-fit: cover; border-radius: 10px; background: #fff; }
 .pack .tx { min-width: 0; }
 .pack b { display: block; font-size: 14px; }
 .pack small { color: var(--muted); font-size: 12px; }
@@ -192,7 +193,7 @@ main { max-width: 960px; margin: 0 auto; padding: 20px 16px 120px; display: grid
 .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .cut-tools { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 13px; color: var(--muted); }
 .cut-tools span { flex: 1 1 100%; font-weight: 700; }
-.sheet-photo { max-height: 260px; border-radius: 14px; object-fit: contain; background: #fff; width: 100%; filter: drop-shadow(0 6px 8px rgba(42, 18, 20, .14)); }
+.sheet-photo { max-height: 260px; border-radius: 14px; object-fit: contain; background: #fff; width: 100%; }
 .sheet-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between; }
 .pick-group h3 { font-size: 13px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); font-family: var(--f-body); margin: 4px 0 6px; }
 .piece.cur { border-color: var(--wine); box-shadow: 0 0 0 2px var(--wine); }
@@ -361,7 +362,7 @@ main { max-width: 960px; margin: 0 auto; padding: 20px 16px 120px; display: grid
     var podeSubir = !!(assets || state.mode === "local");
     var head = '<div class="section-head"><div><h2>Guarda-roupa de ' + esc(state.pessoa) + "</h2><p>Mande as fotos das roupas que podem ir na mala. O Claude identifica cada peça (tipo, cor e quanto aquece); confira e ajuste tocando na peça.</p></div></div>";
     var drop = '<div class="drop" id="drop"><button type="button" class="btn btn-primary" data-upload="1"' + (podeSubir ? "" : " disabled") + ">Adicionar fotos das roupas</button>" +
-      "<p>O app tira o fundo sozinho. Para recortar bem: uma peça por foto, esticada sobre um fundo liso de cor diferente da roupa (lençol ou chão claro para peça escura, e vice-versa), com luz do dia e a peça inteira na foto.</p>" +
+      "<p>Pode mandar print da loja ou foto da peça. Depois marque na aba Mala o que já foi para a mala.</p>" +
       (!podeSubir ? "<p>Para enviar fotos, abra o app pelo Claude com permissão de edição.</p>" : "") +
       (sampler && !sampler.canSee ? "<p>A leitura automática das fotos não está disponível aqui: você preenche o nome e o tipo de cada peça.</p>" : "") + "</div>";
     var q = state.queue.length ? '<div class="queue">' + state.queue.map(function (it) { return '<div class="qrow"><img src="' + esc(it.preview) + '" alt=""><span>' + esc(it.nome) + '</span><span class="st ' + (it.cls || "") + '">' + esc(it.status) + "</span></div>"; }).join("") + "</div>" : "";
@@ -369,25 +370,25 @@ main { max-width: 960px; margin: 0 auto; padding: 20px 16px 120px; display: grid
     var filt = ps.length ? '<div class="filters"><button type="button" data-filtro="" aria-pressed="' + (!state.filtro) + '">Todas (' + ps.length + ")</button>" + tiposUsados.map(function (t) { var n = ps.filter(function (p) { return p.tipo === t; }).length; return '<button type="button" data-filtro="' + esc(t) + '" aria-pressed="' + (state.filtro === t) + '">' + esc(t) + " (" + n + ")</button>"; }).join("") + "</div>" : "";
     var lista = ps.filter(function (p) { return !state.filtro || p.tipo === state.filtro; });
     var grid = ps.length ? '<div class="grid">' + lista.map(function (p) {
-      return '<button type="button" class="card" data-edit="' + esc(p.id) + '"><div class="ph">' + (fotoUrl(p) ? '<img src="' + esc(fotoUrl(p)) + '" alt="" loading="lazy">' : "") + '</div><div class="tx"><b>' + esc(p.nome || "Peça sem nome") + "</b><small>" + esc([p.tipo, p.cor].filter(Boolean).join(" · ")) + " " + warm(p.aquece) + "</small></div></button>";
+      return '<button type="button" class="card" data-edit="' + esc(p.id) + '"><div class="ph">' + (p.naMala ? '<span class="mala-tag">Na mala</span>' : "") + (fotoUrl(p) ? '<img src="' + esc(fotoUrl(p)) + '" alt="" loading="lazy">' : "") + '</div><div class="tx"><b>' + esc(p.nome || "Peça sem nome") + "</b><small>" + esc([p.tipo, p.cor].filter(Boolean).join(" · ")) + " " + warm(p.aquece) + "</small></div></button>";
     }).join("") + "</div>" : '<div class="empty"><h3>Nenhuma peça ainda</h3><p>Comece pelas peças que você já sabe que vão: casaco, calças, tênis confortável.</p></div>';
     return head + drop + q + filt + grid;
   }
 
   function viewMala() {
     var ps = minhasPecas(), uso = usoPorPeca();
-    var usadas = ps.filter(function (p) { return uso[p.id]; }), fora = ps.filter(function (p) { return !uso[p.id]; });
+    var usadas = ps, fora = [];
     var naMala = usadas.filter(function (p) { return p.naMala; }).length;
-    var head = '<div class="section-head"><div><h2>Mala de ' + esc(state.pessoa) + "</h2><p>Só as peças que aparecem nos looks. Marque conforme for colocando na mala; o Iuri vê na hora.</p></div></div>";
-    if (!usadas.length) return head + '<div class="empty"><h3>A lista sai dos looks</h3><p>Monte os looks na aba Looks e a mala aparece aqui.</p></div>';
+    var head = '<div class="section-head"><div><h2>Mala de ' + esc(state.pessoa) + "</h2><p>Todas as peças cadastradas em Peças. Marque conforme for colocando na mala; o Iuri vê na hora.</p></div></div>";
+    if (!usadas.length) return head + '<div class="empty"><h3>Nenhuma peça cadastrada</h3><p>Suba as fotos das peças na aba Peças e marque aqui o que já foi para a mala.</p></div>';
     var pct = Math.round(naMala / usadas.length * 100);
     var resumo = '<div class="panel"><div class="stats"><span><b>' + naMala + "/" + usadas.length + "</b>peças na mala</span></div><div class=\"bar\"><i style=\"width:" + pct + '%"></i></div></div>';
     var grupos = TIPOS.map(function (t) {
       var g = usadas.filter(function (p) { return p.tipo === t; });
       if (!g.length) return "";
       return '<div class="pack-group"><h3>' + esc(t) + "</h3>" + g.map(function (p) {
-        var n = Object.keys(uso[p.id]).length;
-        return '<label class="pack' + (p.naMala ? " done" : "") + '"><input type="checkbox" data-pack="' + esc(p.id) + '"' + (p.naMala ? " checked" : "") + ">" + (fotoUrl(p) ? '<img src="' + esc(fotoUrl(p)) + '" alt="">' : '<span class="ph"></span>') + '<span class="tx"><b>' + esc(p.nome) + "</b><small>Usada em " + n + (n === 1 ? " dia" : " dias") + "</small></span></label>";
+        var n = uso[p.id] ? Object.keys(uso[p.id]).length : 0;
+        return '<label class="pack' + (p.naMala ? " done" : "") + '"><input type="checkbox" data-pack="' + esc(p.id) + '"' + (p.naMala ? " checked" : "") + ">" + (fotoUrl(p) ? '<img src="' + esc(fotoUrl(p)) + '" alt="">' : '<span class="ph"></span>') + '<span class="tx"><b>' + esc(p.nome) + "</b><small>" + esc([p.cor, n ? "usada em " + n + (n === 1 ? " dia" : " dias") : ""].filter(Boolean).join(" · ")) + "</small></span></label>";
       }).join("") + "</div>";
     }).join("");
     var extra = fora.length ? '<div class="note"><b>Não entraram em nenhum look (' + fora.length + "):</b> " + esc(fora.map(function (p) { return p.nome; }).join(", ")) + ". Podem ficar em casa e liberar espaço para as compras.</div>" : "";
@@ -672,7 +673,7 @@ main { max-width: 960px; margin: 0 auto; padding: 20px 16px 120px; display: grid
     var opt = function (list, cur) { return list.map(function (v) { return '<option value="' + esc(v) + '"' + (v === cur ? " selected" : "") + ">" + esc(v) + "</option>"; }).join(""); };
     openSheet('<div class="sheet-head"><h2>Editar peça</h2><button type="button" class="x" data-close="1" aria-label="Fechar">×</button></div>' +
       (fotoUrl(p) ? '<img class="sheet-photo" src="' + esc(fotoUrl(p)) + '" alt="">' : "") +
-      (p.fotoOrig && assets ? '<div class="cut-tools"><span>Recorte do fundo' + (p.recorte ? "" : ": desligado") + '</span><button type="button" class="btn btn-small" data-recut="' + esc(id) + '|-6">Tirar menos</button><button type="button" class="btn btn-small" data-recut="' + esc(id) + '|6">Tirar mais</button>' + (p.recorte ? '<button type="button" class="btn btn-small" data-recut="' + esc(id) + '|0">Usar foto original</button>' : "") + "</div>" : "") +
+      '<label class="pack' + (p.naMala ? " done" : "") + '" style="margin:10px 0"><input type="checkbox" data-pack="' + esc(id) + '"' + (p.naMala ? " checked" : "") + '><span class="tx"><b>Já está na mala</b></span></label>' +
       '<div class="field"><label for="f-nome">Nome</label><input id="f-nome" value="' + esc(p.nome) + '"></div>' +
       '<div class="row2"><div class="field"><label for="f-tipo">Tipo</label><select id="f-tipo">' + opt(TIPOS, p.tipo) + '</select></div>' +
       '<div class="field"><label for="f-cor">Cor</label><input id="f-cor" value="' + esc(p.cor) + '"></div></div>' +
@@ -846,16 +847,10 @@ main { max-width: 960px; margin: 0 auto; padding: 20px 16px 120px; display: grid
     var cut = null;
     return shrink(it.file).then(function (blob) {
       it.blob = blob;
-      upd(it, "Tirando o fundo...");
-      return cutout(blob);
-    }).then(function (cr) {
-      if (cr && cr.ok) { cut = { blob: cr.blob, tol: cr.tol }; it.preview = URL.createObjectURL(cr.blob); }
+      // Sem recorte do fundo: a foto vai como foi tirada
       if (!assets) return { id: "", url: it.preview };
       upd(it, "Enviando...");
-      return assets.upload(it.blob).then(function (orig) {
-        if (!cut) return orig;
-        return assets.upload(cut.blob).then(function (cu) { cut.id = cu.id; cut.url = cu.url; return orig; });
-      });
+      return assets.upload(it.blob);
     }).then(function (r) {
       up = r;
       if (!(sampler && sampler.canSee)) return { pecas: [] };
