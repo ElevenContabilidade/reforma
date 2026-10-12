@@ -403,6 +403,11 @@ tr.total td { font-weight: 800; border-bottom: 0; }
 .thumb.logo-tile img { width: 100%; height: 100%; object-fit: contain; }
 .thumb.cash-tile { background: var(--gold-soft); color: var(--gold-ink); font-family: var(--f-display); font-weight: 800; font-size: 18px; border: 1px solid rgba(201, 146, 43, .4); }
 .row.compra-row { grid-template-columns: 44px minmax(0, 1fr) auto; }
+.row.compra-row.has-ph { grid-template-columns: 44px 64px minmax(0, 1fr) auto; }
+.compra-ph { width: 64px; height: 64px; border-radius: 10px; border: 1px solid var(--line); background: #fff; padding: 0; overflow: hidden; display: grid; place-items: center; color: var(--muted); font-size: 10px; font-weight: 700; line-height: 1.2; text-align: center; }
+.compra-ph img { width: 100%; height: 100%; object-fit: contain; display: block; }
+.compra-ph.vazio { border-style: dashed; background: var(--surface-2); }
+.row.compra-row.done .compra-ph img { opacity: .55; }
 .compra-check { display: grid; place-items: center; width: 44px; height: 44px; cursor: pointer; }
 .compra-check input { width: 22px; height: 22px; accent-color: var(--wine); }
 .row.compra-row.done .row-title { text-decoration: line-through; color: var(--muted); }
@@ -1351,6 +1356,12 @@ a.btn-primary { color: var(--on-wine); }
   }
   function uploadPhoto(file) {
     var id = photoFor; photoFor = null;
+    if (id && id.indexOf("compra:") === 0 && file && assets) {
+      var cid = id.slice(7); toast("Enviando foto...");
+      reduzImagem(file, 600).then(function (bl) { return assets.upload(bl); }).then(function (r) { return patchDoc("compras", cid, { foto: r.url, fotoId: r.id }); })
+        .then(function () { toast("Foto salva"); }).catch(function () { toast("Não foi possível enviar a foto."); });
+      return;
+    }
     if (!id || !file || !assets) return;
     toast("Enviando foto...");
     assets.upload(file).then(function (r) { return patchDoc("itens", id, { foto: r.url, fotoId: r.id }); })
@@ -2102,7 +2113,8 @@ a.btn-primary { color: var(--on-wine); }
       html += '<div class="group-label">' + esc(cid) + " (" + g.filter(function (c) { return c.comprado; }).length + "/" + g.length + ')</div><div class="list">' + g.map(function (c) {
         var price = c.comprado && num(c.valor) ? "Pago " + money(num(c.valor), c.moeda) : num(c.precoEst) ? "Estimado " + money(num(c.precoEst), c.moeda) : "";
         var brl = c.moeda && c.moeda !== "BRL" ? toBRL(num(c.comprado ? c.valor : c.precoEst), c.moeda) : null;
-        return '<div class="row compra-row' + (c.comprado ? " done" : "") + '"><label class="compra-check"><input type="checkbox" data-comprado="' + esc(c.id) + '"' + (c.comprado ? " checked" : "") + ' aria-label="Comprado"></label>' +
+        var ph = c.foto ? '<button type="button" class="compra-ph" data-compraph="' + esc(c.id) + '" aria-label="Trocar foto"><img src="' + esc(c.foto) + '" alt="" loading="lazy"></button>' : (assets ? '<button type="button" class="compra-ph vazio" data-compraph="' + esc(c.id) + '" aria-label="Adicionar foto">+ foto</button>' : "");
+        return '<div class="row compra-row' + (ph ? " has-ph" : "") + (c.comprado ? " done" : "") + '"><label class="compra-check"><input type="checkbox" data-comprado="' + esc(c.id) + '"' + (c.comprado ? " checked" : "") + ' aria-label="Comprado"></label>' + ph +
           '<div style="min-width:0"><div class="row-title">' + esc(c.item) + (c.prioridade && c.prioridade !== "Precisa comprar" && !c.comprado ? ' <span class="pill-pend">' + esc(c.prioridade) + "</span>" : "") + "</div>" +
           '<div class="row-sub">' + esc([c.loja, c.para ? "para " + c.para : ""].filter(Boolean).join(" · ")) + "</div>" +
           (price ? '<div class="row-sub"><b>' + esc(price) + "</b>" + (brl ? " · " + esc(money(brl, "BRL")) : "") + "</div>" : "") +
@@ -2779,6 +2791,7 @@ a.btn-primary { color: var(--on-wine); }
     if (ds.mz) { var cc = $("map-canvas"); if (!cc) return; if (ds.mz === "reset") { mz.s = 1; mz.tx = 0; mz.ty = 0; mzApply(); } else mzZoomAt(ds.mz === "in" ? 1.5 : 1 / 1.5, cc.clientWidth / 2, cc.clientHeight / 2); return; }
     if (ds.genhist) { genHistoria(ds.genhist, t); return; }
     if (ds.addphoto) { photoFor = ds.addphoto; $("photo-input").click(); return; }
+    if (ds.compraph) { if (!assets) { toast("Para enviar a foto, abra pelo app do Claude."); return; } photoFor = "compra:" + ds.compraph; $("photo-input").click(); return; }
     if (ds.desloc) { openDesloc(ds.desloc); return; }
     if (t.id === "btn-search") { searchPlace(currentTrip()); return; }
     if (ds.doc) { openDoc(ds.doc); return; }
