@@ -1649,6 +1649,7 @@ a.btn-primary { color: var(--on-wine); }
         ["Tomada / emergência", "Tipo C/E, 230 V · Emergência: 112"]
       ]) + "</div>";
 
+    html += grevesCard(trip);
     html += '<div class="group-label">Passagens pela imigração nesta viagem</div><div class="or-steps">' +
       orStep("16/11", "Madri: entrada no Espaço Schengen", "Controle de passaporte no T4S, com registro EES (foto e digitais). Podem pedir hotel, volta, dinheiro e seguro. Depois, conexão para Barcelona.") +
       orStep("20/11", "Madri → Londres: saída do Schengen e entrada no Reino Unido", "Saída registrada no EES em Madri. Em Gatwick, a ETA já fica ligada ao passaporte; tenham o endereço do hotel.") +
@@ -1673,6 +1674,19 @@ a.btn-primary { color: var(--on-wine); }
 
     html += '<p class="or-note or-src">Fontes: <a href="https://www.boe.es/buscar/act.php?id=BOE-A-2007-9608" target="_blank" rel="noopener">BOE, Orden PRE/1282/2007 (Espanha)</a> · <a href="https://france-visas.gouv.fr/en/votre-arrivee-en-france" target="_blank" rel="noopener">France-Visas</a> · <a href="https://www.gov.uk/eta/apply" target="_blank" rel="noopener">GOV.UK ETA</a> · <a href="https://travel-europe.europa.eu/etias_en" target="_blank" rel="noopener">ETIAS (União Europeia)</a> · <a href="https://www.consilium.europa.eu/en/policies/entryexit-system/" target="_blank" rel="noopener">EES (Conselho da UE)</a> · <a href="https://www.gov.br/receitafederal/pt-br/assuntos/aduana-e-comercio-exterior/manuais/viajantes" target="_blank" rel="noopener">Receita Federal, viajantes</a>. Valores e regras podem mudar: confirme nos sites oficiais perto da data.</p>';
     return html;
+  }
+  // Greves e protestos: conteúdo fica na viagem (trip.greves), para atualizar sem republicar o app
+  function grevesCard(trip) {
+    var g = trip.greves; if (!g || !(g.itens || []).length) return "";
+    var tag = { ok: "nao", atencao: "atencao", risco: "sim" };
+    return '<div class="group-label">Greves e protestos' + (g.atualizado ? " (conferido em " + esc(g.atualizado) + ")" : "") + "</div>" +
+      (g.resumo ? '<p class="or-note" style="margin-top:0">' + esc(g.resumo) + "</p>" : "") +
+      '<div class="or-grid">' + (g.paises || []).map(function (pz) {
+        return orCard(pz.nome, pz.sub || "", g.itens.filter(function (it) { return it.pais === pz.nome; }).map(function (it) {
+          return [it.data, '<span class="or-tag ' + (tag[it.nivel] || "atencao") + '">' + esc(it.status) + "</span> " + esc(it.texto)];
+        }));
+      }).join("") + "</div>" +
+      ((g.dicas || []).length ? '<div class="or-list" style="margin-top:10px">' + g.dicas.map(function (d) { return '<div class="or-note" style="margin:0 0 6px">' + esc(d) + "</div>"; }).join("") + "</div>" : "");
   }
   function orCard(t, sub, rows) { return '<div class="or-card"><h3>' + esc(t) + "<small>" + esc(sub) + "</small></h3>" + rows.map(function (r) { return '<div class="or-row"><span class="k">' + esc(r[0]) + "</span><span>" + r[1] + "</span></div>"; }).join("") + "</div>"; }
   function orStep(d, t, p) { return '<div class="or-step"><span class="d">' + esc(d) + "</span><div><b>" + esc(t) + "</b><p>" + esc(p) + "</p></div></div>"; }
@@ -1943,6 +1957,7 @@ a.btn-primary { color: var(--on-wine); }
     copias: { id: "copias", t: "Fotos dos passaportes salvas no celular e na nuvem", d: "Se perder o passaporte, a cópia agiliza o documento de emergência no consulado." },
     "guia-offline": { id: "guia-offline", t: "Baixar o guia offline no celular dos dois", d: "Aba Geral > Baixar guia offline. Gere de novo na véspera, com tudo atualizado." },
     apps: { id: "apps", t: "Instalar os apps da viagem", d: "Veja a aba Aplicativos: lá tem a lista completa, com o botão Baixar e onde marcar o que já está instalado." },
+    greves: { id: "greves", t: "Conferir greves e protestos 1 semana antes", d: "Aba Orientações > Greves e protestos. Paris (24 a 28/11) é o ponto de atenção: Eurostar, metrô, Louvre, Versalhes e Orly." },
     "mapas-offline": { id: "mapas-offline", t: "Baixar mapas offline das 4 cidades no Google Maps", d: "Barcelona, Madri, Londres e Paris. Funciona sem internet para ver onde vocês estão." },
     "mala-mao": { id: "mala-mao", t: "Conferir a regra da mala de mão (vocês estão sem mala despachada)", d: "Iberia Basic: 1 mala de mão de até 10 kg (56x40x25 cm) por pessoa. Líquidos em frascos de até 100 ml, num saco transparente." },
     "mala-looks": { id: "mala-looks", t: "Montar a mala com os looks do Kauri Looks", d: "Confira a aba Mala do Kauri Looks e marque o que já foi para a mala." },
@@ -1950,7 +1965,7 @@ a.btn-primary { color: var(--on-wine); }
   };
   var CK_GROUPS = [
     { g: "Documentação e imigração", ids: ["passaporte", "copias", "eta", "etias", "seguro", "cartao-seguro", "dinheiro"] },
-    { g: "Voos e passagens", ids: ["reservas"], checkin: true },
+    { g: "Voos e passagens", ids: ["reservas", "greves"], checkin: true },
     { g: "Dinheiro e cartões", ids: ["cartoes", "receita"] },
     { g: "Celular e apps", ids: ["chip", "apps", "mapas-offline", "guia-offline", "adaptador"] },
     { g: "Mala e casa", ids: ["mala-mao", "mala-looks", "contas-casa"] }
