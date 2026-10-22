@@ -249,6 +249,8 @@ body.is-dragging, body.is-dragging * { user-select: none; cursor: grabbing !impo
 .cards { display: grid; gap: 14px; }
 .pass { display: grid; grid-template-columns: minmax(0, 1fr) 170px; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; box-shadow: var(--shadow); overflow: hidden; text-align: left; width: 100%; padding: 0; }
 .pass:hover { border-color: var(--wine); }
+.pass.fora, .card.fora { opacity: .62; border-style: dashed; }
+.fora-tag { display: inline-block; font-size: 11px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; color: var(--danger); background: rgba(179, 38, 30, .08); border-radius: 999px; padding: 3px 10px; margin-bottom: 8px; }
 .pass-main { padding: 14px 18px 16px; min-width: 0; }
 .pass-top { display: flex; justify-content: space-between; gap: 8px; font-size: 12px; color: var(--muted); font-weight: 600; letter-spacing: .04em; text-transform: uppercase; }
 .pass-top .carrier { color: var(--wine); font-weight: 800; }
@@ -702,7 +704,8 @@ a.btn-primary { color: var(--on-wine); }
   var COMUNS = [
     { k: "valor", l: "Valor", t: "number" },
     { k: "moeda", l: "Moeda", t: "select", opts: MOEDAS },
-    { k: "obs", l: "Observações", t: "textarea", full: true }
+    { k: "obs", l: "Observações", t: "textarea", full: true },
+    { k: "foraDoPlano", l: "Fora do plano (não vai usar, mas fica guardado)", t: "checkbox", full: true }
   ];
   // Pagamento: só em voos, trens e hospedagens
   var PARCELAS = [""].concat(["À vista"], [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(function (n) { return n + "x"; }));
@@ -968,6 +971,7 @@ a.btn-primary { color: var(--on-wine); }
   function dayEvents(all, day) {
     var ev = [];
     all.forEach(function (it) {
+      if (it.foraDoPlano) return;
       if (it.tipo === "voo") {
         if ((it.partida || "").slice(0, 10) === day) ev.push({ key: it.id, it: it, time: hhmm(it.partida), sortT: hhmm(it.partida), icon: "plane", tcls: "t-voo", title: "Voo " + (it.origem || "") + " → " + (it.destino || ""), sub: [it.numero, it.chegada ? "chega " + hhmm(it.chegada) + (it.chegada.slice(0, 10) !== day ? " (+1)" : "") : "", it.localizador ? "Loc. " + it.localizador : ""].filter(Boolean).join(" · ") });
         if (it.chegada && it.chegada.slice(0, 10) === day && (it.partida || "").slice(0, 10) !== day) ev.push({ key: it.id + "-arr", it: it, time: hhmm(it.chegada), sortT: hhmm(it.chegada), icon: "plane", tcls: "t-voo", title: "Chegada em " + (it.destinoCidade || it.destino || ""), sub: (it.numero || "") + " · " + (it.destino || "") });
@@ -1057,7 +1061,7 @@ a.btn-primary { color: var(--on-wine); }
     $("tabs").innerHTML = TABS.map(function (t) {
       var n = null;
       if (trip && t.tipo) n = tripItems(trip.id, t.tipo).length + (t.tipo === "voo" ? tripItems(trip.id, "passagem").length : 0);
-      if (trip && t.id === "ingressos") n = tripItems(trip.id, "roteiro").filter(function (i) { return needsTicket(i) && !i.ingresso; }).length;
+      if (trip && t.id === "ingressos") n = tripItems(trip.id, "roteiro").filter(function (i) { return needsTicket(i) && !i.ingresso && !i.foraDoPlano; }).length;
       if (trip && t.id === "documentos") n = tripDocs(trip.id).length;
       if (trip && t.id === "apps") n = APPS.filter(function (a) { return !ckOn(trip, "app-" + a.id); }).length;
       return '<button class="tab" role="tab" type="button" data-tab="' + t.id + '" aria-selected="' + (state.tab === t.id) + '">' + t.label + (n ? '<span class="count">' + n + "</span>" : "") + "</button>";
@@ -1257,14 +1261,16 @@ a.btn-primary { color: var(--on-wine); }
     var items = tripItems(trip.id, tipo), custo = costLine(items);
     var head = '<div class="section-head"><h2>' + titulo + '</h2><button class="btn btn-primary" type="button" data-add="' + tipo + '">+ ' + TIPO_NOME[tipo] + "</button></div>";
     if (!items.length) return head + '<div class="empty"><h3>Nada cadastrado</h3><button class="btn btn-primary" type="button" data-add="' + tipo + '">Adicionar</button></div>';
-    return head + costBox(trip, items, "Valores", "Total em reais") + '<div class="cards">' + items.map(cardFn).join("") + "</div>";
+    var ord = items.filter(function (i) { return !i.foraDoPlano; }).concat(items.filter(function (i) { return i.foraDoPlano; }));
+    return head + costBox(trip, items, "Valores", "Total em reais") + '<div class="cards">' + ord.map(cardFn).join("") + "</div>";
   }
   function viewTransporte(trip) {
     var items = tripItems(trip.id).filter(function (i) { return i.tipo === "voo" || i.tipo === "passagem"; });
     var custo = costLine(items);
     var head = '<div class="section-head"><h2>Voos e trens</h2><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-primary" type="button" data-add="voo">+ Voo</button><button class="btn" type="button" data-add="passagem">+ Trem / ônibus</button></div></div>';
     if (!items.length) return head + '<div class="empty"><h3>Nada cadastrado</h3></div>';
-    return head + costBox(trip, items, "Valores", "Total em reais") + '<div class="cards">' + items.map(function (i) { return i.tipo === "voo" ? cardVoo(i) : cardTrem(i); }).join("") + "</div>";
+    var ord = items.filter(function (i) { return !i.foraDoPlano; }).concat(items.filter(function (i) { return i.foraDoPlano; }));
+    return head + costBox(trip, items, "Valores", "Total em reais") + '<div class="cards">' + ord.map(function (i) { return i.tipo === "voo" ? cardVoo(i) : cardTrem(i); }).join("") + "</div>";
   }
   function cardTrem(it) {
     var dur = "";
@@ -1283,7 +1289,7 @@ a.btn-primary { color: var(--on-wine); }
     if (it.partida && it.chegada) { var mins = Math.round((parseDT(it.chegada) - parseDT(it.partida)) / 60000); if (mins > 0) dur = Math.floor(mins / 60) + "h" + String(mins % 60).padStart(2, "0"); }
     var meta = [["Assento", it.assento], ["Terminal", it.terminal], ["Bagagem", it.bagagem]].filter(function (m) { return m[1]; }).map(function (m) { return "<span>" + m[0] + "<b>" + esc(m[1]) + "</b></span>"; }).join("");
     var plus = it.chegada && it.partida && it.chegada.slice(0, 10) !== it.partida.slice(0, 10) ? " (+" + daysBetween(it.partida, it.chegada) + ")" : "";
-    return '<button type="button" class="pass" data-edit="' + esc(it.id) + '"><div class="pass-main"><div class="pass-top"><span class="carrier">' + esc(it.cia || "Voo") + "</span><span>" + esc(it.numero || "") + " · " + esc(fmtDay(it.partida)) + "</span></div>" +
+    return '<button type="button" class="pass' + (it.foraDoPlano ? " fora" : "") + '" data-edit="' + esc(it.id) + '"><div class="pass-main">' + foraTag(it) + '<div class="pass-top"><span class="carrier">' + esc(it.cia || "Voo") + "</span><span>" + esc(it.numero || "") + " · " + esc(fmtDay(it.partida)) + "</span></div>" +
       '<div class="route"><div><div class="code">' + esc(it.origem || "---") + '</div><div class="city">' + esc(it.origemCidade || "") + '</div><div class="when">' + esc(hhmm(it.partida) || "--:--") + "</div></div>" +
       '<div class="plane"><span style="color:var(--gold)">' + ic("plane") + "</span>" + esc(dur) + "</div>" +
       '<div class="end"><div class="code">' + esc(it.destino || "---") + '</div><div class="city">' + esc(it.destinoCidade || "") + '</div><div class="when">' + esc(hhmm(it.chegada) || "--:--") + plus + "</div></div></div>" +
@@ -1291,11 +1297,12 @@ a.btn-primary { color: var(--on-wine); }
       '<div class="pass-stub"><div><div class="k">Localizador</div><div class="loc">' + esc(it.localizador || "—") + "</div></div>" +
       (num(it.valor) ? '<div><div class="k">Valor</div><div class="price">' + esc(money(it.valor, it.moeda)) + "</div></div>" : "") + (payLine(it) ? '<div class="pay"><div class="k">Pagamento</div><div>' + esc(payLine(it)) + "</div></div>" : "") + "</div></button>";
   }
+  function foraTag(it) { return it.foraDoPlano ? '<div class="fora-tag">Fora do plano: não vai usar' + (it.foraMotivo ? " · " + esc(it.foraMotivo) : "") + "</div>" : ""; }
   function cardHospedagem(it) {
     var n = daysBetween(it.checkin, it.checkout);
     var kv = [["Reserva", it.reserva, true], ["Reservado por", it.plataforma], ["Contato", it.contato], ["Valor", num(it.valor) ? money(it.valor, it.moeda) : ""], ["A pagar no local", num(it.pendente) ? money(it.pendente, it.moeda) : ""], ["Pagamento", payLine(it)]]
       .filter(function (m) { return m[1]; }).map(function (m) { return "<span>" + m[0] + ": <b" + (m[2] ? ' class="mono"' : "") + ">" + esc(m[1]) + "</b></span>"; }).join("");
-    return '<button type="button" class="card" data-edit="' + esc(it.id) + '"><div class="card-top"><div style="min-width:0"><div class="card-title">' + esc(it.nome) + '</div><div class="card-sub">' + esc([it.cidade, it.endereco].filter(Boolean).join(" · ")) + "</div></div>" +
+    return '<button type="button" class="card' + (it.foraDoPlano ? " fora" : "") + '" data-edit="' + esc(it.id) + '">' + foraTag(it) + '<div class="card-top"><div style="min-width:0"><div class="card-title">' + esc(it.nome) + '</div><div class="card-sub">' + esc([it.cidade, it.endereco].filter(Boolean).join(" · ")) + "</div></div>" +
       (it.pago ? '<span class="pill-ok">Pago</span>' : '<span class="pill-pend">A pagar</span>') + "</div>" +
       '<div class="stay-dates"><div><div class="k">Check-in</div><div class="d">' + esc(fmtDay(it.checkin)) + (it.horaCheckin ? " · " + esc(it.horaCheckin) : "") + "</div></div>" +
       '<span class="nights">' + (n != null ? n + (n === 1 ? " noite" : " noites") : "—") + "</span>" +
@@ -1472,7 +1479,7 @@ a.btn-primary { color: var(--on-wine); }
   }
   function viewMapas(trip) {
     var all = tripItems(trip.id), days = tripDays(trip);
-    var withPts = days.map(function (d) { return all.filter(function (it) { return it.tipo === "roteiro" && it.data === d && it.lat && it.lng; }).length; });
+    var withPts = days.map(function (d) { return all.filter(function (it) { return it.tipo === "roteiro" && !it.foraDoPlano && it.data === d && it.lat && it.lng; }).length; });
     if (mapDay == null || days.indexOf(mapDay) < 0) {
       var hoje = today();
       mapDay = (days.indexOf(hoje) >= 0 && withPts[days.indexOf(hoje)]) ? hoje : (days.find(function (d, i) { return withPts[i]; }) || days[0]);
@@ -1572,7 +1579,7 @@ a.btn-primary { color: var(--on-wine); }
 
   // ---- Orientações de viagem ----
   var CHECK = [
-    { id: "passaporte", t: "Passaportes válidos até pelo menos 01/03/2027", d: "Espaço Schengen exige validade mínima de 3 meses após a saída (29/11) e emissão há menos de 10 anos." },
+    { id: "passaporte", t: "Passaportes válidos até pelo menos 01/03/2027", d: "Espaço Schengen exige validade mínima de 3 meses após a saída (27/11) e emissão há menos de 10 anos." },
     { id: "eta", t: "Pedir a ETA do Reino Unido (um pedido para cada um)", d: "App oficial \"UK ETA\" ou gov.uk/eta. £ 20 por pessoa, resposta em até 3 dias úteis. Faça até 10/11." },
     { id: "seguro", t: "Contratar seguro viagem com cobertura de € 30.000 ou mais", d: "Um seguro \"Europa\" cobre Espanha, França e Reino Unido. Leve a apólice impressa e no celular, com o nome dos dois." },
     { id: "cartao-seguro", t: "Se o seguro for do cartão de crédito, emitir o certificado", d: "Vale só se as passagens foram pagas com o cartão. O certificado é emitido no site do banco ou da bandeira." },
@@ -1598,7 +1605,7 @@ a.btn-primary { color: var(--on-wine); }
     var fx = trip.cambio || {}, pax = +trip.viajantes || 2;
     var brl = function (v, c) { var r = +fx[c]; return r ? " (≈ " + money(v * r, "BRL") + ")" : ""; };
     // Dias em cada país contando chegada e saída (regra de cálculo da imigração)
-    var DIAS_ESP = 7, DIAS_UK = 5, DIAS_FRA = 5;
+    var DIAS_ESP = 5, DIAS_UK = 5, DIAS_FRA = 4;
     var espDia = 122.10, espMin = 1098.90, esp = Math.max(espMin, espDia * DIAS_ESP), fra = 65 * DIAS_FRA, ukMin = 70 * DIAS_UK, ukMax = 100 * DIAS_UK;
     var reais = function (v, c) { var r = +fx[c]; return r ? money(v * r, "BRL") : "—"; };
     var totMin = (esp * pax) * (+fx.EUR || 0) + (fra * pax) * (+fx.EUR || 0) + (ukMin * pax) * (+fx.GBP || 0);
@@ -1607,9 +1614,9 @@ a.btn-primary { color: var(--on-wine); }
     var html = seguroCard(trip) + '<div class="section-head"><div><h2>Orientações da viagem</h2><p>O que cada país pede para brasileiros, quanto comprovar e o que fazer antes de embarcar. Regras conferidas em outubro de 2026; revise 15 dias antes.</p></div></div>';
     html += '<div class="group-label">Quanto comprovar na imigração</div>' +
       '<div class="mon-grid">' +
-      linha("Espanha", DIAS_ESP + " dias: 16 a 20/11 (5) e 28 a 29/11 (2)", "€ 122,10 por dia (10% do salário mínimo espanhol de 2026), com <b>mínimo de € 1.098,90</b> por pessoa. " + DIAS_ESP + " x € 122,10 = " + esc(money(espDia * DIAS_ESP, "EUR")) + ", abaixo do mínimo, então vale o mínimo.", esc(money(esp, "EUR")), esc(money(esp * pax, "EUR")), esc(reais(esp * pax, "EUR"))) +
+      linha("Espanha", DIAS_ESP + " dias: 16 a 20/11", "€ 122,10 por dia (10% do salário mínimo espanhol de 2026), com <b>mínimo de € 1.098,90</b> por pessoa. " + DIAS_ESP + " x € 122,10 = " + esc(money(espDia * DIAS_ESP, "EUR")) + ", abaixo do mínimo, então vale o mínimo.", esc(money(esp, "EUR")), esc(money(esp * pax, "EUR")), esc(reais(esp * pax, "EUR"))) +
       linha("Reino Unido", DIAS_UK + " dias: 20 a 24/11", "Sem valor oficial. Referência usada: £ 70 a £ 100 por dia.", esc(money(ukMin, "GBP")) + " a " + esc(money(ukMax, "GBP")), esc(money(ukMin * pax, "GBP")) + " a " + esc(money(ukMax * pax, "GBP")), esc(reais(ukMin * pax, "GBP")) + " a " + esc(reais(ukMax * pax, "GBP"))) +
-      linha("França", DIAS_FRA + " dias: 24 a 28/11", "€ 65 por dia com hotel reservado (é o caso de vocês). Sem hotel seria € 120; com carta-convite, € 32,50.", esc(money(fra, "EUR")), esc(money(fra * pax, "EUR")), esc(reais(fra * pax, "EUR"))) +
+      linha("França", DIAS_FRA + " dias: 24 a 27/11", "€ 65 por dia com hotel reservado (é o caso de vocês). Sem hotel seria € 120; com carta-convite, € 32,50.", esc(money(fra, "EUR")), esc(money(fra * pax, "EUR")), esc(reais(fra * pax, "EUR"))) +
       '</div><div class="mon-total"><span>Soma dos 3 países (casal, ' + (DIAS_ESP + DIAS_UK + DIAS_FRA) + ' dias contados)</span><b>' + (fx.EUR && fx.GBP ? esc(money(totMin, "BRL")) + " a " + esc(money(totMax, "BRL")) : "Preencha a cotação na aba Custos") + "</b></div>" +
       '<p class="or-note"><b>Não precisa ter a soma toda de uma vez:</b> cada fronteira olha só o trecho dela, e o mesmo cartão ou saldo serve nas três. O maior valor é o da Espanha, cobrado na entrada em Madri (16/11): ' + esc(money(esp * pax, "EUR")) + " para o casal" + esc(brl(esp * pax, "EUR")) + ". A França confere em St Pancras (24/11).</p>" +
       '<p class="or-note">Vale cartão de crédito com limite (leve a fatura ou o print do limite disponível), cartão de débito ou conta global com saldo, extrato bancário recente ou dinheiro em espécie. Na prática, a imigração costuma pedir só se desconfiar, mas tenham à mão junto com hotel, passagem de volta e seguro.</p>';
@@ -1622,7 +1629,7 @@ a.btn-primary { color: var(--on-wine); }
         ["Passaporte", "Válido por 3 meses após sair do Schengen (até 01/03/2027) e emitido há menos de 10 anos."],
         ["Seguro viagem", '<span class="or-tag sim">Exigido na prática</span> Cobertura mínima de € 30.000. A imigração pode pedir.'],
         ["Dinheiro", "€ 122,10 por pessoa/dia, mínimo de € 1.098,90 por pessoa. Para vocês: € 1.098,90 cada, € 2.197,80 o casal."],
-        ["Também levar", "Reservas dos hotéis e passagem de volta (29/11)."],
+        ["Também levar", "Reservas dos hotéis e passagem de volta (Air France, 27/11)."],
         ["Tax Free", "Sem valor mínimo. Peça o formulário DIVA na loja e valide no aeroporto na saída."],
         ["Tomada / emergência", "Tipo C/F, 230 V · Emergência: 112"]
       ]) +
@@ -1644,7 +1651,7 @@ a.btn-primary { color: var(--on-wine); }
         ["Passaporte", "Mesma regra do Schengen: válido até 01/03/2027."],
         ["Seguro viagem", '<span class="or-tag sim">Exigido na prática</span> Cobertura mínima de € 30.000.'],
         ["Dinheiro", "€ 65 por pessoa/dia com hotel reservado; € 120 sem hotel. Para vocês (5 dias): € 325 cada, € 650 o casal."],
-        ["Também levar", "Reserva do Hôtel Montmartre e passagem para Barcelona (28/11)."],
+        ["Também levar", "Reserva do Hôtel Montmartre e passagem de volta Paris → Fortaleza (Air France AF 488, 27/11)."],
         ["Tax Free", "A partir de € 100,01 na mesma loja e no mesmo dia. Valide no quiosque PABLO antes de sair da UE."],
         ["Tomada / emergência", "Tipo C/E, 230 V · Emergência: 112"]
       ]) + "</div>";
@@ -1654,8 +1661,7 @@ a.btn-primary { color: var(--on-wine); }
       orStep("16/11", "Madri: entrada no Espaço Schengen", "Controle de passaporte no T4S, com registro EES (foto e digitais). Podem pedir hotel, volta, dinheiro e seguro. Depois, conexão para Barcelona.") +
       orStep("20/11", "Madri → Londres: saída do Schengen e entrada no Reino Unido", "Saída registrada no EES em Madri. Em Gatwick, a ETA já fica ligada ao passaporte; tenham o endereço do hotel.") +
       orStep("24/11", "Londres → Paris: saída do Reino Unido e entrada no Schengen", "Os dois controles acontecem em St Pancras, antes de embarcar. Cheguem 90 minutos antes.") +
-      orStep("28/11", "Paris → Barcelona", "Voo dentro do Schengen: sem imigração, só documento no embarque.") +
-      orStep("29/11", "Madri: saída do Schengen", "Controle de saída no T4S durante a conexão para Fortaleza. Nos dois períodos ficam bem abaixo do limite de 90 dias.") + "</div>";
+      orStep("27/11", "Paris (Charles de Gaulle): saída do Schengen", "Voo direto Air France AF 488 às 14h30. Controle de saída com registro EES. Validem o Tax Free no quiosque PABLO antes do raio-x. Nos dois períodos ficam bem abaixo do limite de 90 dias.") + "</div>";
 
     html += '<div class="group-label">Antes de embarcar</div><div class="or-list">' + CHECK.map(function (c) {
       var on = !!(state.checklist[trip.id + "_" + c.id] || {}).feito;
@@ -1668,9 +1674,9 @@ a.btn-primary { color: var(--on-wine); }
       orCard("Dinheiro em espécie", "Limites", [["Saída e entrada no Brasil", "Acima de R$ 10.000 em espécie, declarar na e-DPV."], ["União Europeia e Reino Unido", "A partir de € 10.000 ou £ 10.000, declarar na alfândega."]]) + "</div>";
 
     html += '<div class="group-label">Clima em novembro</div><div class="or-grid">' +
-      orCard("Barcelona e Madri", "16 a 20/11 e 28 a 29/11", [["Barcelona", "Entre 10 °C e 17 °C."], ["Madri", "Entre 4 °C e 14 °C, mais frio à noite."]]) +
+      orCard("Barcelona e Madri", "16 a 20/11", [["Barcelona", "Entre 10 °C e 17 °C."], ["Madri", "Entre 4 °C e 14 °C, mais frio à noite."]]) +
       orCard("Londres", "20 a 24/11", [["Temperatura", "Entre 5 °C e 11 °C, garoa frequente."], ["Levar", "Casaco impermeável e guarda-chuva pequeno."]]) +
-      orCard("Paris", "24 a 28/11", [["Temperatura", "Entre 4 °C e 10 °C."], ["Escurece cedo", "Por volta de 17h. Planeje os passeios ao ar livre para o começo do dia."]]) + "</div>";
+      orCard("Paris", "24 a 27/11", [["Temperatura", "Entre 4 °C e 10 °C."], ["Escurece cedo", "Por volta de 17h. Planeje os passeios ao ar livre para o começo do dia."]]) + "</div>";
 
     html += '<p class="or-note or-src">Fontes: <a href="https://www.boe.es/buscar/act.php?id=BOE-A-2007-9608" target="_blank" rel="noopener">BOE, Orden PRE/1282/2007 (Espanha)</a> · <a href="https://france-visas.gouv.fr/en/votre-arrivee-en-france" target="_blank" rel="noopener">France-Visas</a> · <a href="https://www.gov.uk/eta/apply" target="_blank" rel="noopener">GOV.UK ETA</a> · <a href="https://travel-europe.europa.eu/etias_en" target="_blank" rel="noopener">ETIAS (União Europeia)</a> · <a href="https://www.consilium.europa.eu/en/policies/entryexit-system/" target="_blank" rel="noopener">EES (Conselho da UE)</a> · <a href="https://www.gov.br/receitafederal/pt-br/assuntos/aduana-e-comercio-exterior/manuais/viajantes" target="_blank" rel="noopener">Receita Federal, viajantes</a>. Valores e regras podem mudar: confirme nos sites oficiais perto da data.</p>';
     return html;
@@ -1707,6 +1713,8 @@ a.btn-primary { color: var(--on-wine); }
   function viewIngressos(trip) {
     var pax = +trip.viajantes || 2;
     var items = tripItems(trip.id, "roteiro").filter(needsTicket);
+    var fora = items.filter(function (i) { return i.foraDoPlano; });
+    items = items.filter(function (i) { return !i.foraDoPlano; });
     var pend = items.filter(function (i) { return !i.ingresso; }), ok = items.filter(function (i) { return i.ingresso; });
     var tot = {};
     pend.forEach(function (i) { var v = num(i.precoRef); if (v) { var c = refCur(i); tot[c] = (tot[c] || 0) + v * pax; } });
@@ -1728,7 +1736,8 @@ a.btn-primary { color: var(--on-wine); }
     return head + (pend.length ? '<div class="group-label">A comprar (' + pend.length + ')</div><div class="list">' + pend.map(row).join("") + "</div>" : "") +
       (ok.length ? '<div class="group-label">Comprados (' + ok.length + ')</div>' + costBox(trip, ok, "Pago em ingressos", "Total pago em reais") +
         (ok.some(function (i) { return !num(i.valor); }) ? '<p class="row-sub" style="margin:-10px 0 12px">Sem valor pago lançado: ' + esc(ok.filter(function (i) { return !num(i.valor); }).map(function (i) { return i.titulo; }).join(", ")) + ". Lance no lápis de cada um para entrar no total.</p>" : "") +
-        '<div class="list">' + ok.map(row).join("") + "</div>" : "");
+        '<div class="list">' + ok.map(row).join("") + "</div>" : "") +
+      (fora.length ? '<div class="group-label">Fora do plano (' + fora.length + ')</div><p class="row-sub" style="margin:-4px 0 8px">Não cabem mais no roteiro. Ficam guardados para pedir troca de data ou reembolso.</p><div class="list">' + fora.map(function (it) { return '<div class="row" style="opacity:.7"><div style="min-width:0"><div class="row-title">' + esc(it.titulo) + '</div><div class="row-sub">' + esc(fmtDay(it.data) + (it.foraMotivo ? " · " + it.foraMotivo : "")) + "</div>" + (it.ingresso && num(it.valor) ? '<div class="row-sub">Pago: ' + esc(money(it.valor, it.moeda)) + "</div>" : "") + '</div><div class="row-actions"><button type="button" class="icon-btn edit" data-edit="' + esc(it.id) + '" aria-label="Editar">' + ic("pen") + "</button></div></div>"; }).join("") + "</div>" : "");
   }
 
   // ---- Gastronomia ----
@@ -1801,7 +1810,7 @@ a.btn-primary { color: var(--on-wine); }
     "Barcelona": "Metrô, ônibus e trem urbano com um cartão só. Os passes Hola Barcelona valem também no metrô do aeroporto (linha L9 Sud) e contam horas seguidas a partir da 1ª validação. O Aerobús não está incluído.",
     "Madri": "Do aeroporto T4, o trem Cercanías não cobra suplemento (o metrô cobra). Na cidade, uma Tarjeta Multi com MetroBus de 10 viagens serve para os dois: passem o cartão uma vez para cada pessoa. O hotel fica na Puerta del Sol, então boa parte dá para fazer a pé.",
     "Londres": "Não precisa de Oyster: passe o cartão de crédito ou débito por aproximação (ou o celular) na catraca, cada pessoa com o seu cartão. Há teto diário automático. Use o mesmo cartão na entrada e na saída.",
-    "Paris": "Use o app Île-de-France Mobilités, um celular para cada pessoa. O bilhete de metrô/RER/trem (€ 2,55) vale para toda a região, inclusive Versalhes e Disney; Orly tem bilhete próprio (€ 14). Paris Visite não compensa e não precisa comprar nada antes."
+    "Paris": "Use o app Île-de-France Mobilités, um celular para cada pessoa. O bilhete de metrô/RER/trem (€ 2,55) vale para toda a região, inclusive Versalhes e Disney; aeroportos (Charles de Gaulle e Orly) têm bilhete próprio (€ 14). Paris Visite não compensa e não precisa comprar nada antes."
   };
   function viewTransLocal(trip) {
     var items = tripItems(trip.id, "transporte");
@@ -1919,7 +1928,7 @@ a.btn-primary { color: var(--on-wine); }
     { id: "tapwater", g: 2, nome: "Tap Water Stations", icone: "/_blob/38139eb948a23f1b4450e582b2ee6be5", serve: "Mapa de fontes de água grátis pela Europa.", dica: "Leve garrafa vazia no raio-x e encha depois. Em Paris, as fontes Wallace (verdes) são grátis; em Madri a água da torneira é ótima." },
     { id: "banheiro", g: 2, nome: "Onde tá o banheiro?", icone: "/_blob/cd86ac91751a2340d3bf983af3a35148", serve: "Localiza banheiros públicos.", dica: "Paris tem banheiros públicos grátis na rua. Em Londres, use os de museus (grátis) antes de sair; em várias estações se paga." },
     { id: "atm", g: 2, nome: "ATM Fee Saver", icone: "/_blob/c5537f488b7ee0d56f9cc17c70e59cee", serve: "Encontra caixas eletrônicos sem tarifa ou com tarifa baixa.", dica: "Fuja dos caixas Euronet (azul e amarelo) dos pontos turísticos. No saque ou no cartão, sempre escolha pagar na moeda local (euro ou libra), nunca em reais." },
-    { id: "nannybag", g: 2, nome: "Nannybag", icone: "/_blob/4f85b54a978fe54967fa75e915db26ff", serve: "Guarda-volumes em lojas e hotéis parceiros.", dica: "Útil no dia 28/11: Versalhes não aceita mala. Deixe as malas guardadas em Paris e pegue antes de ir ao aeroporto." },
+    { id: "nannybag", g: 2, nome: "Nannybag", icone: "/_blob/4f85b54a978fe54967fa75e915db26ff", serve: "Guarda-volumes em lojas e hotéis parceiros.", dica: "Útil se quiserem passear depois do check-out e antes de um voo ou trem: guarda as malas por algumas horas perto de onde vocês estiverem." },
     { id: "iberia", g: 3, nome: "Iberia", cor: "#d7192d", serve: "Check-in e cartão de embarque dos voos Iberia.", dica: "Faça o check-in pelo app assim que abrir e salve o cartão de embarque na Wallet.", sugestao: true },
     { id: "vueling", g: 3, nome: "Vueling", cor: "#ffcc00", txt: "#222", serve: "Check-in e cartão de embarque dos voos Vueling.", dica: "O check-in da Vueling abre 7 dias antes: veja o lembrete no Checklist.", sugestao: true },
     { id: "eurostar", g: 3, nome: "Eurostar", cor: "#0c2f5a", serve: "Bilhete do trem Londres para Paris (24/11).", dica: "O bilhete com QR code fica no app. Chegue 1 hora antes em St Pancras: tem imigração francesa antes do embarque.", sugestao: true },
@@ -1957,11 +1966,11 @@ a.btn-primary { color: var(--on-wine); }
     copias: { id: "copias", t: "Fotos dos passaportes salvas no celular e na nuvem", d: "Se perder o passaporte, a cópia agiliza o documento de emergência no consulado." },
     "guia-offline": { id: "guia-offline", t: "Baixar o guia offline no celular dos dois", d: "Aba Geral > Baixar guia offline. Gere de novo na véspera, com tudo atualizado." },
     apps: { id: "apps", t: "Instalar os apps da viagem", d: "Veja a aba Aplicativos: lá tem a lista completa, com o botão Baixar e onde marcar o que já está instalado." },
-    greves: { id: "greves", t: "Conferir greves e protestos 1 semana antes", d: "Aba Orientações > Greves e protestos. Paris (24 a 28/11) é o ponto de atenção: Eurostar, metrô, Louvre, Versalhes e Orly." },
+    greves: { id: "greves", t: "Conferir greves e protestos 1 semana antes", d: "Aba Orientações > Greves e protestos. Paris (24 a 27/11) é o ponto de atenção: Eurostar, metrô, Louvre e o voo de volta em Charles de Gaulle." },
     "mapas-offline": { id: "mapas-offline", t: "Baixar mapas offline das 4 cidades no Google Maps", d: "Barcelona, Madri, Londres e Paris. Funciona sem internet para ver onde vocês estão." },
     "mala-mao": { id: "mala-mao", t: "Conferir a regra da mala de mão (vocês estão sem mala despachada)", d: "Iberia Basic: 1 mala de mão de até 10 kg (56x40x25 cm) por pessoa. Líquidos em frascos de até 100 ml, num saco transparente." },
     "mala-looks": { id: "mala-looks", t: "Montar a mala com os looks do Kauri Looks", d: "Confira a aba Mala do Kauri Looks e marque o que já foi para a mala." },
-    "contas-casa": { id: "contas-casa", t: "Deixar contas de casa pagas ou no débito automático", d: "Faturas que vencem entre 15 e 29/11, aluguel, condomínio e boletos da empresa." }
+    "contas-casa": { id: "contas-casa", t: "Deixar contas de casa pagas ou no débito automático", d: "Faturas que vencem entre 15 e 27/11, aluguel, condomínio e boletos da empresa." }
   };
   var CK_GROUPS = [
     { g: "Documentação e imigração", ids: ["passaporte", "copias", "eta", "etias", "seguro", "cartao-seguro", "dinheiro"] },
@@ -1977,12 +1986,13 @@ a.btn-primary { color: var(--on-wine); }
     return '<div class="ck-wrap"><button type="button" class="ck' + (on ? " on" : "") + '" data-ck="' + esc(c.id) + '"><span class="bx">' + (on ? ic("check") : "") + '</span><span class="t">' + esc(c.t) + (c.d ? "<small>" + esc(c.d) + "</small>" : "") + "</span></button>" + (extra || "") + "</div>";
   }
   function checkinItems(trip) {
-    return tripItems(trip.id, "voo").map(function (v) {
+    return tripItems(trip.id, "voo").filter(function (v) { return !v.foraDoPlano; }).map(function (v) {
+      var af = /air france|AF[- ]?\d/i.test((v.cia || "") + " " + (v.numero || ""));
       var vue = /vueling/i.test((v.cia || "") + " " + (v.obs || ""));
       var dt = parseDT(v.partida); if (!dt) return null;
-      var open = new Date(dt.getTime() - (vue ? 7 * 24 : 24) * 3600000);
+      var open = new Date(dt.getTime() - (vue ? 7 * 24 : af ? 30 : 24) * 3600000);
       var quando = String(open.getDate()).padStart(2, "0") + "/" + String(open.getMonth() + 1).padStart(2, "0") + " às " + String(open.getHours()).padStart(2, "0") + ":" + String(open.getMinutes()).padStart(2, "0");
-      return { id: "checkin-" + v.id, t: "Check-in online: " + (v.numero || v.cia || "voo") + " " + (v.origem || "") + " → " + (v.destino || "") + " (" + ddmm(v.partida) + ")", d: "Abre " + quando + " (horário local da partida), " + (vue ? "7 dias antes, no site da Vueling." : "24 h antes, no app ou site da Iberia.") + " Localizador " + (v.localizador || "—") + "." };
+      return { id: "checkin-" + v.id, t: "Check-in online: " + (v.numero || v.cia || "voo") + " " + (v.origem || "") + " → " + (v.destino || "") + " (" + ddmm(v.partida) + ")", d: "Abre " + quando + " (horário local da partida), " + (vue ? "7 dias antes, no site da Vueling." : af ? "30 h antes, no app ou site da Air France." : "24 h antes, no app ou site da Iberia.") + " Localizador " + (v.localizador || "—") + "." };
     }).filter(Boolean);
   }
   function autoPend(trip) {
