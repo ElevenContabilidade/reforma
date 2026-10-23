@@ -848,6 +848,7 @@ a.btn-primary { color: var(--on-wine); }
   function localSave() {
     try { var d = {}; COLS.forEach(function (c) { d[c] = state[c]; }); localStorage.setItem(LS_KEY, JSON.stringify(d)); } catch (e) {}
   }
+  var pendentes = {};
   function saveDoc(col, id, data) {
     if (store) return store.collection(col).doc(id).set(data);
     state[col][id] = data; localSave(); render(); return Promise.resolve();
@@ -877,6 +878,13 @@ a.btn-primary { color: var(--on-wine); }
         db.collection(col).onSnapshot(function (snap) {
           var next = {};
           snap.docs.forEach(function (d) { next[d.id] = d.data() || {}; });
+          // Mudanças ainda gravando (reordenar o roteiro) ficam por cima do que o servidor manda
+          var pc = pendentes[col];
+          if (pc) Object.keys(pc).forEach(function (id) {
+            var srv = next[id], want = pc[id];
+            if (srv && Object.keys(want).every(function (k) { return srv[k] === want[k]; })) delete pc[id];
+            else if (srv) next[id] = Object.assign({}, srv, want);
+          });
           state[col] = next; state.loaded[col] = true; render();
         }, function (err) {
           state.loaded[col] = true; render();
@@ -1141,24 +1149,34 @@ a.btn-primary { color: var(--on-wine); }
   }
   function toMin(h) { var p = (h || "0:0").split(":"); return +p[0] * 60 + +p[1]; }
   function retime(trip, day, order, startHora) {
-    var t = toMin(startHora || (order[0] && order[0].hora) || "09:00"), changes = {};
+    var t = toMin(startHora || (order[0] && order[0].hora) || "09:00"), changes = {}, times = [];
     order.forEach(function (it, i) {
       if (i > 0) { var d = state.deslocs[deslocKey(trip, day, { key: it.id })]; t += +(d && d.min) || 0; }
-      if (it.horaFixa && it.hora) t = toMin(it.hora);
-      var h = durFmt(t % 1440);
+      if (it.horaFixa && it.hora) { times.push(toMin(it.hora)); t = Math.max(t, toMin(it.hora) + (+it.duracao || 60)); return; }
+      times.push(t); t += +it.duracao || 60;
+    });
+    // Atividades antes do primeiro horário fixo que passariam dele são puxadas para mais cedo, terminando na hora do fixo
+    var f = order.findIndex(function (it) { return it.horaFixa && it.hora; });
+    if (f > 0) {
+      var prev = order[f - 1], fimPrev = times[f - 1] + (+prev.duracao || 60), dfx = state.deslocs[deslocKey(trip, day, { key: order[f].id })];
+      var over = fimPrev + ((+(dfx && dfx.min)) || 0) - times[f];
+      if (over > 0) for (var k = 0; k < f; k++) times[k] -= over;
+    }
+    order.forEach(function (it, i) {
+      var h = durFmt(((times[i] % 1440) + 1440) % 1440);
       if (h !== it.hora || it.data !== day) changes[it.id] = { hora: h, data: day };
-      t += +it.duracao || 60;
     });
     return changes;
   }
   function applyChanges(changes, staleKeys) {
     var ids = Object.keys(changes);
-    ids.forEach(function (id) { Object.assign(state.itens[id], changes[id]); });
+    pendentes.itens = pendentes.itens || {};
+    ids.forEach(function (id) { Object.assign(state.itens[id], changes[id]); if (store) pendentes.itens[id] = Object.assign({}, pendentes.itens[id] || {}, changes[id]); });
     render();
     var p = Promise.resolve();
     (staleKeys || []).forEach(function (k) { if (state.deslocs[k]) p = p.then(function () { return removeDoc("deslocs", k); }); });
     ids.forEach(function (id) { p = p.then(function () { return patchDoc("itens", id, changes[id]); }); });
-    return p.then(function () { toast(ids.length ? "Roteiro reorganizado" : "Nada para mudar"); }).catch(function (e) { toast(errMsg(e)); });
+    return p.then(function () { toast(ids.length ? "Roteiro reorganizado" : "Nada para mudar"); }).catch(function (e) { ids.forEach(function (id) { delete pendentes.itens[id]; }); toast(errMsg(e)); });
   }
   function moveItem(id, toDay, beforeId, recalc) {
     var trip = currentTrip(), it = state.itens[id]; if (!trip || !it) return;
@@ -1199,7 +1217,8 @@ a.btn-primary { color: var(--on-wine); }
     $("sheet-root").innerHTML = '<div class="sheet-bg" id="sheet-bg"><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-title">' +
       '<div class="sheet-head"><h2 id="sheet-title">Mover: ' + esc(it.titulo) + '</h2><button type="button" class="x" data-close aria-label="Fechar">×</button></div>' +
       '<div class="mv-list">' + order.map(function (o) { return '<div class="mv-row' + (o.id === id ? " me" : "") + '"><span class="h">' + esc(o.hora || "--:--") + "</span>" + esc(o.titulo) + "</div>"; }).join("") + "</div>" +
-      '<div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 16px"><button type="button" class="btn" data-mvstep="-1"' + (idx <= 0 ? " disabled" : "") + '>↑ Subir</button><button type="button" class="btn" data-mvstep="1"' + (idx >= order.length - 1 ? " disabled" : "") + ">↓ Descer</button></div>" +
+      (it.horaFixa ? '<p class="row-sub" style="margin:10px 0 16px"><b>Horário fixo (' + esc(it.hora || "") + ').</b> Esta atividade não sobe nem desce porque o horário não pode mudar (ingresso com hora marcada). Para mudar a ordem, abra as outras atividades e use Subir ou Descer nelas, ou desmarque "Horário fixo" no lápis.</p>' :
+      '<div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 16px"><button type="button" class="btn" data-mvstep="-1"' + (idx <= 0 ? " disabled" : "") + '>↑ Subir</button><button type="button" class="btn" data-mvstep="1"' + (idx >= order.length - 1 ? " disabled" : "") + ">↓ Descer</button></div>") +
       '<div class="form-grid"><div class="field"><label for="mv-day">Mover para o dia</label><select id="mv-day">' + days.map(function (d, i) { return '<option value="' + d + '"' + (d === it.data ? " selected" : "") + ">Dia " + (i + 1) + " · " + esc(fmtDay(d)) + " · " + esc(dayCity(all, d)) + "</option>"; }).join("") + '</select></div>' +
       '<div class="field check-field" style="align-self:end"><input type="checkbox" id="mv-recalc" checked><label for="mv-recalc" style="font-size:14px;color:var(--ink)">Recalcular horários do dia</label></div></div>' +
       '<p class="row-sub" style="margin-top:8px">Com o recálculo, os horários seguem a ordem, somando a duração de cada atividade e o tempo de deslocamento. Atividades com horário fixo (ingresso com hora marcada) não mudam.</p>' +
