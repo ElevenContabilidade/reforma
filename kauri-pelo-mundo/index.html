@@ -1171,7 +1171,7 @@ a.btn-primary { color: var(--on-wine); }
   function applyChanges(changes, staleKeys) {
     var ids = Object.keys(changes);
     pendentes.itens = pendentes.itens || {};
-    ids.forEach(function (id) { Object.assign(state.itens[id], changes[id]); if (store) pendentes.itens[id] = Object.assign({}, pendentes.itens[id] || {}, changes[id]); });
+    ids.forEach(function (id) { state.itens[id] = Object.assign({}, state.itens[id], changes[id]); if (store) pendentes.itens[id] = Object.assign({}, pendentes.itens[id] || {}, changes[id]); });
     render();
     var p = Promise.resolve();
     (staleKeys || []).forEach(function (k) { if (state.deslocs[k]) p = p.then(function () { return removeDoc("deslocs", k); }); });
@@ -1360,7 +1360,7 @@ a.btn-primary { color: var(--on-wine); }
     sampler(prompt, { modelTier: "quick" }).then(function (r) {
       var t = (r.text || "").trim();
       if (!t || /SEM_INFORMACAO/.test(t)) { showErr("Não encontrei informações confiáveis sobre esse lugar."); btn.disabled = false; btn.textContent = "Gerar descrição"; return; }
-      return patchDoc("itens", id, { historia: t }).then(function () { state.itens[id].historia = t; openDetail(id); });
+      return patchDoc("itens", id, { historia: t }).then(function () { state.itens[id] = Object.assign({}, state.itens[id], { historia: t }); openDetail(id); });
     }).catch(function (e) { btn.disabled = false; btn.textContent = "Gerar descrição"; showErr(e && e.code === "not_granted" ? "A descrição precisa da sua permissão para usar o Claude." : "Não foi possível gerar agora. Tente de novo."); });
   }
   var photoFor = null;
@@ -2778,7 +2778,7 @@ a.btn-primary { color: var(--on-wine); }
   function stepDur(id, step) {
     var it = state.itens[id]; if (!it) return;
     var v = Math.max(15, Math.min(720, (+it.duracao || 60) + step));
-    it.duracao = v; render();
+    state.itens[id] = Object.assign({}, it, { duracao: v }); render();
     clearTimeout(durTimers[id]);
     durTimers[id] = setTimeout(function () { patchDoc("itens", id, { duracao: v }).catch(function (e) { toast(errMsg(e)); }); }, 700);
   }
