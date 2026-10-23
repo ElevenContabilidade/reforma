@@ -1148,15 +1148,15 @@ a.btn-primary { color: var(--on-wine); }
       .sort(function (a, b) { return (a.hora || "99:99").localeCompare(b.hora || "99:99"); });
   }
   function toMin(h) { var p = (h || "0:0").split(":"); return +p[0] * 60 + +p[1]; }
-  function retime(trip, day, order, startHora) {
+  function retime(trip, day, order, startHora, solto) {
     var t = toMin(startHora || (order[0] && order[0].hora) || "09:00"), changes = {}, times = [];
     order.forEach(function (it, i) {
       if (i > 0) { var d = state.deslocs[deslocKey(trip, day, { key: it.id })]; t += +(d && d.min) || 0; }
-      if (it.horaFixa && it.hora) { times.push(toMin(it.hora)); t = Math.max(t, toMin(it.hora) + (+it.duracao || 60)); return; }
+      if (it.horaFixa && it.hora && it.id !== solto) { times.push(toMin(it.hora)); t = Math.max(t, toMin(it.hora) + (+it.duracao || 60)); return; }
       times.push(t); t += +it.duracao || 60;
     });
     // Atividades antes do primeiro horário fixo que passariam dele são puxadas para mais cedo, terminando na hora do fixo
-    var f = order.findIndex(function (it) { return it.horaFixa && it.hora; });
+    var f = order.findIndex(function (it) { return it.horaFixa && it.hora && it.id !== solto; });
     if (f > 0) {
       var prev = order[f - 1], fimPrev = times[f - 1] + (+prev.duracao || 60), dfx = state.deslocs[deslocKey(trip, day, { key: order[f].id })];
       var over = fimPrev + ((+(dfx && dfx.min)) || 0) - times[f];
@@ -1178,7 +1178,7 @@ a.btn-primary { color: var(--on-wine); }
     ids.forEach(function (id) { p = p.then(function () { return patchDoc("itens", id, changes[id]); }); });
     return p.then(function () { toast(ids.length ? "Roteiro reorganizado" : "Nada para mudar"); }).catch(function (e) { ids.forEach(function (id) { delete pendentes.itens[id]; }); toast(errMsg(e)); });
   }
-  function moveItem(id, toDay, beforeId, recalc) {
+  function moveItem(id, toDay, beforeId, recalc, solto) {
     var trip = currentTrip(), it = state.itens[id]; if (!trip || !it) return;
     if (beforeId === id) return;
     var fromDay = it.data, me = Object.assign({ id: id }, it);
@@ -1196,7 +1196,7 @@ a.btn-primary { color: var(--on-wine); }
     var changes;
     if (recalc) {
       stale.forEach(function (k) { delete state.deslocs[k]; });
-      changes = retime(trip, toDay, target, start);
+      changes = retime(trip, toDay, target, start, solto);
       if (fromDay !== toDay) { var rest = dayActs(trip, fromDay, id); if (rest.length) Object.assign(changes, retime(trip, fromDay, rest, oldOrder[0].hora)); }
     } else {
       changes = {}; changes[id] = { data: toDay, hora: at > 0 ? addMin(target[at - 1].hora, target[at - 1].duracao || 60) : (target[1] ? target[1].hora : it.hora) };
@@ -1217,8 +1217,8 @@ a.btn-primary { color: var(--on-wine); }
     $("sheet-root").innerHTML = '<div class="sheet-bg" id="sheet-bg"><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-title">' +
       '<div class="sheet-head"><h2 id="sheet-title">Mover: ' + esc(it.titulo) + '</h2><button type="button" class="x" data-close aria-label="Fechar">×</button></div>' +
       '<div class="mv-list">' + order.map(function (o) { return '<div class="mv-row' + (o.id === id ? " me" : "") + '"><span class="h">' + esc(o.hora || "--:--") + "</span>" + esc(o.titulo) + "</div>"; }).join("") + "</div>" +
-      (it.horaFixa ? '<p class="row-sub" style="margin:10px 0 16px"><b>Horário fixo (' + esc(it.hora || "") + ').</b> Esta atividade não sobe nem desce porque o horário não pode mudar (ingresso com hora marcada). Para mudar a ordem, abra as outras atividades e use Subir ou Descer nelas, ou desmarque "Horário fixo" no lápis.</p>' :
-      '<div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 16px"><button type="button" class="btn" data-mvstep="-1"' + (idx <= 0 ? " disabled" : "") + '>↑ Subir</button><button type="button" class="btn" data-mvstep="1"' + (idx >= order.length - 1 ? " disabled" : "") + ">↓ Descer</button></div>") +
+      (it.horaFixa ? '<p class="row-sub" style="margin:10px 0 0"><b>Atenção: ingresso com horário fixo (' + esc(it.hora || "") + ').</b> Se subir ou descer, o horário desta atividade muda junto. Confira se o ingresso permite.</p>' : "") +
+      '<div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 16px"><button type="button" class="btn" data-mvstep="-1"' + (idx <= 0 ? " disabled" : "") + '>↑ Subir</button><button type="button" class="btn" data-mvstep="1"' + (idx >= order.length - 1 ? " disabled" : "") + ">↓ Descer</button></div>" +
       '<div class="form-grid"><div class="field"><label for="mv-day">Mover para o dia</label><select id="mv-day">' + days.map(function (d, i) { return '<option value="' + d + '"' + (d === it.data ? " selected" : "") + ">Dia " + (i + 1) + " · " + esc(fmtDay(d)) + " · " + esc(dayCity(all, d)) + "</option>"; }).join("") + '</select></div>' +
       '<div class="field check-field" style="align-self:end"><input type="checkbox" id="mv-recalc" checked><label for="mv-recalc" style="font-size:14px;color:var(--ink)">Recalcular horários do dia</label></div></div>' +
       '<p class="row-sub" style="margin-top:8px">Com o recálculo, os horários seguem a ordem, somando a duração de cada atividade e o tempo de deslocamento. Atividades com horário fixo (ingresso com hora marcada) não mudam.</p>' +
@@ -2823,8 +2823,8 @@ a.btn-primary { color: var(--on-wine); }
     if (ds.mvstep && sheet && sheet.move) {
       var mid = sheet.move, mit = state.itens[mid], tr = currentTrip(), ord = dayActs(tr, mit.data), ix = ord.findIndex(function (x) { return x.id === mid; });
       var rc = $("mv-recalc") ? $("mv-recalc").checked : true;
-      if (+ds.mvstep < 0 && ix > 0) moveItem(mid, mit.data, ord[ix - 1].id, rc);
-      if (+ds.mvstep > 0 && ix < ord.length - 1) moveItem(mid, mit.data, ord[ix + 2] ? ord[ix + 2].id : null, rc);
+      if (+ds.mvstep < 0 && ix > 0) moveItem(mid, mit.data, ord[ix - 1].id, rc, mid);
+      if (+ds.mvstep > 0 && ix < ord.length - 1) moveItem(mid, mit.data, ord[ix + 2] ? ord[ix + 2].id : null, rc, mid);
       setTimeout(function () { if (sheet && sheet.move === mid) openMove(mid); }, 0);
       return;
     }
