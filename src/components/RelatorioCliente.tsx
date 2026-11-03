@@ -837,48 +837,52 @@ export function RelatorioCliente({ cnpjSugerido }: { cnpjSugerido?: string }) {
     removerSituacao: () => empresa && setCarteira(atualizarEmpresa(carteira, empresa.cnpj, { situacaoFiscal: undefined })),
   };
 
+  // Resumo para o WhatsApp no modelo da Eleven: guias que vencem antes do DAS
+  // vêm primeiro (vencimento mais próximo em cima), valores em negrito (*...*).
   function textoResumo(): string {
     if (!empresa) return '';
+    const rodape = ['', 'O relatório completo segue em PDF.', 'Qualquer dúvida, estou à disposição.', '', '*Eleven Contabilidade & Consultoria*'];
     const linhaFiscal =
       pendenciasFiscais.length > 0
-        ? `- Pendências na Receita Federal/Dívida Ativa: ${pendenciasFiscais.length} débito(s), total atualizado de ${formatarMoeda(totalFiscal)}`
+        ? `* Débitos em aberto na Receita Federal: *${formatarMoeda(totalFiscal)}* (${pendenciasFiscais.length} lançamento(s), com multa e juros)`
         : undefined;
-    const linhasGuias = (competencia?: string) =>
+    const linhaGuia = (g: GuiaMensal) => `* ${g.descricao}: *${formatarMoeda(g.valor)} - vence em ${isoParaBr(g.vencimento)}*`;
+    const guiasAbertas = (competencia?: string) =>
       guiasEmpresa
         .filter((g) => (competencia ? g.competencia === competencia : true) && g.status !== 'pago')
-        .map((g) => `- ${g.descricao}: ${formatarMoeda(g.valor)} - vence em ${isoParaBr(g.vencimento)}`);
+        .sort((x, y) => x.vencimento.localeCompare(y.vencimento));
+
     if (!atual || !indicadores) {
       return [
-        `Olá! Segue a situação fiscal da *${empresa.razaoSocial}*:`,
+        `Segue o resumo fiscal da *${empresa.razaoSocial}*:`,
         '',
-        ...linhasGuias(),
-        linhaFiscal ?? '- Nenhuma pendência de débito na Receita Federal.',
-        '',
-        'O relatório completo segue em PDF. Qualquer dúvida, estou à disposição.',
-        'Eleven Contabilidade & Consultoria',
+        ...guiasAbertas().map(linhaGuia),
+        linhaFiscal ?? '* Débitos em aberto na Receita Federal: nenhum',
+        ...rodape,
       ].join('\n');
     }
+
     const { pendentes, aliquota } = indicadores;
-    const totalPendente = pendentes.reduce((s, a) => s + a.valorDas, 0);
+    const totalPendente = pendentes.reduce((t, a) => t + a.valorDas, 0);
     const situacao =
       pendentes.length === 0
         ? pendenciasFiscais.length > 0
-          ? 'ver pendências abaixo'
+          ? 'ver débitos abaixo'
           : 'em dia'
         : `${pendentes.length} guia(s) sem pagamento confirmado, total de ${formatarMoeda(totalPendente)} (${pendentes.map((a) => a.competencia).join(', ')})`;
+    const vencDas = dataParaIso(vencimentoDas(atual.competencia));
+    const guias = guiasAbertas(atual.competencia);
     return [
-      `Olá! Segue o resumo fiscal da *${empresa.razaoSocial}* - competência ${atual.competencia}:`,
+      `Segue o resumo fiscal da *${empresa.razaoSocial}* - competência ${atual.competencia}:`,
       '',
-      `- Faturamento do mês: ${formatarMoeda(atual.receitaPA)}`,
-      `- Imposto do Simples (DAS): ${formatarMoeda(atual.valorDas)} - vence em ${formatarData(vencimentoDas(atual.competencia))}`,
-      `- Percentual de imposto: ${formatarPercentual(aliquota)} do faturamento`,
-      `- Faturamento dos últimos 12 meses (RBT12): ${formatarMoeda(atual.rbt12)}`,
-      ...linhasGuias(atual.competencia),
-      `- Impostos anteriores: ${situacao}`,
+      ...guias.filter((g) => g.vencimento <= vencDas).map(linhaGuia),
+      `* Faturamento do mês: ${formatarMoeda(atual.receitaPA)}`,
+      `* Imposto do Simples (DAS): *${formatarMoeda(atual.valorDas)} - vence em ${formatarData(vencimentoDas(atual.competencia))}*`,
+      ...guias.filter((g) => g.vencimento > vencDas).map(linhaGuia),
+      `* Percentual de imposto: ${formatarPercentual(aliquota)} do faturamento`,
+      `* Impostos anteriores: ${situacao}`,
       ...(linhaFiscal ? [linhaFiscal] : []),
-      '',
-      'O relatório completo segue em PDF. Qualquer dúvida, estou à disposição.',
-      'Eleven Contabilidade & Consultoria',
+      ...rodape,
     ].join('\n');
   }
 
