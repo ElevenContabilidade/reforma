@@ -358,10 +358,11 @@ function montarLinhas(
       });
     });
   }
-  const ordem = (c: string) => (/^\d{2}\/\d{4}$/.test(c) ? chaveCompetencia(c) : '0000');
-  // DAS primeiro dentro da competência, depois INSS/IRRF, FGTS e demais.
+  // Ordem por vencimento: o mais antigo em cima. Linhas sem vencimento
+  // (ex.: parcelamento informativo) vão para o fim.
+  const venc = (l: LinhaHistorico) => (l.vencimento ? l.vencimento.split('/').reverse().join('-') : '9999-99-99');
   const peso = (l: LinhaHistorico) => (l.apuracao || /^DAS/.test(l.tributo) ? 0 : l.guia?.tipo === 'fgts' ? 2 : 1);
-  return linhas.sort((x, y) => ordem(y.competencia).localeCompare(ordem(x.competencia)) || peso(x) - peso(y) || x.tributo.localeCompare(y.tributo));
+  return linhas.sort((x, y) => venc(x).localeCompare(venc(y)) || peso(x) - peso(y) || x.tributo.localeCompare(y.tributo));
 }
 
 const emAtraso = (l: LinhaHistorico) => l.situacao === 'aberto' || l.situacao === 'nao-confirmado';
