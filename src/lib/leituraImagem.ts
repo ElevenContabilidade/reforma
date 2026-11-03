@@ -1,5 +1,6 @@
 import type { GuiaMensal, StatusPagamento } from './types';
 import { descricaoComposicao, rotuloCodigo } from './guias';
+import { dataParaIso, vencimentoAntecipado } from './relatorio';
 
 /** Função `sample` do runtime de Artifacts (pedir ao Claude). Ausente fora do link publicado. */
 type Sample = {
@@ -91,9 +92,10 @@ export async function lerImagensDeGuias(
   const razaoSocial = resposta.razaoSocial?.trim() || padrao.razaoSocial || '';
   if (!cnpj) return { guias: [], aviso: 'O CNPJ não aparece no print. Selecione a empresa no painel e envie a imagem de novo.' };
 
-  const itens = (resposta.itens ?? []).filter(
-    (i) => /^\d{2}\/\d{4}$/.test(i.competencia ?? '') && dataIso(i.vencimento) && Number(i.valor) > 0,
-  );
+  // Sem vencimento no print: dia 20 do mês seguinte, antecipado se não for dia útil (INSS/IRRF/FGTS).
+  const itens = (resposta.itens ?? [])
+    .filter((i) => /^\d{2}\/\d{4}$/.test(i.competencia ?? '') && Number(i.valor) > 0)
+    .map((i) => (dataIso(i.vencimento) ? i : { ...i, vencimento: dataParaIso(vencimentoAntecipado(i.competencia!)).split('-').reverse().join('/') }));
   if (itens.length === 0) return { guias: [], aviso: 'Nenhum débito identificado na imagem.' };
 
   const grupos = new Map<string, ItemLido[]>();

@@ -131,16 +131,101 @@ export function removerApuracao(lista: CarteiraEmpresa[], cnpj: string, competen
 
 // ---------- Datas e vencimento ----------
 
+/** Domingo de Páscoa (algoritmo de Meeus/Jones/Butcher). */
+function pascoa(ano: number): Date {
+  const a = ano % 19;
+  const b = Math.floor(ano / 100);
+  const c = ano % 100;
+  const d = Math.floor(b / 4);
+  const e = b % 4;
+  const f = Math.floor((b + 8) / 25);
+  const g = Math.floor((b - f + 1) / 3);
+  const h = (19 * a + b - d - g + 15) % 30;
+  const i = Math.floor(c / 4);
+  const k = c % 4;
+  const l = (32 + 2 * e + 2 * i - h - k) % 7;
+  const m = Math.floor((a + 11 * h + 22 * l) / 451);
+  const mes = Math.floor((h + l - 7 * m + 114) / 31);
+  const dia = ((h + l - 7 * m + 114) % 31) + 1;
+  return new Date(ano, mes - 1, dia);
+}
+
+const chaveDia = (d: Date) => `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+const cacheFeriados = new Map<number, Set<string>>();
+
+/**
+ * Dias sem expediente bancário em todo o país: feriados nacionais (Lei 662/1949,
+ * Lei 6.802/1980, Lei 14.759/2023 — Consciência Negra) mais Carnaval (segunda e
+ * terça), Sexta-feira Santa e Corpus Christi. Feriados estaduais e municipais
+ * não entram.
+ */
+function feriados(ano: number): Set<string> {
+  const pronto = cacheFeriados.get(ano);
+  if (pronto) return pronto;
+  const p = pascoa(ano);
+  const somar = (dias: number) => new Date(p.getFullYear(), p.getMonth(), p.getDate() + dias);
+  const datas = [
+    new Date(ano, 0, 1),
+    somar(-48), // Carnaval (segunda)
+    somar(-47), // Carnaval (terça)
+    somar(-2), // Sexta-feira Santa
+    new Date(ano, 3, 21),
+    new Date(ano, 4, 1),
+    somar(60), // Corpus Christi
+    new Date(ano, 8, 7),
+    new Date(ano, 9, 12),
+    new Date(ano, 10, 2),
+    new Date(ano, 10, 15),
+    new Date(ano, 10, 20),
+    new Date(ano, 11, 25),
+  ];
+  const conjunto = new Set(datas.map(chaveDia));
+  cacheFeriados.set(ano, conjunto);
+  return conjunto;
+}
+
+export function ehDiaUtil(d: Date): boolean {
+  return d.getDay() !== 0 && d.getDay() !== 6 && !feriados(d.getFullYear()).has(chaveDia(d));
+}
+
+/** Dia 20 do mês seguinte à competência ("MM/AAAA"). */
+function dia20MesSeguinte(competencia: string): Date {
+  const [mes, ano] = competencia.split('/').map(Number);
+  return new Date(ano, mes, 20); // mês 0-based: "mes" já é o mês seguinte
+}
+
 /**
  * Vencimento do DAS: dia 20 do mês seguinte ao PA (LC 123/2006, art. 21, III).
- * Caindo em sábado/domingo, passa para o próximo dia útil (Res. CGSN 140/2018,
- * art. 40). Feriados nacionais não são considerados.
+ * Sem expediente bancário no dia 20 (fim de semana ou feriado nacional), o
+ * vencimento é PRORROGADO para o próximo dia útil (Res. CGSN 140/2018, art. 40).
  */
 export function vencimentoDas(competencia: string): Date {
-  const [mes, ano] = competencia.split('/').map(Number);
-  const data = new Date(ano, mes, 20); // mês 0-based: "mes" já é o mês seguinte
-  while (data.getDay() === 0 || data.getDay() === 6) data.setDate(data.getDate() + 1);
+  const data = dia20MesSeguinte(competencia);
+  while (!ehDiaUtil(data)) data.setDate(data.getDate() + 1);
   return data;
+}
+
+/**
+ * Vencimento do INSS/IRRF da DCTFWeb e do FGTS Digital: dia 20 do mês seguinte;
+ * se não for dia útil, é ANTECIPADO para o dia útil anterior (Lei 8.212/1991,
+ * art. 30, I, "b"; Lei 8.036/1990, art. 15).
+ */
+export function vencimentoAntecipado(competencia: string): Date {
+  const data = dia20MesSeguinte(competencia);
+  while (!ehDiaUtil(data)) data.setDate(data.getDate() - 1);
+  return data;
+}
+
+/** Último dia útil do mês da competência (parcela do parcelamento do Simples). */
+export function ultimoDiaUtil(competencia: string): Date {
+  const [mes, ano] = competencia.split('/').map(Number);
+  const data = new Date(ano, mes, 0);
+  while (!ehDiaUtil(data)) data.setDate(data.getDate() - 1);
+  return data;
+}
+
+export function dataParaIso(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
 export function formatarData(data: Date): string {

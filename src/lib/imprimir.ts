@@ -12,7 +12,7 @@ const SCRIPT_UMA_PAGINA = `
   function caberEmUmaPagina() {
     var area = document.querySelector('.print-area');
     if (!area) return;
-    var largura = 718, altura = 1040; // 190 x 277 mm a 96 dpi, com folga
+    var largura = 718, altura = 1000; // 190 x 277 mm a 96 dpi (1047 px), com folga para diferenças entre tela e impressão
     // Busca binária pelo maior zoom em que a área cabe na folha (altura e largura).
     function cabe(z) {
       area.style.width = (largura / z) + 'px';

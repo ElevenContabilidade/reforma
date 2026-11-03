@@ -42,6 +42,9 @@ import {
   serieFaturamento,
   situacaoDas,
   SUBLIMITE_ICMS_ISS,
+  dataParaIso,
+  ultimoDiaUtil,
+  vencimentoAntecipado,
   vencimentoDas,
   type SituacaoDas,
 } from '../lib/relatorio';
@@ -551,10 +554,18 @@ function FormGuiaManual({ cnpjPadrao, razaoPadrao, onIncluir }: { cnpjPadrao: st
   const [opcao, setOpcao] = useState<string>('1099');
   const [competencia, setCompetencia] = useState('');
   const [vencimento, setVencimento] = useState('');
+  const [vencEditado, setVencEditado] = useState(false);
   const [valor, setValor] = useState('');
   const [status, setStatus] = useState<StatusPagamento>('nao-informado');
   const [erro, setErro] = useState('');
   const campo = 'rounded-lg border border-stone-300 bg-white px-2.5 py-1.5 text-sm';
+
+  /** Vencimento pela regra do tributo: INSS/IRRF/FGTS antecipam; parcela vence no último dia útil. */
+  function vencimentoPadrao(idOpcao: string, comp: string): string {
+    if (!/^\d{2}\/\d{4}$/.test(comp.trim())) return '';
+    const o = OPCOES_GUIA_MANUAL.find((x) => x.id === idOpcao);
+    return dataParaIso(o?.tipo === 'parcelamento' ? ultimoDiaUtil(comp.trim()) : vencimentoAntecipado(comp.trim()));
+  }
 
   function incluir(e: React.FormEvent) {
     e.preventDefault();
@@ -562,7 +573,8 @@ function FormGuiaManual({ cnpjPadrao, razaoPadrao, onIncluir }: { cnpjPadrao: st
     const v = paraNumero(valor.includes(',') ? valor : valor.replace('.', ','));
     if (!/^\d{2}\.?\d{3}\.?\d{3}/.test(cnpj.trim())) return setErro('Informe o CNPJ (pode ser só a raiz, 8 dígitos).');
     if (!/^\d{2}\/\d{4}$/.test(competencia.trim())) return setErro('Competência no formato MM/AAAA, ex.: 09/2026.');
-    if (!vencimento) return setErro('Informe o vencimento.');
+    const venc = vencimento || vencimentoPadrao(opcao, competencia);
+    if (!venc) return setErro('Informe o vencimento.');
     if (!(v > 0)) return setErro('Informe o valor, ex.: 356,62.');
     setErro('');
     onIncluir({
@@ -572,7 +584,7 @@ function FormGuiaManual({ cnpjPadrao, razaoPadrao, onIncluir }: { cnpjPadrao: st
       razaoSocial: razao.trim(),
       descricao: o.descricao,
       competencia: competencia.trim(),
-      vencimento,
+      vencimento: venc,
       valor: v,
       composicao: [{ codigo: o.codigo, denominacao: o.denominacao, valor: v }],
       status,
@@ -594,7 +606,15 @@ function FormGuiaManual({ cnpjPadrao, razaoPadrao, onIncluir }: { cnpjPadrao: st
         </label>
         <label className="flex flex-col gap-1">
           <span className="text-xs text-stone-500">Tributo</span>
-          <select id="gm-tributo" className={campo} value={opcao} onChange={(e) => setOpcao(e.target.value)}>
+          <select
+            id="gm-tributo"
+            className={campo}
+            value={opcao}
+            onChange={(e) => {
+              setOpcao(e.target.value);
+              if (!vencEditado) setVencimento(vencimentoPadrao(e.target.value, competencia));
+            }}
+          >
             {OPCOES_GUIA_MANUAL.map((o) => (
               <option key={o.id} value={o.id}>
                 {o.descricao}
@@ -605,11 +625,29 @@ function FormGuiaManual({ cnpjPadrao, razaoPadrao, onIncluir }: { cnpjPadrao: st
         </label>
         <label className="flex flex-col gap-1">
           <span className="text-xs text-stone-500">Competência</span>
-          <input id="gm-comp" className={campo} value={competencia} onChange={(e) => setCompetencia(e.target.value)} placeholder="09/2026" />
+          <input
+            id="gm-comp"
+            className={campo}
+            value={competencia}
+            onChange={(e) => {
+              setCompetencia(e.target.value);
+              if (!vencEditado) setVencimento(vencimentoPadrao(opcao, e.target.value));
+            }}
+            placeholder="09/2026"
+          />
         </label>
         <label className="flex flex-col gap-1">
-          <span className="text-xs text-stone-500">Vencimento</span>
-          <input id="gm-venc" type="date" className={campo} value={vencimento} onChange={(e) => setVencimento(e.target.value)} />
+          <span className="text-xs text-stone-500">Vencimento (calculado; pode alterar)</span>
+          <input
+            id="gm-venc"
+            type="date"
+            className={campo}
+            value={vencimento}
+            onChange={(e) => {
+              setVencimento(e.target.value);
+              setVencEditado(Boolean(e.target.value));
+            }}
+          />
         </label>
         <label className="flex flex-col gap-1">
           <span className="text-xs text-stone-500">Valor (R$)</span>
