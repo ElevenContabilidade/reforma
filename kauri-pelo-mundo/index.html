@@ -1996,7 +1996,8 @@ a.btn-primary { color: var(--on-wine); }
     { g: "Voos e passagens", ids: ["reservas", "greves"], checkin: true },
     { g: "Dinheiro e cartões", ids: ["cartoes", "receita"] },
     { g: "Celular e apps", ids: ["chip", "apps", "mapas-offline", "guia-offline", "adaptador"] },
-    { g: "Mala e casa", ids: ["mala-mao", "mala-looks", "contas-casa"] }
+    { g: "Mala e casa", ids: ["mala-mao", "mala-looks", "contas-casa"] },
+    { g: "Itens que não posso esquecer", ids: [] }
   ];
   function ckDef(id) { return CHECK.filter(function (c) { return c.id === id; })[0] || CK_EXTRA[id]; }
   function ckOn(trip, id) { return !!(state.checklist[trip.id + "_" + id] || {}).feito; }
