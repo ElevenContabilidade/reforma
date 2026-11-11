@@ -1006,16 +1006,26 @@ export function RelatorioCliente({ cnpjSugerido }: { cnpjSugerido?: string }) {
         ? `* Débitos em aberto na Receita Federal: *${formatarMoeda(totalFiscal)}* (${pendenciasFiscais.length} lançamento(s), com multa e juros)`
         : undefined;
     const linhaGuia = (g: GuiaMensal) => `* ${g.descricao}: *${formatarMoeda(g.valor)} - vence em ${isoParaBr(g.vencimento)}*`;
-    const guiasAbertas = (competencia?: string) =>
-      guiasEmpresa
-        .filter((g) => (competencia ? g.competencia === competencia : true) && g.status !== 'pago')
+    // Guias da competência e as que vencem no mês de pagamento (ex.: parcela de
+    // parcelamento, que vence no último dia útil do mês seguinte à competência).
+    const guiasAbertas = (competencia?: string) => {
+      const mesPagamento = competencia ? competenciaSeguinte(competencia).split('/').reverse().join('-') : '';
+      return guiasEmpresa
+        .filter((g) => (competencia ? g.competencia === competencia || g.vencimento.startsWith(mesPagamento) : true) && g.status !== 'pago')
         .sort((x, y) => x.vencimento.localeCompare(y.vencimento));
+    };
+    // Parcelamento da Situação Fiscal ainda sem parcela lançada: avisa que está em andamento.
+    const ocultos = empresa.parcelamentosOcultos ?? [];
+    const linhasParcelamentoSemParcela = (situacaoFiscal?.parcelamentos ?? [])
+      .filter((pc) => !ocultos.includes(pc.sistema) && !guiasEmpresa.some((g) => g.sistemaParcelamento === pc.sistema))
+      .map((pc) => `* Parcelamento ${pc.sistema}: em andamento (parcela mensal)`);
 
     if (!atual || !indicadores) {
       return [
         `Segue o resumo fiscal da *${empresa.razaoSocial}*:`,
         '',
         ...guiasAbertas().map(linhaGuia),
+        ...linhasParcelamentoSemParcela,
         linhaFiscal ?? '* Débitos em aberto na Receita Federal: nenhum',
         ...rodape,
       ].join('\n');
@@ -1038,6 +1048,7 @@ export function RelatorioCliente({ cnpjSugerido }: { cnpjSugerido?: string }) {
       `* Faturamento do mês: ${formatarMoeda(atual.receitaPA)}`,
       `* Imposto do Simples (DAS): *${formatarMoeda(atual.valorDas)} - vence em ${formatarData(vencimentoDas(atual.competencia))}*`,
       ...guias.filter((g) => g.vencimento > vencDas).map(linhaGuia),
+      ...linhasParcelamentoSemParcela,
       `* Percentual de imposto: ${formatarPercentual(aliquota)} do faturamento`,
       `* Impostos anteriores: ${situacao}`,
       ...(linhaFiscal ? [linhaFiscal] : []),
