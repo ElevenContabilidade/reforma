@@ -126,6 +126,7 @@ export interface CarteiraEmpresa {
   apuracoes: ApuracaoPgdas[];
   situacaoFiscal?: SituacaoFiscal;
   guias?: GuiaMensal[];
+  parcelamentosOcultos?: string[]; // sistemas de parcelamento que a contabilidade excluiu do relatório
 }
 
 /** Débito listado no Relatório de Situação Fiscal (e-CAC). */
@@ -163,6 +164,7 @@ export interface GuiaMensal {
   valor: number;
   composicao: { codigo: string; denominacao: string; valor: number }[];
   trabalhadores?: number;
+  sistemaParcelamento?: string; // parcela ligada a um parcelamento da Situação Fiscal (ex.: "SIEFPAR")
   status: StatusPagamento;
   dataPagamento?: string; // AAAA-MM-DD
 }

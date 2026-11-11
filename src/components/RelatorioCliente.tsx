@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
   Bar,
   BarChart,
@@ -15,7 +15,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import { AlertTriangle, CircleCheck, Copy, FileUp, Loader2, MessageCircle, Printer, Trash2 } from 'lucide-react';
+import { AlertTriangle, CircleCheck, Copy, FileUp, Loader2, MessageCircle, Pencil, Printer, Trash2 } from 'lucide-react';
 import type { AnexoSimples, ApuracaoPgdas, CarteiraEmpresa, GuiaMensal, ParcelamentoFiscal, PendenciaFiscal, SituacaoFiscal, StatusPagamento } from '../lib/types';
 import { TRIBUTOS_DAS } from '../lib/types';
 import { lerTextoPdf } from '../lib/pgdasParser';
@@ -228,9 +228,19 @@ interface LinhaHistorico {
   apuracao?: ApuracaoPgdas;
   guia?: GuiaMensal;
   pendencia?: PendenciaFiscal;
+  parcelamento?: ParcelamentoFiscal; // linha informativa de parcelamento (ainda sem parcela lançada)
+}
+
+/** Dados editáveis de uma guia/parcela na própria tabela do histórico. */
+interface DadosEdicao {
+  descricao: string;
+  competencia: string;
+  vencimento: string; // AAAA-MM-DD
+  valor: number;
 }
 
 interface AcoesHistorico {
+  editar: (l: LinhaHistorico, dados: DadosEdicao) => void;
   status: (l: LinhaHistorico, s: StatusPagamento) => void;
   dataPagamento: (l: LinhaHistorico, d: string) => void;
   remover: (l: LinhaHistorico) => void;
@@ -259,6 +269,7 @@ function montarLinhas(
   guias: GuiaMensal[],
   pendencias: PendenciaFiscal[],
   parcelamentos: ParcelamentoFiscal[] = [],
+  parcelamentosOcultos: string[] = [],
 ): LinhaHistorico[] {
   const usadas = new Set<PendenciaFiscal>();
   const linhas: LinhaHistorico[] = apuracoes.map((a) => {
@@ -343,9 +354,10 @@ function montarLinhas(
       }),
     );
   // Parcelamento em andamento (a Situação Fiscal não traz o valor da parcela):
-  // linha informativa, só enquanto nenhuma parcela foi enviada ou lançada.
-  if (!guias.some((g) => g.tipo === 'parcelamento')) {
-    parcelamentos.forEach((pc, i) => {
+  // linha informativa, editável, enquanto não houver parcela lançada para ele.
+  parcelamentos
+    .filter((pc) => !parcelamentosOcultos.includes(pc.sistema) && !guias.some((g) => g.sistemaParcelamento === pc.sistema))
+    .forEach((pc, i) => {
       const nome = pc.descricao.replace(/ - EM PARCELAMENTO$/i, '').toLowerCase().replace(/(^|\s)\S/g, (c) => c.toUpperCase());
       linhas.push({
         chave: `parc-${i}`,
@@ -355,9 +367,9 @@ function montarLinhas(
         detalhe: pc.orgao === 'pgfn' ? 'Na Dívida Ativa (PGFN)' : 'Parcela mensal paga por DAS próprio do parcelamento',
         total: 0,
         situacao: 'parcelado',
+        parcelamento: pc,
       });
     });
-  }
   // Ordem por vencimento: o mais antigo em cima. Linhas sem vencimento
   // (ex.: parcelamento informativo) vão para o fim.
   const venc = (l: LinhaHistorico) => (l.vencimento ? l.vencimento.split('/').reverse().join('-') : '9999-99-99');
@@ -369,7 +381,17 @@ const emAtraso = (l: LinhaHistorico) => l.situacao === 'aberto' || l.situacao ==
 
 /** Quadro "a pagar": guias da competência do relatório ainda não pagas + tudo que está em atraso. */
 function QuadroAPagar({ linhas, competencia }: { linhas: LinhaHistorico[]; competencia: string }) {
-  const doMes = linhas.filter((l) => l.competencia === competencia && l.situacao !== 'pago' && l.situacao !== 'parcelado' && !emAtraso(l));
+  // Do mês: competência do relatório ou vencimento no mês de pagamento (mês seguinte), ex.: parcela que vence no último dia útil.
+  const mesPagamento = /^\d{2}\/\d{4}$/.test(competencia) ? competenciaSeguinte(competencia).split('/').reverse().join('-') : '';
+  const vencIso = (l: LinhaHistorico) => (l.vencimento ? l.vencimento.split('/').reverse().join('-') : '');
+  const doMes = linhas.filter(
+    (l) =>
+      !l.informativo &&
+      (l.competencia === competencia || (mesPagamento !== '' && vencIso(l).startsWith(mesPagamento))) &&
+      l.situacao !== 'pago' &&
+      l.situacao !== 'parcelado' &&
+      !emAtraso(l),
+  );
   const atrasadas = linhas.filter(emAtraso);
   if (doMes.length === 0 && atrasadas.length === 0) return null;
   const totalAtraso = atrasadas.reduce((t, l) => t + l.total, 0);
@@ -402,6 +424,75 @@ function QuadroAPagar({ linhas, competencia }: { linhas: LinhaHistorico[]; compe
   );
 }
 
+/** "10/2026" -> "11/2026" */
+function competenciaSeguinte(competencia: string): string {
+  const [mes, ano] = competencia.split('/').map(Number);
+  const d = new Date(ano, mes, 1);
+  return `${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+}
+
+/** Edição, na própria tabela, do nome, competência, vencimento e valor de uma guia ou parcela. */
+function EditorGuia({
+  linha,
+  competenciaRelatorio,
+  onSalvar,
+  onCancelar,
+}: {
+  linha: LinhaHistorico;
+  competenciaRelatorio: string;
+  onSalvar: (d: DadosEdicao) => void;
+  onCancelar: () => void;
+}) {
+  const g = linha.guia;
+  // Parcela nova: vence no último dia útil do mês em que o cliente paga (mês seguinte à competência do relatório).
+  const hoje = new Date();
+  const mesAtual = `${String(hoje.getMonth() + 1).padStart(2, '0')}/${hoje.getFullYear()}`;
+  const compPadrao = g?.competencia ?? (/^\d{2}\/\d{4}$/.test(competenciaRelatorio) ? competenciaSeguinte(competenciaRelatorio) : mesAtual);
+  const [descricao, setDescricao] = useState(g?.descricao ?? linha.tributo);
+  const [competencia, setCompetencia] = useState(compPadrao);
+  const [vencimento, setVencimento] = useState(g?.vencimento ?? (compPadrao ? dataParaIso(ultimoDiaUtil(compPadrao)) : ''));
+  const [valor, setValor] = useState(g ? g.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) : '');
+  const [erro, setErro] = useState('');
+  const campo = 'rounded border border-stone-300 bg-white px-2 py-1 text-xs';
+
+  function salvar() {
+    const v = paraNumero(valor.includes(',') ? valor : valor.replace('.', ','));
+    if (!descricao.trim()) return setErro('Informe o nome.');
+    if (!/^\d{2}\/\d{4}$/.test(competencia.trim())) return setErro('Competência no formato MM/AAAA.');
+    if (!vencimento) return setErro('Informe o vencimento.');
+    if (!(v > 0)) return setErro('Informe o valor da parcela.');
+    onSalvar({ descricao: descricao.trim(), competencia: competencia.trim(), vencimento, valor: v });
+  }
+
+  return (
+    <div className="flex flex-wrap items-end gap-2 rounded-lg bg-stone-50 p-2">
+      <label className="flex min-w-[220px] flex-1 flex-col gap-0.5">
+        <span className="text-[10px] text-stone-500">Nome</span>
+        <input className={campo} value={descricao} onChange={(e) => setDescricao(e.target.value)} />
+      </label>
+      <label className="flex w-24 flex-col gap-0.5">
+        <span className="text-[10px] text-stone-500">Competência</span>
+        <input className={campo} value={competencia} onChange={(e) => setCompetencia(e.target.value)} placeholder="11/2026" />
+      </label>
+      <label className="flex flex-col gap-0.5">
+        <span className="text-[10px] text-stone-500">Vencimento</span>
+        <input type="date" className={campo} value={vencimento} onChange={(e) => setVencimento(e.target.value)} />
+      </label>
+      <label className="flex w-28 flex-col gap-0.5">
+        <span className="text-[10px] text-stone-500">Valor da parcela (R$)</span>
+        <input className={campo} value={valor} onChange={(e) => setValor(e.target.value)} placeholder="0,00" inputMode="decimal" />
+      </label>
+      <button onClick={salvar} className="rounded bg-brand-600 px-3 py-1 text-xs font-medium text-white hover:bg-brand-700">
+        Salvar
+      </button>
+      <button onClick={onCancelar} className="rounded border border-stone-300 px-3 py-1 text-xs text-stone-600 hover:bg-white">
+        Cancelar
+      </button>
+      {erro && <span className="text-xs text-rose-700">{erro}</span>}
+    </div>
+  );
+}
+
 function SecaoHistorico({
   linhas,
   competenciaDestaque,
@@ -414,6 +505,7 @@ function SecaoHistorico({
   acoes: AcoesHistorico;
 }) {
   const linhasHistorico = linhas;
+  const [editando, setEditando] = useState<string | null>(null);
   const totalEmAberto = linhas.filter(emAtraso).reduce((t, l) => t + l.total, 0);
   return (
             <Secao titulo="Histórico de apurações e pagamentos">
@@ -437,8 +529,10 @@ function SecaoHistorico({
           <tbody>
             {linhasHistorico.map((l) => {
               const a = l.apuracao;
+              const editavel = Boolean(l.guia || l.parcelamento);
               return (
-                <tr key={l.chave} className={`border-b border-stone-100 last:border-0 ${l.competencia === competenciaDestaque && (a || l.guia) ? 'bg-gold-50' : ''}`}>
+                <Fragment key={l.chave}>
+                <tr className={`border-b border-stone-100 last:border-0 ${l.competencia === competenciaDestaque && (a || l.guia) ? 'bg-gold-50' : ''}`}>
                   <td className="py-2 impresso:py-1 font-medium text-stone-800 impresso:whitespace-normal">
                     {l.competencia}
                     {a?.retificadora && <span className="ml-1 text-[10px] text-stone-400">(retificada)</span>}
@@ -466,9 +560,18 @@ function SecaoHistorico({
                     )}
                   </td>
                   <td className="no-print py-2">
-                    {(a || l.guia) && (
+                    {(a || l.guia || l.parcelamento) && (
                       <div className="flex items-center justify-end gap-1.5">
-                        {!(l.pendencia && pendenciaVencida(l.pendencia)) && (
+                        {editavel && (
+                          <button
+                            onClick={() => setEditando(editando === l.chave ? null : l.chave)}
+                            className="rounded p-1 text-stone-400 transition hover:bg-stone-100 hover:text-brand-700"
+                            title={l.parcelamento ? 'Lançar a parcela (nome, valor e vencimento)' : 'Editar nome, valor e vencimento'}
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </button>
+                        )}
+                        {!l.parcelamento && !(l.pendencia && pendenciaVencida(l.pendencia)) && (
                           <>
                             <select
                               className="rounded border border-stone-300 bg-white px-1.5 py-1 text-xs"
@@ -502,6 +605,22 @@ function SecaoHistorico({
                     )}
                   </td>
                 </tr>
+                {editando === l.chave && (
+                  <tr className="no-print">
+                    <td colSpan={10} className="pb-2">
+                      <EditorGuia
+                        linha={l}
+                        competenciaRelatorio={competenciaDestaque}
+                        onCancelar={() => setEditando(null)}
+                        onSalvar={(d) => {
+                          acoes.editar(l, d);
+                          setEditando(null);
+                        }}
+                      />
+                    </td>
+                  </tr>
+                )}
+                </Fragment>
               );
             })}
           </tbody>
@@ -811,6 +930,37 @@ export function RelatorioCliente({ cnpjSugerido }: { cnpjSugerido?: string }) {
   }, [apuracoes, atual, devedoras]);
 
   const acoesHistorico: AcoesHistorico = {
+    editar: (l, d) => {
+      if (!empresa) return;
+      if (l.guia) {
+        const comp = l.guia.composicao;
+        setCarteira(
+          atualizarGuia(carteira, empresa.cnpj, l.guia.id, {
+            ...d,
+            composicao: comp.length === 1 ? [{ ...comp[0], valor: d.valor }] : comp,
+          }),
+        );
+      } else if (l.parcelamento) {
+        const sistema = l.parcelamento.sistema;
+        setCarteira(
+          incluirGuias(carteira, [
+            {
+              id: `parc-${sistema}-${d.competencia}`,
+              tipo: 'parcelamento',
+              cnpj: empresa.cnpj,
+              razaoSocial: empresa.razaoSocial,
+              descricao: d.descricao,
+              competencia: d.competencia,
+              vencimento: d.vencimento,
+              valor: d.valor,
+              composicao: [{ codigo: `PARC-${sistema}`, denominacao: 'Parcela do parcelamento', valor: d.valor }],
+              sistemaParcelamento: sistema,
+              status: 'nao-informado',
+            },
+          ]),
+        );
+      }
+    },
     status: (l, status) => {
       if (!empresa) return;
       if (l.apuracao) setCarteira(atualizarApuracao(carteira, empresa.cnpj, l.apuracao.competencia, { status }));
@@ -824,8 +974,16 @@ export function RelatorioCliente({ cnpjSugerido }: { cnpjSugerido?: string }) {
     },
     remover: (l) => {
       if (!empresa) return;
+      const ocultar = (lista: CarteiraEmpresa[], sistema: string) =>
+        atualizarEmpresa(lista, empresa.cnpj, { parcelamentosOcultos: [...new Set([...(empresa.parcelamentosOcultos ?? []), sistema])] });
+      if (l.parcelamento) {
+        setCarteira(ocultar(carteira, l.parcelamento.sistema));
+        return;
+      }
       if (l.guia) {
-        setCarteira(removerGuia(carteira, empresa.cnpj, l.guia.id));
+        const semGuia = removerGuia(carteira, empresa.cnpj, l.guia.id);
+        // Excluir a parcela de um parcelamento exclui o parcelamento do relatório (não volta a linha informativa).
+        setCarteira(l.guia.sistemaParcelamento ? ocultar(semGuia, l.guia.sistemaParcelamento) : semGuia);
         return;
       }
       if (!l.apuracao) return;
@@ -1100,7 +1258,7 @@ export function RelatorioCliente({ cnpjSugerido }: { cnpjSugerido?: string }) {
 
   if (!atual || !indicadores) {
     // Empresa sem PGDAS enviado: só guias e/ou Situação Fiscal.
-    const linhas = montarLinhas([], guiasEmpresa, todasPendencias, situacaoFiscal?.parcelamentos);
+    const linhas = montarLinhas([], guiasEmpresa, todasPendencias, situacaoFiscal?.parcelamentos, empresa.parcelamentosOcultos);
     const competenciaRef =
       linhas
         .map((l) => l.competencia)
@@ -1151,7 +1309,7 @@ export function RelatorioCliente({ cnpjSugerido }: { cnpjSugerido?: string }) {
   const totalPendente = pendentes.reduce((s, a) => s + a.valorDas, 0);
   const historico = [...anteriores].reverse().slice(0, 12);
 
-  const linhasHistorico = montarLinhas(historico, guiasEmpresa.filter((g) => chaveCompetencia(g.competencia) <= chaveCompetencia(atual.competencia)), todasPendencias, situacaoFiscal?.parcelamentos);
+  const linhasHistorico = montarLinhas(historico, guiasEmpresa.filter((g) => chaveCompetencia(g.competencia) <= chaveCompetencia(atual.competencia)), todasPendencias, situacaoFiscal?.parcelamentos, empresa.parcelamentosOcultos);
   const atrasadasHistorico = linhasHistorico.filter(emAtraso);
 
   const alertas: string[] = [];
