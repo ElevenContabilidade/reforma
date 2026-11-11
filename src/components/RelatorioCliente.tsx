@@ -1309,7 +1309,14 @@ export function RelatorioCliente({ cnpjSugerido }: { cnpjSugerido?: string }) {
   const totalPendente = pendentes.reduce((s, a) => s + a.valorDas, 0);
   const historico = [...anteriores].reverse().slice(0, 12);
 
-  const linhasHistorico = montarLinhas(historico, guiasEmpresa.filter((g) => chaveCompetencia(g.competencia) <= chaveCompetencia(atual.competencia)), todasPendencias, situacaoFiscal?.parcelamentos, empresa.parcelamentosOcultos);
+  // Guias até a competência do relatório e também as que vencem até o fim do mês
+  // de pagamento (ex.: parcela de parcelamento da competência seguinte, vencendo
+  // no último dia útil do mês em que o cliente paga o DAS).
+  const fimMesPagamento = `${competenciaSeguinte(atual.competencia).split('/').reverse().join('-')}-31`;
+  const guiasDoRelatorio = guiasEmpresa.filter(
+    (g) => chaveCompetencia(g.competencia) <= chaveCompetencia(atual.competencia) || g.vencimento <= fimMesPagamento,
+  );
+  const linhasHistorico = montarLinhas(historico, guiasDoRelatorio, todasPendencias, situacaoFiscal?.parcelamentos, empresa.parcelamentosOcultos);
   const atrasadasHistorico = linhasHistorico.filter(emAtraso);
 
   const alertas: string[] = [];
